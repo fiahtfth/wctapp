@@ -28,91 +28,84 @@ import type { Question } from '@/lib/database/queries';
 
 const formatQuestion = (questionText: string): React.ReactNode => {
     if (!questionText) return null;
-    
+
     const lines = questionText.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
     const formattedParts: React.ReactNode[] = [];
     
-    let statements: string[] = [];
+    let statements: { text: string, index: number }[] = [];
     let questionPart = '';
-    let options: string[] = [];
+    let options: { text: string, index: number }[] = [];
     let currentSection: 'intro' | 'statements' | 'question' | 'options' = 'intro';
     
-    lines.forEach(line => {
+    lines.forEach((line, lineIndex) => {
         if (line.toLowerCase().includes('consider the following statements')) {
-            formattedParts.push(<Box key="intro" sx={{ mb: 0.5 }}>{line}</Box>);
+            formattedParts.push(
+                <Box key={`intro-${lineIndex}`} sx={{ mb: 0.5 }}>
+                    {line}
+                </Box>
+            );
             currentSection = 'statements';
         } else if (line.match(/^\d+\./)) {
             if (currentSection !== 'statements') {
                 currentSection = 'statements';
             }
-            statements.push(line);
+            statements.push({ text: line, index: lineIndex });
         } else if (line.match(/^\([a-d]\)/i)) {
             if (currentSection !== 'options') {
                 // Add the question part before starting options
                 if (questionPart) {
                     formattedParts.push(
-                        <Box key="question" sx={{ my: 0.5 }}>{questionPart.trim()}</Box>
+                        <Box key={`question-${lineIndex}`} sx={{ my: 0.5 }}>
+                            {questionPart.trim()}
+                        </Box>
                     );
                     questionPart = '';
                 }
                 currentSection = 'options';
             }
-            options.push(line);
+            options.push({ text: line, index: lineIndex });
         } else if (line.toLowerCase().includes('which') || line.toLowerCase().includes('what') || line.toLowerCase().includes('select')) {
-            // If we were in statements, add them first
-            if (statements.length > 0) {
-                formattedParts.push(
-                    <Box key="statements" sx={{ ml: 1 }}>
-                        {statements.map((stmt, idx) => (
-                            <Box key={idx} sx={{ mb: 0.25 }}>{stmt}</Box>
-                        ))}
-                    </Box>
-                );
-                statements = [];
-            }
-            currentSection = 'question';
-            questionPart = line;
+            questionPart += line + ' ';
         } else {
-            switch (currentSection) {
-                case 'statements':
-                    statements.push(line);
-                    break;
-                case 'options':
-                    options.push(line);
-                    break;
-                case 'question':
-                    questionPart += ' ' + line;
-                    break;
-                default:
-                    formattedParts.push(<Box key={`intro-${line}`}>{line}</Box>);
-            }
+            // Fallback for other lines
+            formattedParts.push(
+                <Box key={`line-${lineIndex}`} sx={{ my: 0.25 }}>
+                    {line}
+                </Box>
+            );
         }
     });
 
-    // Add any remaining statements
+    // Add statements if any
     if (statements.length > 0) {
         formattedParts.push(
-            <Box key="statements" sx={{ ml: 1 }}>
-                {statements.map((stmt, idx) => (
-                    <Box key={idx} sx={{ mb: 0.25 }}>{stmt}</Box>
+            <Box key="statements-container" sx={{ ml: 1 }}>
+                {statements.map((stmt) => (
+                    <Box key={`statement-${stmt.index}`} sx={{ mb: 0.25 }}>
+                        {stmt.text}
+                    </Box>
                 ))}
             </Box>
         );
     }
 
-    // Add any remaining question part
+    // Add question part if any
     if (questionPart) {
         formattedParts.push(
-            <Box key="question" sx={{ my: 0.5 }}>{questionPart.trim()}</Box>
+            <Box key={`question-final`} sx={{ my: 0.5 }}>
+                {questionPart.trim()}
+            </Box>
         );
     }
 
-    // Add options
+    // Add options if any
     if (options.length > 0) {
         formattedParts.push(
-            <Box key="options" sx={{ ml: 1 }}>
-                {options.map((opt, idx) => (
-                    <Box key={idx} sx={{ mb: 0.25 }}>{opt}</Box>
+            <Box key="options-container" sx={{ ml: 1 }}>
+                {options.map((opt) => (
+                    <Box key={`option-${opt.index}`} sx={{ mb: 0.25 }}>
+                        {opt.text}
+                    </Box>
                 ))}
             </Box>
         );
