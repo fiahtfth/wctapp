@@ -26,100 +26,37 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import PreviewIcon from '@mui/icons-material/Preview';
 import type { Question } from '@/lib/database/queries';
 
-const formatQuestion = (questionText: string): React.ReactNode => {
-    if (!questionText) return null;
-    
-    const lines = questionText.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
-    const formattedParts: React.ReactNode[] = [];
-    
-    let statements: string[] = [];
-    let questionPart = '';
-    let options: string[] = [];
-    let currentSection: 'intro' | 'statements' | 'question' | 'options' = 'intro';
-    
-    lines.forEach(line => {
-        if (line.toLowerCase().includes('consider the following statements')) {
-            formattedParts.push(<Box key="intro" sx={{ mb: 0.5 }}>{line}</Box>);
-            currentSection = 'statements';
-        } else if (line.match(/^\d+\./)) {
-            if (currentSection !== 'statements') {
-                currentSection = 'statements';
-            }
-            statements.push(line);
-        } else if (line.match(/^\([a-d]\)/i)) {
-            if (currentSection !== 'options') {
-                // Add the question part before starting options
-                if (questionPart) {
-                    formattedParts.push(
-                        <Box key="question" sx={{ my: 0.5 }}>{questionPart.trim()}</Box>
-                    );
-                    questionPart = '';
-                }
-                currentSection = 'options';
-            }
-            options.push(line);
-        } else if (line.toLowerCase().includes('which') || line.toLowerCase().includes('what') || line.toLowerCase().includes('select')) {
-            // If we were in statements, add them first
-            if (statements.length > 0) {
-                formattedParts.push(
-                    <Box key="statements" sx={{ ml: 1 }}>
-                        {statements.map((stmt, idx) => (
-                            <Box key={idx} sx={{ mb: 0.25 }}>{stmt}</Box>
-                        ))}
-                    </Box>
+function formatQuestion(questionText: string): React.ReactNode {
+    // Remove any potential HTML tags to prevent hydration errors
+    const sanitizedText = questionText.replace(/<[^>]*>/g, '');
+
+    // Split the question into parts
+    const parts = sanitizedText.split(/(\d+\.\s*|\((?:a|b|c|d)\)\s*)/);
+
+    return (
+        <React.Fragment>
+            {parts.map((part, index) => {
+                // Check if the part is a statement or an option
+                const isSeparator = /(\d+\.\s*|\((?:a|b|c|d)\)\s*)/.test(part);
+                
+                return (
+                    <Typography 
+                        key={index} 
+                        variant="body1" 
+                        component="span" 
+                        sx={{ 
+                            display: 'block', 
+                            mb: isSeparator ? 0.5 : 0,
+                            fontWeight: isSeparator ? 'bold' : 'normal'
+                        }}
+                    >
+                        {part.trim()}
+                    </Typography>
                 );
-                statements = [];
-            }
-            currentSection = 'question';
-            questionPart = line;
-        } else {
-            switch (currentSection) {
-                case 'statements':
-                    statements.push(line);
-                    break;
-                case 'options':
-                    options.push(line);
-                    break;
-                case 'question':
-                    questionPart += ' ' + line;
-                    break;
-                default:
-                    formattedParts.push(<Box key={`intro-${line}`}>{line}</Box>);
-            }
-        }
-    });
-
-    // Add any remaining statements
-    if (statements.length > 0) {
-        formattedParts.push(
-            <Box key="statements" sx={{ ml: 1 }}>
-                {statements.map((stmt, idx) => (
-                    <Box key={idx} sx={{ mb: 0.25 }}>{stmt}</Box>
-                ))}
-            </Box>
-        );
-    }
-
-    // Add any remaining question part
-    if (questionPart) {
-        formattedParts.push(
-            <Box key="question" sx={{ my: 0.5 }}>{questionPart.trim()}</Box>
-        );
-    }
-
-    // Add options
-    if (options.length > 0) {
-        formattedParts.push(
-            <Box key="options" sx={{ ml: 1 }}>
-                {options.map((opt, idx) => (
-                    <Box key={idx} sx={{ mb: 0.25 }}>{opt}</Box>
-                ))}
-            </Box>
-        );
-    }
-
-    return <>{formattedParts}</>;
-};
+            })}
+        </React.Fragment>
+    );
+}
 
 interface QuestionCardProps {
     question: Question;
