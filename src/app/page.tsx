@@ -30,7 +30,7 @@ import QuestionList from '@/components/QuestionList';
 import { addQuestionToCart, getCartItems } from '@/lib/actions';
 
 export default function Home() {
-    const [testId] = useState(uuidv4());
+    const [testId] = useState("home-question-list");
     const [cartCount, setCartCount] = useState(0);
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const [filters, setFilters] = useState<{
@@ -286,7 +286,7 @@ export default function Home() {
                             onFilterChange={(newFilters) => {
                                 setFilters(newFilters);
                             }}
-                            testId={testId}
+                            testId={"home-question-list"}
                         />
                     </Paper>
                 </Container>

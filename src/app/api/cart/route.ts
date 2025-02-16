@@ -6,22 +6,30 @@ export async function POST(request: NextRequest) {
     try {
         // Get the request body
         const body = await request.json();
-        const { questionId } = body;
+        const { questionId, testId } = body;
+
+        // Validate input
+        if (!questionId) {
+            return NextResponse.json(
+                { error: 'Question ID is required' }, 
+                { status: 400 }
+            );
+        }
 
         // Generate a test ID if not provided
-        const testId = uuidv4();
+        const finalTestId = testId || uuidv4();
 
         // Add question to cart
-        const result = await addQuestionToCart(questionId, testId);
+        const result = await addQuestionToCart(questionId, finalTestId);
 
         return NextResponse.json({ 
             success: result, 
-            testId 
+            testId: finalTestId 
         }, { status: 200 });
     } catch (error) {
         console.error('Error adding question to cart:', error);
         return NextResponse.json(
-            { error: 'Failed to add question to cart' }, 
+            { error: error instanceof Error ? error.message : 'Failed to add question to cart' }, 
             { status: 500 }
         );
     }
@@ -38,7 +46,7 @@ export async function GET(request: NextRequest) {
         if (!testId) {
             console.error('GET /api/cart: No test ID provided');
             return NextResponse.json(
-                { error: 'Test ID is required' }, 
+                { error: 'Test ID is required', questions: [] }, 
                 { status: 400 }
             );
         }
@@ -46,32 +54,17 @@ export async function GET(request: NextRequest) {
         // Retrieve cart questions
         const cartQuestions = await getCartQuestions(testId);
 
-        // If no questions in cart, return a specific response
-        if (cartQuestions.length === 0) {
-            console.log(`No questions found in cart for test ID: ${testId}`);
-            return NextResponse.json(
-                { 
-                    message: 'No questions in cart', 
-                    data: [] 
-                }, 
-                { status: 200 }
-            );
-        }
-
-        console.log(`Retrieved ${cartQuestions.length} cart questions for test ID: ${testId}`);
-
-        return NextResponse.json(cartQuestions, { status: 200 });
+        // Always return a valid response
+        return NextResponse.json({
+            questions: cartQuestions,
+            count: cartQuestions.length
+        }, { status: 200 });
     } catch (error) {
-        console.error('Full error in GET /api/cart:', {
-            error,
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            errorStack: error instanceof Error ? error.stack : 'No stack trace'
-        });
-
+        console.error('Error retrieving cart questions:', error);
         return NextResponse.json(
             { 
-                error: 'Failed to retrieve cart questions', 
-                details: error instanceof Error ? error.message : 'Unknown error' 
+                error: error instanceof Error ? error.message : 'Failed to retrieve cart questions', 
+                questions: [] 
             }, 
             { status: 500 }
         );

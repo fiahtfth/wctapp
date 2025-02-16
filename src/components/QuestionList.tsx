@@ -36,7 +36,7 @@ interface QuestionListProps {
         question_type?: string[];
         search?: string;
     }) => void;
-    testId: number;
+    testId: string;
 }
 
 export default function QuestionList({ 

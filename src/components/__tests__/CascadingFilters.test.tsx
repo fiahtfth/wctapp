@@ -1,7 +1,18 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import CascadingFilters from '../CascadingFilters';
+
+// Extend Jest matchers
+declare global {
+    namespace jest {
+        interface Matchers<R> {
+            toBeInTheDocument(): R;
+            toBeEnabled(): R;
+        }
+    }
+}
 
 // Mock MUI components
 jest.mock('@mui/material', () => {

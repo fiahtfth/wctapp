@@ -10,21 +10,22 @@ type TotalResult = { total: number };
 type QuestionResult = Question & { [key: string]: string | number };
 
 export interface Question {
-    id?: number;  
+    id?: number;
     Question: string;
     Answer: string;
-    Explanation: string;
+    Explanation?: string | null;
     Subject: string;
     'Module Number': string;
     'Module Name': string;
     Topic: string;
-    'Sub Topic': string;
-    'Micro Topic': string;
-    'Faculty Approved': string;
-    'Difficulty Level': string;
-    'Nature of Question': string;
-    Objective: string;
+    'Sub Topic'?: string | null;
+    'Micro Topic'?: string | null;
+    'Faculty Approved': boolean;
+    'Difficulty Level'?: string | null;
+    'Nature of Question'?: string | null;
+    Objective?: string;
     Question_Type: string;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 function isQuestionResult(q: unknown): q is QuestionResult {
@@ -385,58 +386,10 @@ export async function createQuestionsTable() {
 }
 
 export async function addQuestionToCart(questionId: number, testId: string): Promise<boolean> {
-    const db = await openDatabase();
+    const db = openDatabase();
 
     try {
-        const stmt = db.prepare('INSERT INTO cart (test_id, question_id) VALUES (?, ?)');
-        stmt.run(testId, questionId);
-        return true;
-    } finally {
-        await db.close();
-    }
-}
-
-export async function removeQuestionFromCart(questionId: number, testId: string): Promise<boolean> {
-    const db = await openDatabase();
-
-    try {
-        const stmt = db.prepare('DELETE FROM cart WHERE test_id = ? AND question_id = ?');
-        const result = stmt.run(testId, questionId);
-        return result.changes > 0;
-    } finally {
-        await db.close();
-    }
-}
-
-export async function getCartQuestions(testId: string): Promise<Question[]> {
-    if (!testId) {
-        console.error('getCartQuestions called with empty testId');
-        return [];
-    }
-
-    const db = await openDatabase();
-
-    try {
-        console.log(`Fetching cart questions for test ID: ${testId}`);
-
-        // Ensure tables exist with correct schema
-        db.prepare(`
-            CREATE TABLE IF NOT EXISTS questions (
-                id INTEGER PRIMARY KEY,
-                question_text TEXT,
-                answer TEXT,
-                explanation TEXT,
-                subject TEXT,
-                module_name TEXT,
-                module_number TEXT,
-                topic TEXT,
-                sub_topic TEXT,
-                difficulty_level TEXT,
-                nature_of_question TEXT,
-                question_type TEXT
-            )
-        `).run();
-
+        // Ensure cart table exists
         db.prepare(`
             CREATE TABLE IF NOT EXISTS cart (
                 test_id TEXT,
@@ -446,69 +399,61 @@ export async function getCartQuestions(testId: string): Promise<Question[]> {
             )
         `).run();
 
-        // First, check if there are any cart entries for this test ID
-        const cartEntriesCount = db.prepare(`
-            SELECT COUNT(*) as count 
-            FROM cart 
-            WHERE test_id = ?
-        `).get(testId) as { count: number };
+        // Check if question already exists in cart
+        const existingEntry = db.prepare(
+            'SELECT * FROM cart WHERE test_id = ? AND question_id = ?'
+        ).get(testId, questionId);
 
-        console.log(`Number of cart entries for test ID ${testId}: ${cartEntriesCount.count}`);
-
-        // If no cart entries, return empty array
-        if (cartEntriesCount.count === 0) {
-            console.log(`No questions in cart for test ID ${testId}`);
-            return [];
+        if (existingEntry) {
+            console.log(`Question ${questionId} already in cart for test ${testId}`);
+            return false;
         }
 
-        // Flexible query to handle potential schema variations
+        const stmt = db.prepare('INSERT INTO cart (test_id, question_id) VALUES (?, ?)');
+        stmt.run(testId, questionId);
+        return true;
+    } catch (error) {
+        console.error('Error adding question to cart:', error);
+        return false;
+    } finally {
+        db.close();
+    }
+}
+
+export async function removeQuestionFromCart(questionId: number, testId: string): Promise<boolean> {
+    const db = openDatabase();
+
+    try {
+        const stmt = db.prepare('DELETE FROM cart WHERE test_id = ? AND question_id = ?');
+        const result = stmt.run(testId, questionId);
+        return result.changes > 0;
+    } finally {
+        db.close();
+    }
+}
+
+export async function getCartQuestions(testId: string): Promise<Question[]> {
+    if (!testId) {
+        console.error('getCartQuestions called with empty testId');
+        return [];
+    }
+
+    const db = openDatabase();
+
+    try {
+        console.log(`Fetching cart questions for test ID: ${testId}`);
         const query = `
-            SELECT 
-                c.question_id as id, 
-                q.question_text, 
-                q.answer, 
-                q.explanation, 
-                q.subject, 
-                q.module_name, 
-                q.module_number, 
-                q.topic, 
-                q.sub_topic, 
-                q.difficulty_level, 
-                q.nature_of_question,
-                q.question_type
-            FROM cart c
-            LEFT JOIN questions q ON c.question_id = q.id
+            SELECT q.* FROM questions q
+            JOIN cart c ON q.id = c.question_id
             WHERE c.test_id = ?
         `;
-        const stmt = db.prepare(query);
-        const cartQuestions = stmt.all(testId) as Question[];
-
-        console.log(`Found ${cartQuestions.length} cart questions`);
-        console.log('Cart questions:', cartQuestions);
-
+        const cartQuestions = db.prepare(query).all(testId) as Question[];
         return cartQuestions;
     } catch (error) {
-        console.error('Full error details in getCartQuestions:', {
-            error,
-            testId,
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            errorStack: error instanceof Error ? error.stack : 'No stack trace'
-        });
-
-        // If the error is specifically about missing columns, return an empty array
-        if (error instanceof Error && error.message.includes('no such column')) {
-            console.warn('Column missing, returning empty cart');
-            return [];
-        }
-
-        // Rethrow other types of errors
-        throw new Error(`Failed to retrieve cart questions for test ID ${testId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error('Error fetching cart questions:', error);
+        return [];
     } finally {
-        try {
-            await db.close();
-        } catch (closeError) {
-            console.error('Error closing database:', closeError);
-        }
+        db.close();
     }
 }
 
@@ -575,19 +520,19 @@ export async function updateQuestion(question: Question) {
         console.log('Question details:', JSON.stringify(question, null, 2));
 
         // Prepare all fields for update
-        const updateFields = {
+        const updateFields: Record<string, any> = {
             'Question': question.Question,
             'Answer': question.Answer,
-            'Explanation': question['Explanation'] || null,
+            'Explanation': question['Explanation'] ?? null,
             'Subject': question.Subject,
             'Topic': question.Topic,
-            'Sub Topic': question['Sub Topic'] || null,
-            'Micro Topic': question['Micro Topic'] || null,
-            'Difficulty Level': question['Difficulty Level'] || null,
-            'Nature of Question': question['Nature of Question'] || null,
-            'Question Type': question['Question Type'] || null,
-            'Module Name': question['Module Name'] || null,
-            'Module Number': question['Module Number'] || null,
+            'Sub Topic': question['Sub Topic'] ?? null,
+            'Micro Topic': question['Micro Topic'] ?? null,
+            'Difficulty Level': question['Difficulty Level'] ?? null,
+            'Nature of Question': question['Nature of Question'] ?? null,
+            'Question Type': question['Question Type'] ?? null,
+            'Module Name': question['Module Name'] ?? null,
+            'Module Number': question['Module Number'] ?? null,
             'Faculty Approved': question['Faculty Approved'] ? 1 : 0,
             'Last Updated': 'CURRENT_TIMESTAMP'
         };
