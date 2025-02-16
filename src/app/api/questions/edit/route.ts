@@ -15,10 +15,40 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        // Validate question content
+        // Validate core question content
         if (!question.Question || !question.Answer) {
             return NextResponse.json(
                 { error: 'Question and Answer are required' }, 
+                { status: 400 }
+            );
+        }
+
+        // Validate additional metadata (optional)
+        const validationErrors: string[] = [];
+
+        // Check Subject and Topic
+        if (!question.Subject) validationErrors.push('Subject is required');
+        if (!question.Topic) validationErrors.push('Topic is required');
+
+        // Validate Difficulty Level
+        const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
+        if (question['Difficulty Level'] && !validDifficultyLevels.includes(question['Difficulty Level'])) {
+            validationErrors.push('Invalid Difficulty Level');
+        }
+
+        // Validate Question Type
+        const validQuestionTypes = ['MCQ', 'Subjective', 'True/False', 'Fill in the Blank'];
+        if (question['Nature of Question'] && !validQuestionTypes.includes(question['Nature of Question'])) {
+            validationErrors.push('Invalid Question Type');
+        }
+
+        // If there are validation errors, return them
+        if (validationErrors.length > 0) {
+            return NextResponse.json(
+                { 
+                    error: 'Validation failed', 
+                    details: validationErrors 
+                }, 
                 { status: 400 }
             );
         }

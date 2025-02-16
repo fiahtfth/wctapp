@@ -576,18 +576,15 @@ export async function updateQuestion(question: Question) {
             SET 
                 "Question" = ?, 
                 "Answer" = ?, 
-                "Explanation" = ?, 
                 "Subject" = ?, 
-                "Module Number" = ?, 
-                "Module Name" = ?, 
                 "Topic" = ?, 
                 "Sub Topic" = ?, 
-                "Micro Topic" = ?, 
-                "Faculty Approved" = ?, 
-                "Difficulty Level" = ?, 
-                "Nature of Question" = ?, 
-                "Objective" = ?, 
-                "Question_Type" = ?, 
+                "Micro Topic" = ?,
+                "Difficulty Level" = ?,
+                "Nature of Question" = ?,
+                "Module Name" = ?,
+                "Module Number" = ?,
+                "Faculty Approved" = ?,
                 "Last Updated" = CURRENT_TIMESTAMP
             WHERE id = ?
             RETURNING *;
@@ -596,18 +593,15 @@ export async function updateQuestion(question: Question) {
         const values = [
             question.Question, 
             question.Answer, 
-            question.Explanation, 
             question.Subject, 
-            question["Module Number"] || null, 
-            question["Module Name"] || null, 
-            question.Topic || null, 
-            question["Sub Topic"] || null, 
-            question["Micro Topic"] || null,
-            question['Faculty Approved'] || null,
-            question['Difficulty Level'] || null,
-            question['Nature of Question'] || null,
-            question.Objective || null,
-            question.Question_Type || null,
+            question.Topic, 
+            question["Sub Topic"], 
+            question["Micro Topic"],
+            question['Difficulty Level'],
+            question['Nature of Question'],
+            question['Module Name'],
+            question['Module Number'],
+            question['Faculty Approved'] ? 1 : 0,
             question.id
         ];
 

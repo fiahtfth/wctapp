@@ -14,7 +14,12 @@ import {
     IconButton,
     Grid,
     TextField,
-    MenuItem
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
+    Checkbox,
+    FormControlLabel
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
@@ -125,7 +130,13 @@ interface QuestionCardProps {
 export default function QuestionCard({ question, onAddToTest, onEdit }: QuestionCardProps) {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
-    const [editedQuestion, setEditedQuestion] = useState<Question>(question);
+    const [editedQuestion, setEditedQuestion] = useState<Question>({
+        ...question,
+        'Faculty Approved': question['Faculty Approved'] || false
+    });
+
+    const difficultyLevels = ['Easy', 'Medium', 'Hard'];
+    const questionTypes = ['MCQ', 'Subjective', 'True/False', 'Fill in the Blank'];
 
     const handleAddToTest = async () => {
         try {
@@ -139,7 +150,10 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
 
     const handleEditClick = () => {
         setEditModalOpen(true);
-        setEditedQuestion(question);
+        setEditedQuestion({
+            ...question,
+            'Faculty Approved': question['Faculty Approved'] || false
+        });
     };
 
     const handleSaveEdit = () => {
@@ -149,30 +163,11 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
         }
     };
 
-    const handleEditChange = (field: keyof Question | 'Sub Topic' | 'Micro Topic' | 'Difficulty Level' | 'Nature of Question' | 'Module Number' | 'Module Name' | 'Faculty Approved' | 'Question_Type', value: string) => {
-        setEditedQuestion(prev => {
-            // Handle special case fields with spaces or custom names
-            switch(field) {
-                case 'Sub Topic':
-                    return { ...prev, 'Sub Topic': value };
-                case 'Micro Topic':
-                    return { ...prev, 'Micro Topic': value };
-                case 'Difficulty Level':
-                    return { ...prev, 'Difficulty Level': value };
-                case 'Nature of Question':
-                    return { ...prev, 'Nature of Question': value };
-                case 'Module Number':
-                    return { ...prev, 'Module Number': value };
-                case 'Module Name':
-                    return { ...prev, 'Module Name': value };
-                case 'Faculty Approved':
-                    return { ...prev, 'Faculty Approved': value };
-                case 'Question_Type':
-                    return { ...prev, 'Question_Type': value };
-                default:
-                    return { ...prev, [field]: value };
-            }
-        });
+    const handleEditChange = (field: keyof Question, value: string | boolean) => {
+        setEditedQuestion(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
     return (
@@ -315,12 +310,13 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
             <Dialog 
                 open={editModalOpen} 
                 onClose={() => setEditModalOpen(false)}
-                maxWidth="lg"
+                maxWidth="md"
                 fullWidth
             >
                 <DialogTitle>Edit Question Details</DialogTitle>
                 <DialogContent>
-                    <Grid container spacing={3}>
+                    <Grid container spacing={2}>
+                        {/* Question and Answer */}
                         <Grid item xs={12}>
                             <TextField
                                 fullWidth
@@ -331,7 +327,6 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                 onChange={(e) => handleEditChange('Question', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
-                                required
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -344,22 +339,11 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                 onChange={(e) => handleEditChange('Answer', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
-                                required
                             />
                         </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                multiline
-                                rows={3}
-                                label="Explanation"
-                                value={editedQuestion.Explanation}
-                                onChange={(e) => handleEditChange('Explanation', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
+
+                        {/* Metadata Fields */}
+                        <Grid item xs={6}>
                             <TextField
                                 fullWidth
                                 label="Subject"
@@ -367,10 +351,29 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                 onChange={(e) => handleEditChange('Subject', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
-                                required
                             />
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={6}>
+                            <TextField
+                                fullWidth
+                                label="Module Name"
+                                value={editedQuestion['Module Name']}
+                                onChange={(e) => handleEditChange('Module Name', e.target.value)}
+                                variant="outlined"
+                                margin="normal"
+                            />
+                        </Grid>
+                        <Grid item xs={4}>
+                            <TextField
+                                fullWidth
+                                label="Module Number"
+                                value={editedQuestion['Module Number']}
+                                onChange={(e) => handleEditChange('Module Number', e.target.value)}
+                                variant="outlined"
+                                margin="normal"
+                            />
+                        </Grid>
+                        <Grid item xs={4}>
                             <TextField
                                 fullWidth
                                 label="Topic"
@@ -378,147 +381,86 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                 onChange={(e) => handleEditChange('Topic', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
-                                required
                             />
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={4}>
                             <TextField
                                 fullWidth
                                 label="Sub Topic"
-                                value={editedQuestion["Sub Topic"]}
+                                value={editedQuestion['Sub Topic']}
                                 onChange={(e) => handleEditChange('Sub Topic', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
                             />
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={4}>
                             <TextField
                                 fullWidth
                                 label="Micro Topic"
-                                value={editedQuestion["Micro Topic"]}
+                                value={editedQuestion['Micro Topic']}
                                 onChange={(e) => handleEditChange('Micro Topic', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
                             />
                         </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                fullWidth
-                                select
-                                label="Difficulty Level"
-                                value={editedQuestion['Difficulty Level']}
-                                onChange={(e) => handleEditChange('Difficulty Level', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            >
-                                {['Easy', 'Medium', 'Hard'].map((level) => (
-                                    <MenuItem key={level} value={level}>
-                                        {level}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+                        <Grid item xs={4}>
+                            <FormControl fullWidth variant="outlined" margin="normal">
+                                <InputLabel>Difficulty Level</InputLabel>
+                                <Select
+                                    value={editedQuestion['Difficulty Level'] || ''}
+                                    onChange={(e) => handleEditChange('Difficulty Level', e.target.value)}
+                                    label="Difficulty Level"
+                                >
+                                    {difficultyLevels.map((level) => (
+                                        <MenuItem key={level} value={level}>
+                                            {level}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                         </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                fullWidth
-                                select
-                                label="Nature of Question"
-                                value={editedQuestion['Nature of Question']}
-                                onChange={(e) => handleEditChange('Nature of Question', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            >
-                                {['Conceptual', 'Numerical', 'Theoretical', 'Practical'].map((type) => (
-                                    <MenuItem key={type} value={type}>
-                                        {type}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+                        <Grid item xs={4}>
+                            <FormControl fullWidth variant="outlined" margin="normal">
+                                <InputLabel>Nature of Question</InputLabel>
+                                <Select
+                                    value={editedQuestion['Nature of Question'] || ''}
+                                    onChange={(e) => handleEditChange('Nature of Question', e.target.value)}
+                                    label="Nature of Question"
+                                >
+                                    {questionTypes.map((type) => (
+                                        <MenuItem key={type} value={type}>
+                                            {type}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                         </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                fullWidth
-                                label="Module Number"
-                                value={editedQuestion["Module Number"]}
-                                onChange={(e) => handleEditChange('Module Number', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Module Name"
-                                value={editedQuestion["Module Name"]}
-                                onChange={(e) => handleEditChange('Module Name', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                select
-                                label="Faculty Approved"
-                                value={editedQuestion['Faculty Approved']}
-                                onChange={(e) => handleEditChange('Faculty Approved', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            >
-                                {['Yes', 'No', 'Pending'].map((status) => (
-                                    <MenuItem key={status} value={status}>
-                                        {status}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Objective"
-                                value={editedQuestion.Objective}
-                                onChange={(e) => handleEditChange('Objective', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                select
-                                label="Question Type"
-                                value={editedQuestion.Question_Type}
-                                onChange={(e) => handleEditChange('Question_Type', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            >
-                                {['Multiple Choice', 'Short Answer', 'Long Answer', 'True/False'].map((type) => (
-                                    <MenuItem key={type} value={type}>
-                                        {type}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+
+                        {/* Additional Metadata */}
+                        <Grid item xs={12}>
+                            <Box display="flex" alignItems="center">
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={!!editedQuestion['Faculty Approved']}
+                                            onChange={(e) => handleEditChange('Faculty Approved', e.target.checked)}
+                                            color="primary"
+                                        />
+                                    }
+                                    label="Faculty Approved"
+                                />
+                            </Box>
                         </Grid>
                     </Grid>
                 </DialogContent>
                 <DialogActions>
-                    <Button 
-                        onClick={() => setEditModalOpen(false)} 
-                        color="secondary"
-                        variant="outlined"
-                    >
+                    <Button onClick={() => setEditModalOpen(false)} color="secondary">
                         Cancel
                     </Button>
                     <Button 
                         onClick={handleSaveEdit} 
                         color="primary" 
                         variant="contained"
-                        disabled={
-                            !editedQuestion.Question || 
-                            !editedQuestion.Answer || 
-                            !editedQuestion.Subject || 
-                            !editedQuestion.Topic
-                        }
                     >
                         Save Changes
                     </Button>
