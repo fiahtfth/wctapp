@@ -558,8 +558,6 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                 fontSize: '0.875rem',
                                 lineHeight: 1.4,
                                 letterSpacing: '0.01071em',
-                                '& .statement': { mb: 0.5 },
-                                '& .options': { mt: 0.5 }
                             }}
                         >
                             {formatQuestion(question.Question)}
