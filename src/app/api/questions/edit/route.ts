@@ -49,14 +49,9 @@ export async function PUT(request: NextRequest) {
         }
 
         // Validate Nature of Question
-        const validNatureOfQuestions = ['MCQ', 'Subjective', 'True/False', 'Fill in the Blank'];
+        const validNatureOfQuestions = ['Factual', 'Conceptual', 'Analytical'];
         if (question['Nature of Question'] && !validNatureOfQuestions.includes(question['Nature of Question'])) {
             validationErrors.push('Invalid Nature of Question');
-        }
-
-        // Validate Explanation
-        if (!question.Explanation) {
-            validationErrors.push('Explanation is required');
         }
 
         // If there are validation errors, return them

@@ -144,6 +144,12 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
         'Fill in the Blank'
     ];
 
+    const natureOfQuestions = [
+        'Factual', 
+        'Conceptual', 
+        'Analytical'
+    ];
+
     const handleAddToTest = async () => {
         try {
             if (question.id) {
@@ -461,9 +467,9 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                     onChange={(e) => handleEditChange('Nature of Question', e.target.value)}
                                     label="Nature of Question"
                                 >
-                                    {questionTypes.map((type) => (
-                                        <MenuItem key={type} value={type}>
-                                            {type}
+                                    {natureOfQuestions.map((nature) => (
+                                        <MenuItem key={nature} value={nature}>
+                                            {nature}
                                         </MenuItem>
                                     ))}
                                 </Select>

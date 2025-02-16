@@ -601,7 +601,7 @@ export async function updateQuestion(question: Question) {
             question["Sub Topic"], 
             question["Micro Topic"],
             question['Difficulty Level'],
-            question['Nature of Question'],
+            question['Nature of Question'] === 'Analytical' || question['Nature of Question'] === 'Factual' ? question['Nature of Question'] : 'Other',
             question['Question Type'] || null,
             question['Module Name'],
             question['Module Number'],
