@@ -303,8 +303,9 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                         </Typography>
                         <Typography 
                             variant="body2" 
-                            paragraph 
                             sx={{ 
+                                mb: 2,  
+                                fontWeight: 'normal', 
                                 whiteSpace: 'pre-line', 
                                 fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
                                 fontSize: '0.875rem',
@@ -322,8 +323,14 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                             Answer
                         </Typography>
-                        <Typography variant="body1" paragraph>
-                            {question.Answer}
+                        <Typography 
+                            variant="body1" 
+                            sx={{ 
+                                mb: 2,  
+                                fontWeight: 'normal' 
+                            }}
+                        >
+                            <strong>Answer:</strong> {formatQuestion(question.Answer)}
                         </Typography>
                     </Box>
 

@@ -201,7 +201,13 @@ export default function Home() {
                                     Confirm Logout
                                 </DialogTitle>
                                 <DialogContent sx={{ pb: 2 }}>
-                                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                    <Typography 
+                                        variant="body2" 
+                                        sx={{ 
+                                            mb: 0.5,
+                                            display: 'block'  
+                                        }}
+                                    >
                                         Are you sure you want to logout?
                                     </Typography>
                                 </DialogContent>
