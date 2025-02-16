@@ -276,9 +276,11 @@ export default function Home() {
                         }}
                     >
                         <QuestionList 
-                            onFilterChange={setFilters} 
-                            filters={filters}
-                            onAddToTest={handleAddToTest}
+                            filters={filters} 
+                            onFilterChange={(newFilters) => {
+                                setFilters(newFilters);
+                            }}
+                            testId={testId}
                         />
                     </Paper>
                 </Container>

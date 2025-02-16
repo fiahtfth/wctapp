@@ -17,6 +17,7 @@ import ErrorBoundary from './ErrorBoundary';
 import CascadingFilters from './CascadingFilters';
 import QuestionCard from './QuestionCard';
 import TestCart from './TestCart';
+import { addQuestionToCart } from '@/lib/actions';
 
 interface QuestionListProps {
     filters?: {
@@ -35,11 +36,13 @@ interface QuestionListProps {
         question_type?: string[];
         search?: string;
     }) => void;
+    testId: number;
 }
 
 export default function QuestionList({ 
     filters = {}, 
-    onFilterChange 
+    onFilterChange,
+    testId
 }: QuestionListProps) {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
@@ -50,6 +53,7 @@ export default function QuestionList({
         total: 0,
         totalPages: 0
     });
+    const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
 
     useEffect(() => {
         const fetchQuestions = async () => {
@@ -155,9 +159,17 @@ export default function QuestionList({
     };
 
     const handleAddToTest = async (questionId: number) => {
-        const questionToAdd = questions.find(q => q.id === questionId);
-        if (questionToAdd && !selectedQuestions.some(q => q.id === questionId)) {
-            setSelectedQuestions([...selectedQuestions, questionToAdd]);
+        try {
+            // Call server action to add question to cart
+            await addQuestionToCart(questionId, testId);
+
+            const questionToAdd = questions.find(q => q.id === questionId);
+            if (questionToAdd && !selectedQuestions.some(q => q.id === questionId)) {
+                setSelectedQuestions([...selectedQuestions, questionToAdd]);
+            }
+        } catch (error) {
+            console.error('Error adding question to cart:', error);
+            // Optional: show error notification to user
         }
     };
 
