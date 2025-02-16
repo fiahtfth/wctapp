@@ -32,49 +32,55 @@ const formatQuestion = (questionText: string): React.ReactNode => {
     const lines = questionText.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
     const formattedParts: React.ReactNode[] = [];
     
+    let introText = '';
     let statements: { text: string, index: number }[] = [];
     let questionPart = '';
     let options: { text: string, index: number }[] = [];
     let currentSection: 'intro' | 'statements' | 'question' | 'options' = 'intro';
     
     lines.forEach((line, lineIndex) => {
-        if (line.toLowerCase().includes('consider the following statements')) {
-            formattedParts.push(
-                <Box key={`intro-${lineIndex}`} sx={{ mb: 0.5 }}>
-                    {line}
-                </Box>
-            );
-            currentSection = 'statements';
-        } else if (line.match(/^\d+\./)) {
-            if (currentSection !== 'statements') {
-                currentSection = 'statements';
-            }
+        // Prioritize capturing context lines
+        if (line.toLowerCase().includes('consider the following') || 
+            line.toLowerCase().includes('with respect to') || 
+            line.toLowerCase().includes('based on')) {
+            introText += line + ' ';
+            currentSection = 'intro';
+        } 
+        // Capture statements
+        else if (line.match(/^\d+\./)) {
             statements.push({ text: line, index: lineIndex });
-        } else if (line.match(/^\([a-d]\)/i)) {
-            if (currentSection !== 'options') {
-                // Add the question part before starting options
-                if (questionPart) {
-                    formattedParts.push(
-                        <Box key={`question-${lineIndex}`} sx={{ my: 0.5 }}>
-                            {questionPart.trim()}
-                        </Box>
-                    );
-                    questionPart = '';
-                }
-                currentSection = 'options';
-            }
-            options.push({ text: line, index: lineIndex });
-        } else if (line.toLowerCase().includes('which') || line.toLowerCase().includes('what') || line.toLowerCase().includes('select')) {
+            currentSection = 'statements';
+        } 
+        // Capture question part
+        else if (line.toLowerCase().includes('which of the statements') || 
+                 line.toLowerCase().includes('how many') || 
+                 line.toLowerCase().includes('select')) {
             questionPart += line + ' ';
-        } else {
-            // Fallback for other lines
-            formattedParts.push(
-                <Box key={`line-${lineIndex}`} sx={{ my: 0.25 }}>
-                    {line}
-                </Box>
-            );
+            currentSection = 'question';
+        } 
+        // Capture options - ALWAYS ensure parentheses
+        else if (line.match(/^[a-d]\)/) || line.match(/^\([a-d]\)/) || line.match(/^[a-d]\./)) {
+            // Normalize to (a), (b), (c), (d) format
+            const normalizedLine = line.replace(/^([a-d])[).]/, '($1)');
+            options.push({ text: normalizedLine, index: lineIndex });
+            currentSection = 'options';
+        } 
+        // Fallback for other lines
+        else {
+            // Add line to the most recent section
+            if (currentSection === 'intro') introText += line + ' ';
+            else if (currentSection === 'question') questionPart += line + ' ';
         }
     });
+
+    // Add intro text if present
+    if (introText.trim()) {
+        formattedParts.push(
+            <Box key="intro" sx={{ mb: 0.5 }}>
+                {introText.trim()}
+            </Box>
+        );
+    }
 
     // Add statements if any
     if (statements.length > 0) {
@@ -184,10 +190,10 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
         }
     };
 
-    const handleEditChange = (field: keyof Question, value: string | boolean) => {
+    const handleEditChange = (field: keyof Question, value: string | boolean | number) => {
         setEditedQuestion(prev => ({
             ...prev,
-            [field]: value
+            [field]: typeof value === 'number' ? value.toString() : value
         }));
     };
 
@@ -568,7 +574,7 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                 fontWeight: 'normal' 
                             }}
                         >
-                            <strong>Answer:</strong> {formatQuestion(question.Answer)}
+                            Answer: {formatQuestion(question.Answer)}
                         </Typography>
                     </Box>
 
