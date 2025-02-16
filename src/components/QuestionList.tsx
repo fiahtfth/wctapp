@@ -12,9 +12,11 @@ import {
     Box
 } from '@mui/material';
 import { Question } from '@/lib/database/queries';
-import PaginationControls from '@/components/PaginationControls';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import CascadingFilters from '@/components/CascadingFilters';
+import PaginationControls from './PaginationControls';
+import ErrorBoundary from './ErrorBoundary';
+import CascadingFilters from './CascadingFilters';
+import QuestionCard from './QuestionCard';
+import TestCart from './TestCart';
 
 interface QuestionListProps {
     filters?: {
@@ -25,7 +27,6 @@ interface QuestionListProps {
         question_type?: string[];
         search?: string;
     };
-    onAddToTest?: (questionId: number) => Promise<void>;
     onFilterChange?: (filters: {
         subject?: string[];
         module?: string[];
@@ -38,7 +39,6 @@ interface QuestionListProps {
 
 export default function QuestionList({ 
     filters = {}, 
-    onAddToTest,
     onFilterChange 
 }: QuestionListProps) {
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -154,33 +154,37 @@ export default function QuestionList({
         setPagination(prev => ({ ...prev, page: newPage }));
     };
 
-    const renderQuestionContent = () => {
-        // Add logging to understand the state
-        console.log('Rendering questions:', {
-            questions, 
-            loading, 
-            questionsType: typeof questions, 
-            questionsLength: questions?.length
-        });
+    const handleAddToTest = async (questionId: number) => {
+        const questionToAdd = questions.find(q => q.id === questionId);
+        if (questionToAdd && !selectedQuestions.some(q => q.id === questionId)) {
+            setSelectedQuestions([...selectedQuestions, questionToAdd]);
+        }
+    };
 
+    const handleEdit = (question: Question) => {
+        console.log('Editing question:', question);
+        // TODO: Implement edit functionality
+    };
+
+    const handleRemoveFromTest = async (questionId: number) => {
+        setSelectedQuestions(selectedQuestions.filter(q => q.id !== questionId));
+    };
+
+    const renderQuestionContent = () => {
         if (loading) {
             return (
                 <Grid container spacing={2}>
                     {[...Array(10)].map((_, index) => (
                         <Grid item xs={12} sm={6} md={4} key={index}>
-                            <Card>
-                                <CardContent>
-                                    <Skeleton variant="text" width="60%" />
-                                    <Skeleton variant="rectangular" height={100} sx={{ mt: 1 }} />
-                                </CardContent>
-                            </Card>
+                            <Box sx={{ height: '100%' }}>
+                                <Skeleton variant="rectangular" height={200} />
+                            </Box>
                         </Grid>
                     ))}
                 </Grid>
             );
         }
 
-        // Ensure questions is an array before mapping
         const safeQuestions = Array.isArray(questions) ? questions : [];
 
         if (safeQuestions.length === 0) {
@@ -194,44 +198,15 @@ export default function QuestionList({
         return (
             <Grid container spacing={2}>
                 {safeQuestions.map((question, index) => {
-                    // Add additional null checks
                     if (!question) return null;
 
                     return (
                         <Grid item xs={12} sm={6} md={4} key={`${index}-${question.id || 'no-id'}-${question.Subject || 'no-subject'}-${question.Topic || 'no-topic'}-${question.Question.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '-')}`}>
-                            <Card>
-                                <CardContent>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {question.Subject || 'Unknown Subject'} | {question.Topic || 'Unknown Topic'}
-                                    </Typography>
-                                    <Typography variant="body1" sx={{ mt: 1 }}>
-                                        {typeof question.Question === 'string' 
-                                            ? (question.Question.length > 100 
-                                                ? question.Question.substring(0, 100) + '...' 
-                                                : question.Question)
-                                            : 'No question text available'}
-                                    </Typography>
-                                    <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                                        {console.log('Question difficulty details:', {
-                                            difficultyLevel: question['Difficulty Level'],
-                                            natureOfQuestion: question['Nature of Question']
-                                        })}
-                                        <Chip 
-                                            label={question['Difficulty Level'] || 'Unknown'} 
-                                            size="small" 
-                                            color={
-                                                question['Difficulty Level'] === 'easy' ? 'success' :
-                                                question['Difficulty Level'] === 'medium' ? 'warning' :
-                                                'error'
-                                            } 
-                                        />
-                                        <Chip 
-                                            label={question['Nature of Question'] || 'Unknown'} 
-                                            size="small" 
-                                        />
-                                    </Box>
-                                </CardContent>
-                            </Card>
+                            <QuestionCard
+                                question={question}
+                                onAddToTest={handleAddToTest}
+                                onEdit={handleEdit}
+                            />
                         </Grid>
                     );
                 })}

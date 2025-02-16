@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Box, 
     Container, 
@@ -13,7 +13,12 @@ import {
     IconButton,
     Drawer,
     Grid,
-    Paper
+    Paper,
+    Badge,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions
 } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 import { createTheme } from '@mui/material/styles';
@@ -22,10 +27,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 
 import QuestionList from '@/components/QuestionList';
-import { addQuestionToCart } from '@/lib/actions';
+import { addQuestionToCart, getCartItems } from '@/lib/actions';
 
 export default function Home() {
     const [testId] = useState(uuidv4());
+    const [cartCount, setCartCount] = useState(0);
+    const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const [filters, setFilters] = useState<{
         subject?: string[];
         module?: string[];
@@ -36,12 +43,35 @@ export default function Home() {
     }>({});
     const [drawerOpen, setDrawerOpen] = useState(false);
 
+    // Load cart count on mount
+    useEffect(() => {
+        const loadCartCount = async () => {
+            try {
+                const items = await getCartItems(testId);
+                setCartCount(items.length);
+            } catch (error) {
+                console.error('Error loading cart count:', error);
+            }
+        };
+        loadCartCount();
+    }, [testId]);
+
     const handleAddToTest = async (questionId: number) => {
         try {
             await addQuestionToCart(questionId, testId);
+            setCartCount(prev => prev + 1);
         } catch (error) {
             console.error('Error adding question to cart:', error);
         }
+    };
+
+    const handleLogout = () => {
+        setLogoutDialogOpen(true);
+    };
+
+    const confirmLogout = () => {
+        // TODO: Implement actual logout logic here
+        window.location.href = '/login'; // Redirect to login page
     };
 
     const theme = createTheme({
@@ -105,43 +135,100 @@ export default function Home() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <IconButton 
                                 color="inherit"
-                                onClick={() => {
-                                    // Navigate to cart/selected questions
-                                    setDrawerOpen(true);
-                                }}
+                                onClick={() => setDrawerOpen(true)}
                                 sx={{ 
                                     p: 0.75,
+                                    transition: 'all 0.2s',
                                     '& .MuiSvgIcon-root': { 
-                                        fontSize: '1.25rem' 
+                                        fontSize: '1.25rem',
+                                        transition: 'all 0.2s'
                                     },
                                     '&:hover': {
-                                        backgroundColor: 'rgba(0,0,0,0.05)'
+                                        backgroundColor: 'rgba(0,0,0,0.05)',
+                                        '& .MuiSvgIcon-root': {
+                                            transform: 'scale(1.1)'
+                                        }
                                     }
                                 }}
                             >
-                                <AddShoppingCartIcon />
+                                <Badge 
+                                    badgeContent={cartCount} 
+                                    color="primary"
+                                    sx={{
+                                        '& .MuiBadge-badge': {
+                                            fontSize: '0.7rem',
+                                            height: '18px',
+                                            minWidth: '18px'
+                                        }
+                                    }}
+                                >
+                                    <AddShoppingCartIcon />
+                                </Badge>
                             </IconButton>
                             <Button 
                                 variant="outlined"
                                 color="error"
-                                onClick={() => {
-                                    // TODO: Implement actual logout logic
-                                    alert('Logout functionality to be implemented');
-                                }}
+                                onClick={handleLogout}
                                 sx={{ 
                                     fontSize: '0.8rem',
                                     textTransform: 'none',
                                     px: 1,
                                     py: 0.5,
                                     borderRadius: 2,
+                                    transition: 'all 0.2s',
                                     '&:hover': {
                                         backgroundColor: 'error.light',
-                                        color: 'white'
+                                        color: 'white',
+                                        transform: 'translateY(-1px)'
                                     }
                                 }}
                             >
                                 Logout
                             </Button>
+
+                            {/* Logout Confirmation Dialog */}
+                            <Dialog
+                                open={logoutDialogOpen}
+                                onClose={() => setLogoutDialogOpen(false)}
+                                sx={{
+                                    '& .MuiDialog-paper': {
+                                        borderRadius: 2,
+                                        minWidth: 300
+                                    }
+                                }}
+                            >
+                                <DialogTitle sx={{ pb: 1 }}>
+                                    Confirm Logout
+                                </DialogTitle>
+                                <DialogContent sx={{ pb: 2 }}>
+                                    <Typography variant="body2">
+                                        Are you sure you want to logout?
+                                    </Typography>
+                                </DialogContent>
+                                <DialogActions sx={{ px: 3, pb: 2 }}>
+                                    <Button 
+                                        onClick={() => setLogoutDialogOpen(false)}
+                                        variant="text"
+                                        sx={{ 
+                                            textTransform: 'none',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button 
+                                        onClick={confirmLogout}
+                                        variant="contained"
+                                        color="error"
+                                        sx={{ 
+                                            textTransform: 'none',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        Logout
+                                    </Button>
+                                </DialogActions>
+                            </Dialog>
                         </Box>
                     </Toolbar>
                 </AppBar>
