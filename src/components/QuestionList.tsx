@@ -183,6 +183,8 @@ export default function QuestionList({
         if (!editingQuestion) return;
 
         try {
+            console.log('Attempting to save question:', editingQuestion);
+
             const response = await fetch('/api/questions/edit', {
                 method: 'PUT',
                 headers: {
@@ -191,12 +193,16 @@ export default function QuestionList({
                 body: JSON.stringify(editingQuestion)
             });
 
+            console.log('Edit response status:', response.status);
+
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('Edit error response:', errorData);
                 throw new Error(errorData.error || 'Failed to update question');
             }
 
             const { question: updatedQuestion } = await response.json();
+            console.log('Updated question:', updatedQuestion);
 
             // Update local questions list
             const updatedQuestions = questions.map(q => 

@@ -6,9 +6,11 @@ export async function PUT(request: NextRequest) {
     try {
         // Parse the request body
         const question: Question = await request.json();
+        console.log('Received question for edit:', question);
 
         // Validate required fields
         if (!question.id) {
+            console.error('Question ID is missing');
             return NextResponse.json(
                 { error: 'Question ID is required' }, 
                 { status: 400 }
@@ -17,6 +19,7 @@ export async function PUT(request: NextRequest) {
 
         // Validate core question content
         if (!question.Question || !question.Answer) {
+            console.error('Question or Answer is missing');
             return NextResponse.json(
                 { error: 'Question and Answer are required' }, 
                 { status: 400 }
@@ -56,6 +59,7 @@ export async function PUT(request: NextRequest) {
 
         // If there are validation errors, return them
         if (validationErrors.length > 0) {
+            console.error('Validation errors:', validationErrors);
             return NextResponse.json(
                 { 
                     error: 'Validation failed', 
@@ -66,7 +70,9 @@ export async function PUT(request: NextRequest) {
         }
 
         // Update the question
+        console.log('Attempting to update question in database');
         const updatedQuestion = await updateQuestion(question);
+        console.log('Question updated successfully:', updatedQuestion);
 
         return NextResponse.json(
             { 

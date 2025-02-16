@@ -139,9 +139,6 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
     const questionTypes = [
         'Objective', 
         'Subjective', 
-        'MCQ', 
-        'True/False', 
-        'Fill in the Blank'
     ];
 
     const natureOfQuestions = [
@@ -170,7 +167,26 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
 
     const handleSaveEdit = () => {
         if (onEdit) {
-            onEdit(editedQuestion);
+            // Ensure all fields are passed, even if they're undefined
+            const completeQuestion: Question = {
+                ...question,  // Original question as base
+                ...editedQuestion,  // Overwrite with edited values
+                id: question.id,  // Ensure original ID is preserved
+                
+                // Explicitly set fields to ensure they're included
+                'Explanation': editedQuestion['Explanation'] || null,
+                'Sub Topic': editedQuestion['Sub Topic'] || null,
+                'Micro Topic': editedQuestion['Micro Topic'] || null,
+                'Difficulty Level': editedQuestion['Difficulty Level'] || null,
+                'Nature of Question': editedQuestion['Nature of Question'] || null,
+                'Question Type': editedQuestion['Question Type'] || null,
+                'Module Name': editedQuestion['Module Name'] || null,
+                'Module Number': editedQuestion['Module Number'] || null,
+                'Faculty Approved': editedQuestion['Faculty Approved'] || false
+            };
+
+            console.log('Saving complete question:', completeQuestion);
+            onEdit(completeQuestion);
             setEditModalOpen(false);
         }
     };

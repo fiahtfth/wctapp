@@ -571,53 +571,63 @@ export async function updateQuestion(question: Question) {
     const db = await openDatabase();
 
     try {
+        console.log('Updating question with ID:', question.id);
+        console.log('Question details:', JSON.stringify(question, null, 2));
+
+        // Prepare all fields for update
+        const updateFields = {
+            'Question': question.Question,
+            'Answer': question.Answer,
+            'Explanation': question['Explanation'] || null,
+            'Subject': question.Subject,
+            'Topic': question.Topic,
+            'Sub Topic': question['Sub Topic'] || null,
+            'Micro Topic': question['Micro Topic'] || null,
+            'Difficulty Level': question['Difficulty Level'] || null,
+            'Nature of Question': question['Nature of Question'] || null,
+            'Question Type': question['Question Type'] || null,
+            'Module Name': question['Module Name'] || null,
+            'Module Number': question['Module Number'] || null,
+            'Faculty Approved': question['Faculty Approved'] ? 1 : 0,
+            'Last Updated': 'CURRENT_TIMESTAMP'
+        };
+
+        // Construct dynamic update query
+        const setClause = Object.keys(updateFields)
+            .filter(key => updateFields[key] !== undefined && updateFields[key] !== null)
+            .map(key => `"${key}" = ?`)
+            .join(', ');
+
+        const values = Object.keys(updateFields)
+            .filter(key => updateFields[key] !== undefined && updateFields[key] !== null)
+            .map(key => updateFields[key]);
+        
+        // Add question ID to the end of values for WHERE clause
+        values.push(question.id);
+
         const query = `
             UPDATE questions 
-            SET 
-                "Question" = ?, 
-                "Answer" = ?, 
-                "Explanation" = ?,
-                "Subject" = ?, 
-                "Topic" = ?, 
-                "Sub Topic" = ?, 
-                "Micro Topic" = ?,
-                "Difficulty Level" = ?,
-                "Nature of Question" = ?,
-                "Question Type" = ?,
-                "Module Name" = ?,
-                "Module Number" = ?,
-                "Faculty Approved" = ?,
-                "Last Updated" = CURRENT_TIMESTAMP
+            SET ${setClause}, "Last Updated" = CURRENT_TIMESTAMP
             WHERE id = ?
             RETURNING *;
         `;
 
-        const values = [
-            question.Question, 
-            question.Answer, 
-            question['Explanation'] || null,
-            question.Subject, 
-            question.Topic, 
-            question["Sub Topic"], 
-            question["Micro Topic"],
-            question['Difficulty Level'],
-            question['Nature of Question'] === 'Analytical' || question['Nature of Question'] === 'Factual' ? question['Nature of Question'] : 'Other',
-            question['Question Type'] || null,
-            question['Module Name'],
-            question['Module Number'],
-            question['Faculty Approved'] ? 1 : 0,
-            question.id
-        ];
+        console.log('Prepared SQL query:', query);
+        console.log('Query values:', values);
 
         const result = await db.query(query, values);
 
+        console.log('Query result rows:', result.rows);
+
         if (result.rows.length === 0) {
+            console.error('No rows updated. Question might not exist.');
             throw new Error('Question not found or no changes made');
         }
 
+        console.log('Successfully updated question:', result.rows[0]);
         return result.rows[0];
     } catch (error) {
-        console.error('Error updating question:', error);
+        console.error('Error in updateQuestion:', error);
         throw error;
     } finally {
         await db.close();
