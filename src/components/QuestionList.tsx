@@ -183,7 +183,6 @@ export default function QuestionList({
         if (!editingQuestion) return;
 
         try {
-            // TODO: Implement actual edit API call
             const response = await fetch('/api/questions/edit', {
                 method: 'PUT',
                 headers: {
@@ -193,17 +192,23 @@ export default function QuestionList({
             });
 
             if (!response.ok) {
-                throw new Error('Failed to update question');
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update question');
             }
+
+            const { question: updatedQuestion } = await response.json();
 
             // Update local questions list
             const updatedQuestions = questions.map(q => 
-                q.id === editingQuestion.id ? editingQuestion : q
+                q.id === updatedQuestion.id ? updatedQuestion : q
             );
             setQuestions(updatedQuestions);
 
             // Close edit modal
             setEditingQuestion(null);
+
+            // Optional: Show success notification
+            console.log('Question updated successfully');
         } catch (error) {
             console.error('Error updating question:', error);
             // TODO: Show error notification to user

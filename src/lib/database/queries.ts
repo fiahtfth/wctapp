@@ -567,6 +567,53 @@ export async function getDistinctValues(
     }
 }
 
+export async function updateQuestion(question: Question) {
+    const db = await openDatabase();
+
+    try {
+        const query = `
+            UPDATE questions 
+            SET 
+                "Question" = ?, 
+                "Answer" = ?, 
+                "Subject" = ?, 
+                "Topic" = ?, 
+                "Sub Topic" = ?, 
+                "Micro Topic" = ?,
+                "Difficulty Level" = ?,
+                "Nature of Question" = ?,
+                "Last Updated" = CURRENT_TIMESTAMP
+            WHERE id = ?
+            RETURNING *;
+        `;
+
+        const values = [
+            question.Question, 
+            question.Answer, 
+            question.Subject, 
+            question.Topic, 
+            question["Sub Topic"], 
+            question["Micro Topic"],
+            question['Difficulty Level'],
+            question['Nature of Question'],
+            question.id
+        ];
+
+        const result = await db.query(query, values);
+
+        if (result.rows.length === 0) {
+            throw new Error('Question not found or no changes made');
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error updating question:', error);
+        throw error;
+    } finally {
+        await db.close();
+    }
+}
+
 // Call this function to debug schema issues
 // debugDatabaseSchema();
 
