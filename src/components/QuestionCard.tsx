@@ -136,7 +136,13 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
     });
 
     const difficultyLevels = ['Easy', 'Medium', 'Hard'];
-    const questionTypes = ['MCQ', 'Subjective', 'True/False', 'Fill in the Blank'];
+    const questionTypes = [
+        'Objective', 
+        'Subjective', 
+        'MCQ', 
+        'True/False', 
+        'Fill in the Blank'
+    ];
 
     const handleAddToTest = async () => {
         try {
@@ -341,6 +347,18 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                 margin="normal"
                             />
                         </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={3}
+                                label="Explanation"
+                                value={editedQuestion['Explanation']}
+                                onChange={(e) => handleEditChange('Explanation', e.target.value)}
+                                variant="outlined"
+                                margin="normal"
+                            />
+                        </Grid>
 
                         {/* Metadata Fields */}
                         <Grid item xs={6}>
@@ -414,6 +432,22 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                                     {difficultyLevels.map((level) => (
                                         <MenuItem key={level} value={level}>
                                             {level}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={4}>
+                            <FormControl fullWidth variant="outlined" margin="normal">
+                                <InputLabel>Question Type</InputLabel>
+                                <Select
+                                    value={editedQuestion['Question Type'] || ''}
+                                    onChange={(e) => handleEditChange('Question Type', e.target.value)}
+                                    label="Question Type"
+                                >
+                                    {questionTypes.map((type) => (
+                                        <MenuItem key={type} value={type}>
+                                            {type}
                                         </MenuItem>
                                     ))}
                                 </Select>

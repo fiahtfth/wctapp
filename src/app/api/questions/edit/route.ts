@@ -37,9 +37,26 @@ export async function PUT(request: NextRequest) {
         }
 
         // Validate Question Type
-        const validQuestionTypes = ['MCQ', 'Subjective', 'True/False', 'Fill in the Blank'];
-        if (question['Nature of Question'] && !validQuestionTypes.includes(question['Nature of Question'])) {
+        const validQuestionTypes = [
+            'Objective', 
+            'Subjective', 
+            'MCQ', 
+            'True/False', 
+            'Fill in the Blank'
+        ];
+        if (question['Question Type'] && !validQuestionTypes.includes(question['Question Type'])) {
             validationErrors.push('Invalid Question Type');
+        }
+
+        // Validate Nature of Question
+        const validNatureOfQuestions = ['MCQ', 'Subjective', 'True/False', 'Fill in the Blank'];
+        if (question['Nature of Question'] && !validNatureOfQuestions.includes(question['Nature of Question'])) {
+            validationErrors.push('Invalid Nature of Question');
+        }
+
+        // Validate Explanation
+        if (!question.Explanation) {
+            validationErrors.push('Explanation is required');
         }
 
         // If there are validation errors, return them
