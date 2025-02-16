@@ -12,6 +12,8 @@ import {
     DialogContent,
     DialogActions,
     IconButton,
+    Grid,
+    TextField
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
@@ -121,6 +123,8 @@ interface QuestionCardProps {
 
 export default function QuestionCard({ question, onAddToTest, onEdit }: QuestionCardProps) {
     const [previewOpen, setPreviewOpen] = useState(false);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editedQuestion, setEditedQuestion] = useState<Question>(question);
 
     const handleAddToTest = async () => {
         try {
@@ -132,11 +136,23 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
         }
     };
 
-    const handleEdit = () => {
+    const handleEditClick = () => {
+        setEditModalOpen(true);
+        setEditedQuestion(question);
+    };
+
+    const handleSaveEdit = () => {
         if (onEdit) {
-            onEdit(question);
-            setPreviewOpen(false);
+            onEdit(editedQuestion);
+            setEditModalOpen(false);
         }
+    };
+
+    const handleEditChange = (field: keyof Question, value: string) => {
+        setEditedQuestion(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
     return (
@@ -259,7 +275,7 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                     {onEdit && (
                         <IconButton 
                             size="small" 
-                            onClick={() => onEdit(question)}
+                            onClick={handleEditClick}
                             title="Edit"
                         >
                             <EditIcon fontSize="small" />
@@ -277,6 +293,75 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
             </Card>
 
             <Dialog 
+                open={editModalOpen} 
+                onClose={() => setEditModalOpen(false)}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle>Edit Question</DialogTitle>
+                <DialogContent>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={4}
+                                label="Question"
+                                value={editedQuestion.Question}
+                                onChange={(e) => handleEditChange('Question', e.target.value)}
+                                variant="outlined"
+                                margin="normal"
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={4}
+                                label="Answer"
+                                value={editedQuestion.Answer}
+                                onChange={(e) => handleEditChange('Answer', e.target.value)}
+                                variant="outlined"
+                                margin="normal"
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField
+                                fullWidth
+                                label="Subject"
+                                value={editedQuestion.Subject}
+                                onChange={(e) => handleEditChange('Subject', e.target.value)}
+                                variant="outlined"
+                                margin="normal"
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField
+                                fullWidth
+                                label="Topic"
+                                value={editedQuestion.Topic}
+                                onChange={(e) => handleEditChange('Topic', e.target.value)}
+                                variant="outlined"
+                                margin="normal"
+                            />
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setEditModalOpen(false)} color="secondary">
+                        Cancel
+                    </Button>
+                    <Button 
+                        onClick={handleSaveEdit} 
+                        color="primary" 
+                        variant="contained"
+                    >
+                        Save Changes
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog 
                 open={previewOpen} 
                 onClose={() => setPreviewOpen(false)}
                 maxWidth="md"
@@ -287,7 +372,7 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                         Question Preview
                         {onEdit && (
                             <IconButton 
-                                onClick={handleEdit}
+                                onClick={handleEditClick}
                                 color="primary"
                                 size="large"
                             >
@@ -373,7 +458,7 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                     </Button>
                     {onEdit && (
                         <Button 
-                            onClick={handleEdit} 
+                            onClick={handleEditClick} 
                             variant="outlined" 
                             startIcon={<EditIcon />}
                         >

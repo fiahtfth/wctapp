@@ -54,6 +54,7 @@ export default function QuestionList({
         totalPages: 0
     });
     const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
+    const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
     useEffect(() => {
         const fetchQuestions = async () => {
@@ -175,7 +176,38 @@ export default function QuestionList({
 
     const handleEdit = (question: Question) => {
         console.log('Editing question:', question);
-        // TODO: Implement edit functionality
+        setEditingQuestion(question);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingQuestion) return;
+
+        try {
+            // TODO: Implement actual edit API call
+            const response = await fetch('/api/questions/edit', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(editingQuestion)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update question');
+            }
+
+            // Update local questions list
+            const updatedQuestions = questions.map(q => 
+                q.id === editingQuestion.id ? editingQuestion : q
+            );
+            setQuestions(updatedQuestions);
+
+            // Close edit modal
+            setEditingQuestion(null);
+        } catch (error) {
+            console.error('Error updating question:', error);
+            // TODO: Show error notification to user
+        }
     };
 
     const handleRemoveFromTest = async (questionId: number) => {
