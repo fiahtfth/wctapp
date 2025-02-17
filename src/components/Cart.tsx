@@ -10,21 +10,34 @@ import {
     Paper,
     Snackbar,
     Alert,
-    IconButton
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField
 } from '@mui/material';
 import { 
     Delete as DeleteIcon,
     ArrowBack as ArrowBackIcon,
-    RemoveCircleOutline as RemoveCircleIcon
+    RemoveCircleOutline as RemoveCircleIcon,
+    FileDownload as ExportIcon
 } from '@mui/icons-material';
 import { useCartStore } from '@/store/cartStore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import QuestionCard from './QuestionCard';
+import * as XLSX from 'xlsx';
 
 export default function Cart() {
     const [mounted, setMounted] = useState(false);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [exportModalOpen, setExportModalOpen] = useState(false);
+    const [testDetails, setTestDetails] = useState({
+        testName: '',
+        batch: '',
+        date: new Date().toISOString().split('T')[0]
+    });
     const [removedQuestion, setRemovedQuestion] = useState<string | null>(null);
     const { questions, removeQuestion, clearCart } = useCartStore();
     const router = useRouter();
@@ -64,6 +77,36 @@ export default function Cart() {
         setSnackbarOpen(false);
     };
 
+    const handleExport = () => {
+        // Prepare export data
+        const exportData = questions.map((question, index) => ({
+            'S.No': index + 1,
+            'Question': question.Question || question.text || 'No Question Text',
+            'Answer': question.Answer || 'No Answer Provided',
+            'Explanation': question.Explanation || 'No Explanation Provided'
+        }));
+
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet([
+            {
+                'Test Name': testDetails.testName,
+                'Batch': testDetails.batch,
+                'Date': testDetails.date
+            },
+            ...exportData
+        ]);
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Test Questions');
+
+        // Export to Excel
+        XLSX.writeFile(wb, `${testDetails.testName || 'Test'}_Questions.xlsx`);
+
+        // Close modal
+        setExportModalOpen(false);
+    };
+
     if (!mounted) {
         return (
             <Container maxWidth="lg" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -86,19 +129,31 @@ export default function Cart() {
                     <Typography variant="h5" component="h1">
                         Cart ({questions.length} items)
                     </Typography>
-                    {questions.length > 0 && (
-                        <Button
-                            onClick={() => {
-                                console.log('Clearing entire cart');
-                                clearCart();
-                            }}
-                            color="error"
-                            variant="outlined"
-                            startIcon={<DeleteIcon />}
-                        >
-                            Clear Cart
-                        </Button>
-                    )}
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        {questions.length > 0 && (
+                            <Button
+                                onClick={() => setExportModalOpen(true)}
+                                color="primary"
+                                variant="contained"
+                                startIcon={<ExportIcon />}
+                            >
+                                Export
+                            </Button>
+                        )}
+                        {questions.length > 0 && (
+                            <Button
+                                onClick={() => {
+                                    console.log('Clearing entire cart');
+                                    clearCart();
+                                }}
+                                color="error"
+                                variant="outlined"
+                                startIcon={<DeleteIcon />}
+                            >
+                                Clear Cart
+                            </Button>
+                        )}
+                    </Box>
                 </Box>
 
                 {questions.length === 0 ? (
@@ -146,6 +201,73 @@ export default function Cart() {
                     </Grid>
                 )}
             </Paper>
+
+            {/* Export Modal */}
+            <Dialog
+                open={exportModalOpen}
+                onClose={() => setExportModalOpen(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Export Test Questions</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                        <TextField
+                            label="Test Name"
+                            variant="outlined"
+                            fullWidth
+                            value={testDetails.testName}
+                            onChange={(e) => setTestDetails(prev => ({
+                                ...prev, 
+                                testName: e.target.value
+                            }))}
+                            required
+                        />
+                        <TextField
+                            label="Batch"
+                            variant="outlined"
+                            fullWidth
+                            value={testDetails.batch}
+                            onChange={(e) => setTestDetails(prev => ({
+                                ...prev, 
+                                batch: e.target.value
+                            }))}
+                            required
+                        />
+                        <TextField
+                            label="Date"
+                            type="date"
+                            variant="outlined"
+                            fullWidth
+                            value={testDetails.date}
+                            onChange={(e) => setTestDetails(prev => ({
+                                ...prev, 
+                                date: e.target.value
+                            }))}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                            required
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button 
+                        onClick={() => setExportModalOpen(false)}
+                        color="secondary"
+                    >
+                        Cancel
+                    </Button>
+                    <Button 
+                        onClick={handleExport}
+                        color="primary"
+                        variant="contained"
+                        disabled={!testDetails.testName || !testDetails.batch || !testDetails.date}
+                    >
+                        Export
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Snackbar
                 open={snackbarOpen}
