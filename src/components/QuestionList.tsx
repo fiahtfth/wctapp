@@ -14,7 +14,7 @@ import {
 import { Question } from '@/lib/database/queries';
 import PaginationControls from './PaginationControls';
 import ErrorBoundary from './ErrorBoundary';
-import CascadingFilters from './CascadingFilters';
+import { CascadingFilters } from './CascadingFilters';
 import QuestionCard from './QuestionCard';
 import TestCart from './TestCart';
 import { addQuestionToCart } from '@/lib/actions';
@@ -100,12 +100,12 @@ export default function QuestionList({
                 console.log('Received response data:', responseData);
 
                 // Validate response structure
-                if (!responseData || !responseData.data || !Array.isArray(responseData.data)) {
-                    throw new Error('Invalid response format: data is not an array');
+                if (!responseData || !responseData.questions || !Array.isArray(responseData.questions)) {
+                    throw new Error('Invalid response format: questions is not an array');
                 }
 
                 // Validate questions data
-                const validQuestions = responseData.data.filter(q => 
+                const validQuestions = responseData.questions.filter((q: any) => 
                     q && typeof q === 'object' && 
                     typeof q.Question === 'string' && 
                     typeof q.Answer === 'string' && 
@@ -116,14 +116,12 @@ export default function QuestionList({
                 setQuestions(validQuestions);
                 
                 // Update pagination state
-                if (responseData.pagination) {
-                    setPagination({
-                        page: responseData.pagination.currentPage,
-                        pageSize: responseData.pagination.pageSize,
-                        total: responseData.pagination.totalItems,
-                        totalPages: responseData.pagination.totalPages
-                    });
-                }
+                setPagination({
+                    page: responseData.page,
+                    pageSize: responseData.pageSize,
+                    total: responseData.total,
+                    totalPages: Math.ceil(responseData.total / responseData.pageSize)
+                });
 
                 setError(null);
             } catch (error) {
@@ -255,9 +253,12 @@ export default function QuestionList({
                 {safeQuestions.map((question, index) => {
                     if (!question) return null;
 
+                    const uniqueKey = `question-${question.id || 'no-id'}-${index}-${question.Subject || 'no-subject'}-${question.Topic || 'no-topic'}-${question.Question.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '-')}`;
+
                     return (
-                        <Grid item xs={12} sm={6} md={4} key={`${index}-${question.id || 'no-id'}-${question.Subject || 'no-subject'}-${question.Topic || 'no-topic'}-${question.Question.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '-')}`}>
+                        <Grid item xs={12} sm={6} md={4} key={uniqueKey}>
                             <QuestionCard
+                                key={uniqueKey}
                                 question={question}
                                 onAddToTest={handleAddToTest}
                                 onEdit={handleEdit}
@@ -274,6 +275,7 @@ export default function QuestionList({
     return (
         <Box>
             <CascadingFilters 
+                key={`cascading-filters-${Object.keys(filters).join('-')}`}
                 onFilterChange={(filters) => {
                     console.log('CascadingFilters filters:', filters);
                     handleFilterChange(filters);
@@ -284,6 +286,7 @@ export default function QuestionList({
             
             {questions && questions.length > 0 && (
                 <PaginationControls 
+                    key={`pagination-${pagination.page}-${pagination.totalPages}`}
                     data-testid="pagination-controls"
                     currentPage={pagination.page} 
                     totalPages={pagination.totalPages}
