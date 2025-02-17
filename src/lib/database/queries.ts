@@ -139,18 +139,21 @@ export async function getQuestions(filters: {
 
         // Add question type filter
         if (filters.question_type && filters.question_type.length > 0) {
-            const questionTypeConditions = filters.question_type
+            const questionTypeArray = Array.isArray(filters.question_type) 
+                ? filters.question_type 
+                : [filters.question_type];
+            
+            const questionTypeConditions = questionTypeArray
                 .map(() => '"Question_Type" = ?')
                 .join(' OR ');
             
             query += ` AND (${questionTypeConditions})`;
             countQuery += ` AND (${questionTypeConditions})`;
             
-            const questionTypeParams = filters.question_type;
-            params.push(...questionTypeParams);
-            countParams.push(...questionTypeParams);
+            params.push(...questionTypeArray);
+            countParams.push(...questionTypeArray);
             
-            console.log(`Adding question type filter: ${questionTypeParams}`);
+            console.log(`Adding question type filter: ${questionTypeArray}`);
         }
 
         // Add ORDER BY clause for consistent results
@@ -375,33 +378,39 @@ const hierarchicalData: Subject[] = [
     }
 ];
 
-// Helper functions to get lists
+// Predefined subjects
+const predefinedSubjects = [
+    'Economics', 
+    'Polity and Governance', 
+    'World Geography', 
+    'Science and Technology'
+];
+
+type CascadingLevel = 'modules' | 'topics' | 'sub_topics' | 'question_types' | 'subjects';
+
+// Predefined hierarchical structure for subjects, modules, and topics
 const getSubjects = () => hierarchicalData.map(subject => subject.name);
 
-const getModules = (subject?: string | string[]) => {
-    if (!subject) return [];
-    
+const getModules = (subject?: string | string[]): string[] => {
     // Normalize subject to an array
-    const subjects = Array.isArray(subject) ? subject : [subject];
+    const subjects = Array.isArray(subject) ? subject : [subject].filter(Boolean);
     
-    // Collect modules from all specified subjects
     const allModules = subjects
-        .map(subjectName => {
+        .flatMap(subjectName => {
             const subjectData = hierarchicalData.find(s => s.name === subjectName);
             return subjectData ? subjectData.modules.map(module => module.name) : [];
-        })
-        .flat();
+        });
     
-    // Remove duplicates
-    return [...new Set(allModules)];
+    // Remove duplicates using Array.from and Set
+    return Array.from(new Set(allModules));
 };
 
-const getTopics = (subject?: string | string[], module?: string | string[]) => {
+const getTopics = (subject?: string | string[], module?: string | string[]): string[] => {
     if (!subject || !module) return [];
     
     // Normalize subject and module to arrays
-    const subjects = Array.isArray(subject) ? subject : [subject];
-    const modules = Array.isArray(module) ? module : [module];
+    const subjects = Array.isArray(subject) ? subject : [subject].filter(Boolean);
+    const modules = Array.isArray(module) ? module : [module].filter(Boolean);
     
     // Collect topics from all specified subject-module combinations
     const allTopics = subjects.flatMap(subjectName => 
@@ -414,17 +423,17 @@ const getTopics = (subject?: string | string[], module?: string | string[]) => {
         })
     );
     
-    // Remove duplicates
-    return [...new Set(allTopics)];
+    // Remove duplicates using Array.from and Set
+    return Array.from(new Set(allTopics));
 };
 
 export async function getCascadingOptions(
-    level: 'modules' | 'topics' | 'sub_topics' | 'question_types' | 'subjects',
-    filters?: Record<string, string | string[] | undefined>
+    level: CascadingLevel, 
+    filters?: Record<string, string | string[]>
 ): Promise<string[]> {
     // Handle predefined hierarchical data
     if (level === 'subjects') {
-        return getSubjects();
+        return predefinedSubjects;
     }
 
     if (level === 'modules' && filters?.subject) {
@@ -476,11 +485,6 @@ export async function getCascadingOptions(
         };
 
         // Validate the level
-        // For subjects level, return predefined list
-        if (level === 'subjects') {
-            return predefinedSubjects;
-        }
-
         const levelConfig = levelMap[level];
         if (!levelConfig) {
             throw new Error(`Invalid cascading level: ${level}`);
@@ -540,7 +544,7 @@ export async function getCascadingOptions(
         console.log('Query Params:', params);
 
         const stmt = db.prepare(query);
-        const results = stmt.all(params) as Array<Record<string, string>>;
+        const results = await stmt.all(params) as Array<Record<string, string>>;
 
         const options = results
             .map(result => result[levelConfig.column] as string)
@@ -553,7 +557,7 @@ export async function getCascadingOptions(
         console.error(`Error fetching cascading options for ${level}:`, error);
         throw error;
     } finally {
-        db.close();
+        await db.close();
     }
 }
 
@@ -688,11 +692,11 @@ export async function createQuestionsTable() {
 }
 
 export async function addQuestionToCart(questionId: number, testId: string): Promise<boolean> {
-    const db = openDatabase();
+    const db = await openDatabase();
 
     try {
         // Ensure cart table exists
-        db.prepare(`
+        await db.prepare(`
             CREATE TABLE IF NOT EXISTS cart (
                 test_id TEXT,
                 question_id INTEGER,
@@ -702,7 +706,7 @@ export async function addQuestionToCart(questionId: number, testId: string): Pro
         `).run();
 
         // Check if question already exists in cart
-        const existingEntry = db.prepare(
+        const existingEntry = await db.prepare(
             'SELECT * FROM cart WHERE test_id = ? AND question_id = ?'
         ).get(testId, questionId);
 
@@ -711,14 +715,14 @@ export async function addQuestionToCart(questionId: number, testId: string): Pro
             return false;
         }
 
-        const stmt = db.prepare('INSERT INTO cart (test_id, question_id) VALUES (?, ?)');
-        stmt.run(testId, questionId);
+        const stmt = await db.prepare('INSERT INTO cart (test_id, question_id) VALUES (?, ?)');
+        await stmt.run(testId, questionId);
         return true;
     } catch (error) {
         console.error('Error adding question to cart:', error);
         return false;
     } finally {
-        db.close();
+        await db.close();
     }
 }
 
@@ -726,8 +730,8 @@ export async function removeQuestionFromCart(questionId: number, testId: string)
     const db = await openDatabase();
 
     try {
-        const stmt = db.prepare('DELETE FROM cart WHERE test_id = ? AND question_id = ?');
-        const result = stmt.run(testId, questionId);
+        const stmt = await db.prepare('DELETE FROM cart WHERE test_id = ? AND question_id = ?');
+        const result = await stmt.run(testId, questionId);
         return result.changes > 0;
     } finally {
         await db.close();
@@ -749,7 +753,7 @@ export async function getCartQuestions(testId: string): Promise<Question[]> {
             JOIN cart c ON q.id = c.question_id
             WHERE c.test_id = ?
         `;
-        const cartQuestions = db.prepare(query).all(testId) as Question[];
+        const cartQuestions = await db.prepare(query).all(testId) as Question[];
         return cartQuestions;
     } catch (error) {
         console.error('Error fetching cart questions:', error);
@@ -764,15 +768,15 @@ export async function debugDatabaseSchema() {
 
     try {
         console.log('Questions Table Schema:');
-        const questionsSchema = db.prepare("PRAGMA table_info(questions)").all();
+        const questionsSchema = await db.prepare("PRAGMA table_info(questions)").all();
         console.log(JSON.stringify(questionsSchema, null, 2));
 
         console.log('\nCart Table Schema:');
-        const cartSchema = db.prepare("PRAGMA table_info(cart)").all();
+        const cartSchema = await db.prepare("PRAGMA table_info(cart)").all();
         console.log(JSON.stringify(cartSchema, null, 2));
 
         console.log('\nTables in Database:');
-        const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+        const tables = await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
         console.log(JSON.stringify(tables, null, 2));
     } catch (error) {
         console.error('Error debugging database schema:', error);
@@ -781,33 +785,15 @@ export async function debugDatabaseSchema() {
     }
 }
 
-export async function updateQuestion(question: Question) {
+export async function updateQuestion(
+    question: { id: number }, 
+    updateFields: Partial<Question>
+): Promise<Question> {
     const db = await openDatabase();
 
     try {
-        console.log('Updating question with ID:', question.id);
-        console.log('Question details:', JSON.stringify(question, null, 2));
-
-        // Prepare all fields for update
-        const updateFields: Record<string, any> = {
-            'Question': question.Question,
-            'Answer': question.Answer,
-            'Explanation': question['Explanation'] ?? null,
-            'Subject': question.Subject,
-            'Topic': question.Topic,
-            'Sub Topic': question['Sub Topic'] ?? null,
-            'Micro Topic': question['Micro Topic'] ?? null,
-            'Difficulty Level': question['Difficulty Level'] ?? null,
-            'Nature of Question': question['Nature of Question'] ?? null,
-            'Question Type': question['Question Type'] ?? null,
-            'Module Name': question['Module Name'] ?? null,
-            'Module Number': question['Module Number'] ?? null,
-            'Faculty Approved': question['Faculty Approved'] ? 1 : 0,
-            'Last Updated': 'CURRENT_TIMESTAMP'
-        };
-
-        // Construct dynamic update query
-        const setClause = Object.keys(updateFields)
+        // Prepare the update clause dynamically
+        const updateKeys = Object.keys(updateFields)
             .filter(key => updateFields[key] !== undefined && updateFields[key] !== null)
             .map(key => `"${key}" = ?`)
             .join(', ');
@@ -821,7 +807,7 @@ export async function updateQuestion(question: Question) {
 
         const query = `
             UPDATE questions 
-            SET ${setClause}, "Last Updated" = CURRENT_TIMESTAMP
+            SET ${updateKeys}, "Last Updated" = CURRENT_TIMESTAMP
             WHERE id = ?
             RETURNING *;
         `;
@@ -829,17 +815,20 @@ export async function updateQuestion(question: Question) {
         console.log('Prepared SQL query:', query);
         console.log('Query values:', values);
 
-        const result = await db.query(query, values);
+        const stmt = await db.prepare(query);
+        const result = await stmt.all(...values);
 
-        console.log('Query result rows:', result.rows);
+        console.log('Query result rows:', result);
 
-        if (result.rows.length === 0) {
+        if (result.length === 0) {
             console.error('No rows updated. Question might not exist.');
             throw new Error('Question not found or no changes made');
         }
 
-        console.log('Successfully updated question:', result.rows[0]);
-        return result.rows[0];
+        // Type assertion to ensure the result is a Question
+        const updatedQuestion = result[0] as Question;
+        console.log('Successfully updated question:', updatedQuestion);
+        return updatedQuestion;
     } catch (error) {
         console.error('Error in updateQuestion:', error);
         throw error;
@@ -861,23 +850,23 @@ export async function debugQuestionsTable() {
 
     try {
         // Get distinct subjects
-        const subjects = db.prepare('SELECT DISTINCT Subject FROM questions').all();
+        const subjects = await db.prepare('SELECT DISTINCT Subject FROM questions').all();
         console.log('Distinct Subjects:', subjects);
 
         // Get distinct modules
-        const modules = db.prepare('SELECT DISTINCT "Module Name" FROM questions').all();
+        const modules = await db.prepare('SELECT DISTINCT "Module Name" FROM questions').all();
         console.log('Distinct Modules:', modules);
 
         // Get sample questions
-        const sampleQuestions = db.prepare('SELECT Subject, "Module Name", Topic, Question_Type FROM questions LIMIT 10').all();
+        const sampleQuestions = await db.prepare('SELECT Subject, "Module Name", Topic, Question_Type FROM questions LIMIT 10').all();
         console.log('Sample Questions:', sampleQuestions);
 
         // Get total question count
-        const totalQuestions = db.prepare('SELECT COUNT(*) as total FROM questions').get();
+        const totalQuestions = await db.prepare('SELECT COUNT(*) as total FROM questions').get();
         console.log('Total Questions:', totalQuestions);
 
         // Get Economics module questions
-        const economicsQuestions = db.prepare('SELECT * FROM questions WHERE Subject = ? LIMIT 10').all('Economics');
+        const economicsQuestions = await db.prepare('SELECT * FROM questions WHERE Subject = ? LIMIT 10').all('Economics');
         console.log('First 10 Economics Questions:', economicsQuestions);
     } catch (error) {
         console.error('Error in debugQuestionsTable:', error);

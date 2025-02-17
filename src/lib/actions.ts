@@ -1,9 +1,37 @@
 'use server';
 
-export async function addQuestionToCart(questionId: number, testId?: string) {
-    if (!testId) {
+import { v4 as uuidv4 } from 'uuid';
+
+export async function generateTestId(): Promise<string> {
+    let testId: string;
+
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined' && window.localStorage) {
         testId = localStorage.getItem('testId') || uuidv4();
         localStorage.setItem('testId', testId);
+    } else {
+        // Fallback for non-browser environments
+        testId = uuidv4();
+    }
+
+    return testId;
+}
+
+export async function getTestId(): Promise<string> {
+    let testId: string | null = null;
+
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined' && window.localStorage) {
+        testId = localStorage.getItem('testId');
+    }
+
+    // If no testId exists, generate a new one
+    return testId || generateTestId();
+}
+
+export async function addQuestionToCart(questionId: number, testId?: string) {
+    if (!testId) {
+        testId = await getTestId();
     }
 
     try {
@@ -45,10 +73,7 @@ export async function exportTest(testId: string) {
 
 export async function getCartItems(testId?: string) {
     if (!testId) {
-        testId = localStorage.getItem('testId');
-        if (!testId) {
-            return [];  // No test ID available
-        }
+        testId = await getTestId();
     }
 
     try {

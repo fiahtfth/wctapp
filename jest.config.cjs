@@ -1,31 +1,34 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
-const nextJest = require('next/jest');
-
-const createJestConfig = nextJest({
-    dir: './',
-});
-
-const customJestConfig = {
-    setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-    testEnvironment: 'jsdom',
+module.exports = {
     preset: 'ts-jest',
-    transform: {
-        '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
-    },
-    transformIgnorePatterns: [
-        '/node_modules/',
-        '^.+\\.module\\.(css|sass|scss)$',
-    ],
+    testEnvironment: 'jsdom', 
+    setupFiles: ['<rootDir>/jest.setup.js'],
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
-        '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+        '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
     },
-    testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
+    transform: {
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+            tsconfig: '<rootDir>/tsconfig.json',
+            babelConfig: {
+                presets: [
+                    '@babel/preset-env', 
+                    ['@babel/preset-react', { runtime: 'automatic' }], 
+                    '@babel/preset-typescript'
+                ]
+            }
+        }]
+    },
+    testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$',
+    moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+    transformIgnorePatterns: [
+        'node_modules/(?!(@testing-library/jest-dom)/)'
+    ],
     collectCoverageFrom: [
-        'src/**/*.{js,jsx,ts,tsx}',
+        'src/**/*.{ts,tsx}',
         '!src/**/*.d.ts',
         '!src/pages/_app.tsx',
-        '!src/pages/_document.tsx',
+        '!src/pages/_document.tsx'
     ],
     coverageThreshold: {
         global: {
@@ -36,5 +39,3 @@ const customJestConfig = {
         }
     }
 };
-
-module.exports = createJestConfig(customJestConfig);

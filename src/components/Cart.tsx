@@ -1,241 +1,166 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
-    List, 
-    ListItem, 
-    ListItemText, 
-    Button, 
     Typography, 
     Box, 
-    Chip,
-    Divider,
-    IconButton,
+    Button, 
+    Container,
+    Grid,
+    Paper,
+    Snackbar,
     Alert,
-    Skeleton,
-    CircularProgress
+    IconButton
 } from '@mui/material';
 import { 
-    Delete as DeleteIcon, 
-    FileDownload as DownloadIcon 
+    Delete as DeleteIcon,
+    ArrowBack as ArrowBackIcon,
+    RemoveCircleOutline as RemoveCircleIcon
 } from '@mui/icons-material';
-import { Question } from '@/lib/database/queries';
-import ExportLoader from '@/components/ExportLoader';
+import { useCartStore } from '@/store/cartStore';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import QuestionCard from './QuestionCard';
 
-interface CartProps {
-    testId: string;
-    onExport: (testId: string) => Promise<void>;
-}
-
-export default function Cart({ testId, onExport }: CartProps) {
-    const [cartQuestions, setCartQuestions] = useState<Question[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [exporting, setExporting] = useState(false);
+export default function Cart() {
+    const [mounted, setMounted] = useState(false);
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [removedQuestion, setRemovedQuestion] = useState<string | null>(null);
+    const { questions, removeQuestion, clearCart } = useCartStore();
+    const router = useRouter();
 
     useEffect(() => {
-        async function fetchCartQuestions() {
-            try {
-                setLoading(true);
-                setError(null);
+        // Ensure this only runs on the client
+        setMounted(true);
+        // Hydrate the store
+        useCartStore.persist.rehydrate();
+        
+        // Log cart contents on mount
+        console.log('Cart Component Mounted, Current Questions:', questions);
+    }, []);
 
-                if (!testId) {
-                    console.warn('No test ID provided');
-                    setCartQuestions([]);
-                    return;
-                }
-
-                const response = await fetch(`/api/cart?testId=${testId}`);
-                
-                console.log('Cart response status:', response.status);
-                console.log('Cart response headers:', Object.fromEntries(response.headers.entries()));
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Cart error response text:', errorText);
-                    
-                    // Try to parse error JSON if possible
-                    let errorDetails = {};
-                    try {
-                        errorDetails = JSON.parse(errorText);
-                    } catch {
-                        errorDetails = { error: errorText };
-                    }
-
-                    // Special handling for empty cart scenarios
-                    if (response.status === 404 || errorDetails.error?.includes('No questions')) {
-                        console.log('Empty cart detected');
-                        setCartQuestions([]);
-                        return;
-                    }
-
-                    throw new Error(
-                        `Failed to fetch cart questions. Status: ${response.status}, ` +
-                        `Details: ${JSON.stringify(errorDetails)}`
-                    );
-                }
-
-                const responseData = await response.json();
-                console.log('Cart response data:', responseData);
-
-                // Handle different possible response structures
-                const cartQuestionsData = Array.isArray(responseData) 
-                    ? responseData 
-                    : (responseData.data || []);
-
-                // Validate each question
-                const validCartQuestions = cartQuestionsData.filter(q => 
-                    q && typeof q === 'object' && 
-                    q.id !== undefined && 
-                    q.question_text !== undefined
-                );
-
-                // If no valid questions, treat as empty cart
-                if (validCartQuestions.length === 0) {
-                    console.log('No valid questions found in cart');
-                }
-
-                setCartQuestions(validCartQuestions);
-            } catch (error) {
-                console.error('Full error in fetchCartQuestions:', error);
-                
-                // Set a user-friendly error message
-                setError(
-                    error instanceof Error 
-                        ? `Unable to load cart questions: ${error.message}` 
-                        : 'An unknown error occurred while loading cart questions'
-                );
-                setCartQuestions([]);
-            } finally {
-                setLoading(false);
-            }
+    const handleRemoveQuestion = (questionId: string) => {
+        console.log('Attempting to remove question from cart:', questionId);
+        
+        // Find the question being removed (for snackbar)
+        const removedQuestionDetails = questions.find(q => q.id === questionId);
+        
+        // Remove the question
+        removeQuestion(questionId);
+        
+        // Set snackbar state
+        if (removedQuestionDetails) {
+            setRemovedQuestion(removedQuestionDetails.text || 'Question');
+            setSnackbarOpen(true);
         }
 
-        if (testId) {
-            fetchCartQuestions();
-        }
-    }, [testId]);
-
-    const handleRemoveQuestion = async (questionId: number) => {
-        try {
-            const response = await fetch(`/api/cart/remove`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ questionId, testId }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to remove question');
-            }
-
-            // Update local state
-            setCartQuestions(prev => 
-                prev.filter(q => q.id !== questionId)
-            );
-        } catch (error) {
-            setError('Failed to remove question');
-            console.error('Removal error:', error);
-        }
+        console.log('Updated cart after removal:', useCartStore.getState().questions);
     };
 
-    const handleExport = async () => {
-        try {
-            setExporting(true);
-            setError(null);
-            await onExport(testId);
-        } catch (error) {
-            if (error instanceof Error) {
-                setError(`Export failed: ${error.message}`);
-            } else {
-                setError('An unknown error occurred during export');
-            }
-            console.error('Export Error:', error);
-        } finally {
-            setExporting(false);
+    const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') {
+            return;
         }
+        setSnackbarOpen(false);
     };
 
-    // Render logic for empty cart
-    if (loading) {
+    if (!mounted) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <CircularProgress />
-            </Box>
+            <Container maxWidth="lg" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <Typography>Loading...</Typography>
+            </Container>
         );
-    }
-
-    if (cartQuestions.length === 0) {
-        return (
-            <Alert severity="info" sx={{ mt: 2 }}>
-                Your test cart is empty. Add questions to create a test.
-            </Alert>
-        );
-    }
-
-    if (error) {
-        return <Alert severity="error">{error}</Alert>;
     }
 
     return (
-        <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-                Your Test Questions ({cartQuestions.length})
-            </Typography>
-
-            <List>
-                {cartQuestions.map((question, index) => (
-                    <React.Fragment key={question.id}>
-                        <ListItem 
-                            secondaryAction={
-                                <IconButton 
-                                    edge="end" 
-                                    aria-label="delete"
-                                    onClick={() => handleRemoveQuestion(question.id)}
-                                >
-                                    <DeleteIcon />
-                                </IconButton>
-                            }
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Paper sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Button
+                        startIcon={<ArrowBackIcon />}
+                        onClick={() => router.back()}
+                        variant="outlined"
+                    >
+                        Back to Questions
+                    </Button>
+                    <Typography variant="h5" component="h1">
+                        Cart ({questions.length} items)
+                    </Typography>
+                    {questions.length > 0 && (
+                        <Button
+                            onClick={() => {
+                                console.log('Clearing entire cart');
+                                clearCart();
+                            }}
+                            color="error"
+                            variant="outlined"
+                            startIcon={<DeleteIcon />}
                         >
-                            <ListItemText
-                                primary={
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Typography variant="body1" sx={{ flexGrow: 1 }}>
-                                            {question.question_text}
-                                        </Typography>
-                                        <Chip 
-                                            label={question.difficulty_level} 
-                                            color={
-                                                question.difficulty_level === 'easy' ? 'success' :
-                                                question.difficulty_level === 'medium' ? 'warning' :
-                                                'error'
-                                            } 
-                                            size="small" 
-                                        />
-                                    </Box>
-                                }
-                                secondary={`${question.subject} | ${question.topic || 'No Topic'}`}
-                            />
-                        </ListItem>
-                        {index < cartQuestions.length - 1 && <Divider />}
-                    </React.Fragment>
-                ))}
-            </List>
+                            Clear Cart
+                        </Button>
+                    )}
+                </Box>
 
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                {exporting && <ExportLoader />}
-                <Button 
-                    variant="contained" 
-                    color="primary"
-                    startIcon={<DownloadIcon />}
-                    onClick={handleExport}
-                    disabled={cartQuestions.length === 0 || exporting}
-                    fullWidth
+                {questions.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                            Your cart is empty
+                        </Typography>
+                        <Button
+                            component={Link}
+                            href="/questions"
+                            variant="contained"
+                            color="primary"
+                            sx={{ mt: 2 }}
+                        >
+                            Browse Questions
+                        </Button>
+                    </Box>
+                ) : (
+                    <Grid container spacing={3} position="relative">
+                        {questions.map((question) => (
+                            <Grid item xs={12} sm={6} md={4} key={question.id} position="relative">
+                                <QuestionCard 
+                                    question={question}
+                                    initialInCart={true}
+                                    showCartButton={false}
+                                />
+                                <IconButton
+                                    onClick={() => handleRemoveQuestion(question.id)}
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 10,
+                                        right: 10,
+                                        zIndex: 10,
+                                        backgroundColor: 'rgba(255,255,255,0.7)',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(255,100,100,0.2)'
+                                        }
+                                    }}
+                                    title="Remove from Cart"
+                                >
+                                    <RemoveCircleIcon color="error" />
+                                </IconButton>
+                            </Grid>
+                        ))}
+                    </Grid>
+                )}
+            </Paper>
+
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={3000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert 
+                    onClose={handleCloseSnackbar} 
+                    severity="info" 
+                    sx={{ width: '100%' }}
                 >
-                    Export Test to Excel
-                </Button>
-            </Box>
-        </Box>
+                    {removedQuestion} removed from cart
+                </Alert>
+            </Snackbar>
+        </Container>
     );
 }

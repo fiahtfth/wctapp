@@ -27,6 +27,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 
 import QuestionList from '@/components/QuestionList';
+import CartIndicator from '@/components/CartIndicator';
 import { addQuestionToCart, getCartItems } from '@/lib/actions';
 
 export default function Home() {
@@ -151,20 +152,9 @@ export default function Home() {
                                     }
                                 }}
                             >
-                                <Badge 
-                                    badgeContent={cartCount} 
-                                    color="primary"
-                                    sx={{
-                                        '& .MuiBadge-badge': {
-                                            fontSize: '0.7rem',
-                                            height: '18px',
-                                            minWidth: '18px'
-                                        }
-                                    }}
-                                >
-                                    <AddShoppingCartIcon />
-                                </Badge>
+                                <MenuIcon />
                             </IconButton>
+                            <CartIndicator count={cartCount} />
                             <Button 
                                 variant="outlined"
                                 color="error"

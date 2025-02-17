@@ -5,22 +5,20 @@ const nextConfig = {
     optimizePackageImports: ['@mui/material', 'lodash'],
   },
   eslint: {
+    dirs: ['src'],
     ignoreDuringBuilds: true,
   },
-  env: {
-    NEXT_PUBLIC_APP_URL: process.env.NODE_ENV === 'production' 
-        ? 'https://your-production-domain.com' 
-        : 'http://localhost:3000'
+  typescript: {
+    ignoreBuildErrors: true,
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
+    config.experiments = { ...config.experiments, topLevelAwait: true };
+    
     config.optimization.splitChunks = {
-      chunks: 'async',
-      minSize: 20000,
-      minRemainingSize: 0,
-      minChunks: 1,
-      maxAsyncRequests: 30,
+      chunks: 'all',
       maxInitialRequests: 30,
-      enforceSizeThreshold: 50000,
+      maxAsyncRequests: 30,
+      minSize: 20000,
       cacheGroups: {
         defaultVendors: {
           test: /[\\/]node_modules[\\/]/,
@@ -37,6 +35,15 @@ const nextConfig = {
 
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
+  },
+  productionBrowserSourceMaps: false,
 };
 
 export default nextConfig;

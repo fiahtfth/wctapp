@@ -35,18 +35,13 @@ interface CascadingFiltersProps {
     topic?: string[];
     question_type?: string[];
     search?: string;
+    testId?: string;
 }
 
-const filterLevelMap = {
-    subject: 'subject',
-    module: 'module',
-    topic: 'topic',
-    question_type: 'question_type'
-};
-
-export default function CascadingFilters({ 
-    onFilterChange 
-}: CascadingFiltersProps) {
+export const CascadingFilters = ({ 
+    onFilterChange,
+    testId = 'cascading-filters'
+}: CascadingFiltersProps) => {
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [selectedModules, setSelectedModules] = useState<string[]>([]);
     const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
@@ -225,7 +220,7 @@ export default function CascadingFilters({
                 borderBottom: 1,
                 borderColor: 'divider'
             }} 
-            data-testid="cascading-filters"
+            data-testid={testId}
         >
             <Grid container spacing={1} alignItems="center">
                 <Grid item xs={12} sm={6} md={2}>
@@ -411,3 +406,5 @@ export default function CascadingFilters({
         </Box>
     );
 }
+
+

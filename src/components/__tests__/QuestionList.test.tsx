@@ -14,62 +14,71 @@ jest.mock('next/navigation', () => ({
     })
 }));
 
-// Mock fetch function
-global.fetch = jest.fn((url) => {
-    // Mock response for cascading filters
-    if (url.includes('cascading-filters')) {
-        return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(['Math', 'Science'])
-        });
-    }
-
-    // Mock response for questions API
+// Mocking fetch
+const mockFetch = jest.fn((url) => {
+    // Default mock response for questions
     if (url.includes('questions')) {
-        return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-                data: [
-                    {
-                        id: 1,
-                        question_text: 'What is 2 + 2?',
-                        subject: 'Math',
-                        topic: 'Basic Arithmetic',
-                        difficulty_level: 'easy',
-                        nature_of_question: 'MCQ'
-                    },
-                    {
-                        id: 2,
-                        question_text: 'What is the capital of France?',
-                        subject: 'Geography',
-                        topic: 'European Capitals',
-                        difficulty_level: 'medium',
-                        nature_of_question: 'Short Answer'
-                    }
-                ],
-                pagination: {
-                    currentPage: 1,
-                    pageSize: 10,
-                    totalItems: 2,
-                    totalPages: 1
+        return Promise.resolve(new Response(JSON.stringify({
+            data: [
+                {
+                    id: 1,
+                    Question: 'What is 2 + 2?',
+                    Answer: '4',
+                    Subject: 'Math',
+                    Topic: 'Basic Arithmetic',
+                    'Difficulty Level': 'easy',
+                    'Nature of Question': 'MCQ'
+                },
+                {
+                    id: 2,
+                    Question: 'What is the capital of France?',
+                    Answer: 'Paris',
+                    Subject: 'Geography',
+                    Topic: 'European Capitals',
+                    'Difficulty Level': 'medium',
+                    'Nature of Question': 'Short Answer'
                 }
-            })
-        });
+            ],
+            pagination: {
+                currentPage: 1,
+                pageSize: 10,
+                totalItems: 2,
+                totalPages: 1
+            }
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        }));
     }
 
-    return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve([])
-    });
-}) as jest.Mock;
+    // Specific mock for cascading filters
+    if (url.includes('cascading-filters')) {
+        return Promise.resolve(new Response(JSON.stringify(['Math', 'Science']), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        }));
+    }
+
+    // Default response
+    return Promise.resolve(new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+    }));
+});
+
+// Replace global fetch with our mock
+global.fetch = mockFetch;
 
 describe('QuestionList Component', () => {
+    const mockTestId = 'test-123';
+
     beforeEach(() => {
-        global.fetch.mockClear();
+        // Reset mock call history
+        mockFetch.mockClear();
     });
 
     it('renders loading state initially', async () => {
-        render(<QuestionList />);
+        render(<QuestionList testId={mockTestId} />);
 
         // Check for loading skeletons
         const skeletons = screen.getAllByTestId('skeleton-loader');
@@ -77,7 +86,7 @@ describe('QuestionList Component', () => {
     });
 
     it('renders questions after loading', async () => {
-        render(<QuestionList />);
+        render(<QuestionList testId={mockTestId} />);
 
         // Wait for questions to load
         await waitFor(() => {
@@ -88,28 +97,28 @@ describe('QuestionList Component', () => {
 
     it('displays no questions message when empty', async () => {
         // Mock empty response
-        global.fetch.mockImplementationOnce((url) => {
+        mockFetch.mockImplementationOnce((url) => {
             if (url.includes('questions')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({
-                        data: [],
-                        pagination: {
-                            currentPage: 1,
-                            pageSize: 10,
-                            totalItems: 0,
-                            totalPages: 0
-                        }
-                    })
-                });
+                return Promise.resolve(new Response(JSON.stringify({
+                    data: [],
+                    pagination: {
+                        currentPage: 1,
+                        pageSize: 10,
+                        totalItems: 0,
+                        totalPages: 0
+                    }
+                }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
             }
-            return Promise.resolve({
-                ok: true,
-                json: () => Promise.resolve([])
-            });
+            return Promise.resolve(new Response(JSON.stringify([]), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            }));
         });
 
-        render(<QuestionList />);
+        render(<QuestionList testId={mockTestId} />);
 
         // Wait for no questions message
         await waitFor(() => {
@@ -118,18 +127,22 @@ describe('QuestionList Component', () => {
         });
     });
 
-    it('handles filter changes', async () => {
-        render(<QuestionList />);
+    it('triggers filter change when subject is selected', async () => {
+        render(<QuestionList testId={mockTestId} />);
 
-        // Simulate filter change
+        // Wait for questions to load
         await waitFor(() => {
             const subjectFilter = screen.getByTestId('subject-filter');
-            fireEvent.change(subjectFilter, { target: { value: 'Math' } });
+            expect(subjectFilter).toBeInTheDocument();
         });
+
+        // Simulate filter change
+        const subjectSelect = screen.getByTestId('subject-filter');
+        fireEvent.change(subjectSelect, { target: { value: 'Math' } });
 
         // Verify fetch was called with new filters
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith(
+            expect(mockFetch).toHaveBeenCalledWith(
                 expect.stringContaining('questions?'),
                 expect.objectContaining({
                     method: 'GET'
@@ -139,7 +152,7 @@ describe('QuestionList Component', () => {
     });
 
     it('renders pagination controls', async () => {
-        render(<QuestionList />);
+        render(<QuestionList testId={mockTestId} />);
 
         // Wait for questions to load
         await waitFor(() => {

@@ -1,109 +1,125 @@
-import { NextRequest } from 'next/server';
+// Mock next/server
+jest.mock('next/server', () => ({
+    NextRequest: jest.fn(),
+    NextResponse: {
+        json: jest.fn((data, options) => {
+            // Create a mock Response-like object
+            return {
+                json: () => Promise.resolve(data),
+                status: options?.status || 200,
+                headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            };
+        })
+    }
+}));
+
+import { NextRequest, NextResponse } from 'next/server';
 import { getQuestions } from '@/lib/database/queries';
 import { GET } from '../route';
 
-// Mock the database query function
+// Mock the queries module
 jest.mock('@/lib/database/queries', () => ({
-    getQuestions: jest.fn()
+    getQuestions: jest.fn(),
 }));
 
-// Mock the Request object
-class MockRequest extends Request {
-    private _url: string;
-    private _searchParams: URLSearchParams;
-
-    constructor(url: string, init?: RequestInit) {
-        super(url, init);
-        this._url = url;
-        this._searchParams = new URLSearchParams(new URL(url).search);
-    }
-
-    get url() {
-        return this._url;
-    }
-
-    get searchParams() {
-        return this._searchParams;
-    }
-}
-
-// Mock the NextRequest object
-const createMockNextRequest = (url: string, init?: RequestInit): NextRequest => {
-    const mockRequest = new MockRequest(url, init);
-    return mockRequest as unknown as NextRequest;
-};
-
 describe('Questions API Route', () => {
-    const mockGetQuestions = getQuestions as jest.MockedFunction<typeof getQuestions>;
-
     beforeEach(() => {
-        mockGetQuestions.mockClear();
+        jest.clearAllMocks();
     });
 
     it('should return questions with pagination', async () => {
-        // Mock the implementation of getQuestions
-        mockGetQuestions.mockResolvedValue({
-            data: [
-                { id: 1, question_text: 'Test Question 1' },
-                { id: 2, question_text: 'Test Question 2' }
+        const mockQuestions = {
+            questions: [
+                {
+                    id: 1,
+                    Question: 'Test Question 1',
+                    Answer: 'Answer 1',
+                    Subject: 'Math',
+                    'Module Name': 'Algebra',
+                    'Module Number': '101',
+                    Topic: 'Linear Equations'
+                },
+                {
+                    id: 2,
+                    Question: 'Test Question 2',
+                    Answer: 'Answer 2',
+                    Subject: 'Science',
+                    'Module Name': 'Physics',
+                    'Module Number': '201',
+                    Topic: 'Mechanics'
+                }
             ],
-            pagination: {
-                currentPage: 1,
-                pageSize: 10,
-                totalItems: 2,
-                totalPages: 1
-            }
-        });
+            total: 2,
+            page: 1,
+            pageSize: 10
+        };
 
-        // Create a mock request with search params
-        const mockRequest = createMockNextRequest('http://localhost/api/questions?page=1&pageSize=10', {
-            method: 'GET'
-        });
+        (getQuestions as jest.Mock).mockResolvedValue(mockQuestions);
+
+        const mockRequest = {
+            url: 'http://localhost/api/questions?page=1&pageSize=10',
+            nextUrl: {
+                searchParams: new URLSearchParams({
+                    page: '1',
+                    pageSize: '10'
+                })
+            }
+        } as unknown as NextRequest;
 
         const response = await GET(mockRequest);
         const result = await response.json();
 
-        expect(result.data).toHaveLength(2);
-        expect(result.pagination).toEqual(expect.objectContaining({
-            currentPage: 1,
-            pageSize: 10,
-            totalItems: 2,
-            totalPages: 1
-        }));
-        expect(mockGetQuestions).toHaveBeenCalledWith(expect.objectContaining({
+        expect(result).toEqual(mockQuestions);
+        expect(result.questions).toHaveLength(2);
+        expect(result.total).toBe(2);
+        expect(getQuestions).toHaveBeenCalledWith({
             page: 1,
             pageSize: 10
-        }));
+        });
     });
 
-    it('should handle filter parameters', async () => {
-        // Mock the implementation of getQuestions
-        mockGetQuestions.mockResolvedValue({
-            data: [
-                { id: 1, question_text: 'Math Question', subject: 'Math' }
+    it('should apply filters correctly', async () => {
+        const mockQuestions = {
+            questions: [
+                {
+                    id: 1,
+                    Question: 'Test Question 1',
+                    Answer: 'Answer 1',
+                    Subject: 'Math',
+                    'Module Name': 'Algebra',
+                    'Module Number': '101',
+                    Topic: 'Linear Equations'
+                }
             ],
-            pagination: {
-                currentPage: 1,
-                pageSize: 10,
-                totalItems: 1,
-                totalPages: 1
-            }
-        });
+            total: 1,
+            page: 1,
+            pageSize: 10
+        };
 
-        // Create a mock request with filter params
-        const mockRequest = createMockNextRequest('http://localhost/api/questions?subject=Math&page=1&pageSize=10', {
-            method: 'GET'
-        });
+        (getQuestions as jest.Mock).mockResolvedValue(mockQuestions);
+
+        const mockRequest = {
+            url: 'http://localhost/api/questions?page=1&pageSize=10&subject=Math',
+            nextUrl: {
+                searchParams: new URLSearchParams({
+                    page: '1',
+                    pageSize: '10',
+                    subject: 'Math'
+                })
+            }
+        } as unknown as NextRequest;
 
         const response = await GET(mockRequest);
         const result = await response.json();
 
-        expect(result.data).toHaveLength(1);
-        expect(result.data[0].subject).toBe('Math');
-        expect(mockGetQuestions).toHaveBeenCalledWith(expect.objectContaining({
-            subject: 'Math',
+        expect(result).toEqual(mockQuestions);
+        expect(result.questions[0].Subject).toBe('Math');
+        expect(getQuestions).toHaveBeenCalledWith({
             page: 1,
-            pageSize: 10
-        }));
+            pageSize: 10,
+            subject: ['Math']
+        });
     });
 });

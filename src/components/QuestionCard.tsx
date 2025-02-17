@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Card,
     CardContent,
@@ -25,6 +25,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import PreviewIcon from '@mui/icons-material/Preview';
 import type { Question } from '@/lib/database/queries';
+import { useCartStore } from '@/store/cartStore';
 
 const formatQuestion = (questionText: string): React.ReactNode => {
     if (!questionText) return null;
@@ -124,15 +125,71 @@ interface QuestionCardProps {
     question: Question;
     onAddToTest: (questionId: number) => Promise<void>;
     onEdit?: (question: Question) => void;
+    initialInCart?: boolean;
+    onRemove?: () => void;
+    showCartButton?: boolean;
 }
 
-export default function QuestionCard({ question, onAddToTest, onEdit }: QuestionCardProps) {
+export default function QuestionCard({ 
+    question, 
+    onAddToTest, 
+    onEdit, 
+    initialInCart, 
+    onRemove, 
+    showCartButton = true 
+}: QuestionCardProps) {
+    const [mounted, setMounted] = useState(false);
+    const { addQuestion, removeQuestion, isInCart } = useCartStore();
+    const [inCart, setInCart] = useState(initialInCart ?? false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editedQuestion, setEditedQuestion] = useState<Question>({
-        ...question,
-        'Faculty Approved': question['Faculty Approved'] || false
+        ...question
     });
+
+    useEffect(() => {
+        setMounted(true);
+        // Check if question is already in cart
+        const checkInCart = isInCart(question.id);
+        setInCart(checkInCart);
+    }, []);
+
+    const handleCartToggle = () => {
+        console.log('Cart Toggle Called', {
+            questionId: question.id,
+            currentCartState: inCart,
+            fullQuestion: question
+        });
+
+        try {
+            if (inCart) {
+                console.log('Removing question from cart', question.id);
+                removeQuestion(question.id);
+                if (onRemove) onRemove();
+            } else {
+                console.log('Adding question to cart', {
+                    id: question.id,
+                    text: question.text || question.Question,
+                    subject: question.subject || question.Subject,
+                    module: question.module || question['Module Name']
+                });
+                addQuestion({
+                    id: question.id,
+                    text: question.text || question.Question,
+                    subject: question.subject || question.Subject,
+                    module: question.module || question['Module Name'],
+                    topic: question.topic || question.Topic,
+                    // Add any other necessary fields
+                    ...question
+                });
+            }
+            
+            // Force a re-render and state update
+            setInCart(!inCart);
+        } catch (error) {
+            console.error('Error in cart toggle:', error);
+        }
+    };
 
     const difficultyLevels = ['Easy', 'Medium', 'Hard'];
     const questionTypes = [
@@ -159,8 +216,7 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
     const handleEditClick = () => {
         setEditModalOpen(true);
         setEditedQuestion({
-            ...question,
-            'Faculty Approved': question['Faculty Approved'] || false
+            ...question
         });
     };
 
@@ -198,141 +254,152 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
     };
 
     return (
-        <>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', pb: 0 }}>
-                <CardContent sx={{ 
-                    flexGrow: 1, 
-                    pb: '0 !important',
-                    pt: 1,
-                    px: 1.5,
-                    '&:last-child': { pb: '0 !important' }
-                }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Typography 
-                            variant="caption" 
-                            sx={{ 
-                                color: 'error.main', 
-                                fontWeight: 600,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px'
-                            }}
-                        >
-                            {question.Subject}
-                        </Typography>
-                        <Chip 
-                            label={question["Module Name"]} 
-                            size="small" 
-                            variant="outlined"
-                            sx={{ 
-                                fontSize: '0.75rem',
-                                height: 22
-                            }}
-                        />
-                    </Box>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
-                        gap: 1, 
-                        mb: 1,
-                        alignItems: 'center'
-                    }}>
-                        {question.Topic && (
-                            <Chip 
-                                label={`Topic: ${question.Topic}`} 
-                                size="small" 
-                                color="secondary"
-                                variant="outlined"
-                                sx={{ fontSize: '0.675rem', height: 20 }}
-                            />
-                        )}
-                        {question["Sub Topic"] && (
-                            <Chip 
-                                label={`Sub Topic: ${question["Sub Topic"]}`} 
-                                size="small" 
-                                color="primary"
-                                variant="outlined"
-                                sx={{ fontSize: '0.675rem', height: 20 }}
-                            />
-                        )}
-                        {question["Micro Topic"] && (
-                            <Chip 
-                                label={`Micro Topic: ${question["Micro Topic"]}`} 
-                                size="small" 
-                                color="info"
-                                variant="outlined"
-                                sx={{ fontSize: '0.675rem', height: 20 }}
-                            />
-                        )}
-                    </Box>
-                    <Box 
+        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <CardContent sx={{ 
+                flexGrow: 1, 
+                pb: '0 !important',
+                pt: 1,
+                px: 1.5,
+                '&:last-child': { pb: '0 !important' }
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Typography 
+                        variant="caption" 
                         sx={{ 
-                            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                            fontSize: '0.75rem',
-                            lineHeight: 1.3,
-                            letterSpacing: '0.01em',
-                            mb: 0.5
+                            color: 'error.main', 
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
                         }}
                     >
-                        {formatQuestion(question.Question)}
-                    </Box>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        gap: 0.5, 
-                        flexWrap: 'wrap', 
-                        alignItems: 'center',
-                        mt: 0.25
-                    }}>
-                        <Chip 
-                            label={question['Difficulty Level'] || 'Unknown'} 
-                            size="small" 
-                            sx={{ fontSize: '0.625rem', height: 20 }}
-                            color={
-                                question['Difficulty Level'] === 'easy' ? 'success' :
-                                question['Difficulty Level'] === 'medium' ? 'warning' :
-                                'error'
-                            } 
-                        />
-                        <Chip 
-                            label={question['Nature of Question'] || 'Unknown'} 
-                            size="small" 
-                            sx={{ fontSize: '0.625rem', height: 20 }}
-                        />
-                    </Box>
-                </CardContent>
-                <Box sx={{ 
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    gap: 0.5,
-                    pr: 1,
-                    mt: -0.5,
-                    mb: 0.5
-                }}>
-                    <IconButton 
+                        {question.Subject}
+                    </Typography>
+                    <Chip 
+                        label={question["Module Name"]} 
                         size="small" 
-                        onClick={() => setPreviewOpen(true)}
-                        title="Preview"
-                    >
-                        <PreviewIcon fontSize="small" />
-                    </IconButton>
-                    {onEdit && (
-                        <IconButton 
-                            size="small" 
-                            onClick={handleEditClick}
-                            title="Edit"
-                        >
-                            <EditIcon fontSize="small" />
-                        </IconButton>
-                    )}
-                    <IconButton 
-                        size="small" 
-                        onClick={handleAddToTest}
-                        title="Add to Test"
-                        color="primary"
-                    >
-                        <AddShoppingCartIcon fontSize="small" />
-                    </IconButton>
+                        variant="outlined"
+                        sx={{ 
+                            fontSize: '0.75rem',
+                            height: 22
+                        }}
+                    />
                 </Box>
-            </Card>
+                <Box sx={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: 1, 
+                    mb: 1,
+                    alignItems: 'center'
+                }}>
+                    {question.Topic && (
+                        <Chip 
+                            label={`Topic: ${question.Topic}`} 
+                            size="small" 
+                            color="secondary"
+                            variant="outlined"
+                            sx={{ fontSize: '0.675rem', height: 20 }}
+                        />
+                    )}
+                    {question["Sub Topic"] && (
+                        <Chip 
+                            label={`Sub Topic: ${question["Sub Topic"]}`} 
+                            size="small" 
+                            color="primary"
+                            variant="outlined"
+                            sx={{ fontSize: '0.675rem', height: 20 }}
+                        />
+                    )}
+                    {question["Micro Topic"] && (
+                        <Chip 
+                            label={`Micro Topic: ${question["Micro Topic"]}`} 
+                            size="small" 
+                            color="info"
+                            variant="outlined"
+                            sx={{ fontSize: '0.675rem', height: 20 }}
+                        />
+                    )}
+                </Box>
+                <Box 
+                    sx={{ 
+                        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+                        fontSize: '0.75rem',
+                        lineHeight: 1.3,
+                        letterSpacing: '0.01em',
+                        mb: 0.5
+                    }}
+                >
+                    {formatQuestion(question.Question)}
+                </Box>
+                <Box sx={{ 
+                    display: 'flex', 
+                    gap: 0.5, 
+                    flexWrap: 'wrap', 
+                    alignItems: 'center',
+                    mt: 0.25
+                }}>
+                    <Chip 
+                        label={question['Difficulty Level'] || 'Unknown'} 
+                        size="small" 
+                        sx={{ fontSize: '0.625rem', height: 20 }}
+                        color={
+                            question['Difficulty Level'] === 'easy' ? 'success' :
+                            question['Difficulty Level'] === 'medium' ? 'warning' :
+                            'error'
+                        } 
+                    />
+                    <Chip 
+                        label={question['Nature of Question'] || 'Unknown'} 
+                        size="small" 
+                        sx={{ fontSize: '0.625rem', height: 20 }}
+                    />
+                </Box>
+            </CardContent>
+            <CardActions 
+                sx={{ 
+                    position: 'absolute', 
+                    bottom: 8, 
+                    right: 8, 
+                    display: 'flex', 
+                    gap: 1, 
+                    justifyContent: 'flex-end' 
+                }}
+            >
+                {onEdit && (
+                    <IconButton
+                        size="small"
+                        onClick={() => setEditModalOpen(true)}
+                        title="Edit Question"
+                    >
+                        <EditIcon />
+                    </IconButton>
+                )}
+                <IconButton
+                    size="small"
+                    onClick={() => setPreviewOpen(true)}
+                    title="Preview Question"
+                >
+                    <PreviewIcon />
+                </IconButton>
+                {showCartButton && (
+                    <IconButton
+                        size="small"
+                        onClick={handleCartToggle}
+                        title={inCart ? 'Remove from Cart' : 'Add to Cart'}
+                        color={inCart ? 'primary' : 'default'}
+                        sx={{
+                            transition: 'transform 0.2s',
+                            '&:active': {
+                                transform: 'scale(0.95)',
+                            },
+                            '&:hover': {
+                                transform: 'scale(1.1)',
+                            },
+                        }}
+                    >
+                        <AddShoppingCartIcon />
+                    </IconButton>
+                )}
+            </CardActions>
 
             <Dialog 
                 open={editModalOpen} 
@@ -615,17 +682,8 @@ export default function QuestionCard({ question, onAddToTest, onEdit }: Question
                     <Button onClick={handleAddToTest} variant="contained" startIcon={<AddShoppingCartIcon />}>
                         Add to Test
                     </Button>
-                    {onEdit && (
-                        <Button 
-                            onClick={handleEditClick} 
-                            variant="outlined" 
-                            startIcon={<EditIcon />}
-                        >
-                            Edit Question
-                        </Button>
-                    )}
                 </DialogActions>
             </Dialog>
-        </>
+        </Card>
     );
 }

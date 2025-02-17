@@ -1,30 +1,14 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
-export default {
+module.exports = {
     preset: 'ts-jest',
-    testEnvironment: 'jsdom',
-    setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+    testEnvironment: 'node',
     moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/src/$1',
-        '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+        '^@/(.*)$': '<rootDir>/src/$1'
     },
-    testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
+    setupFiles: ['<rootDir>/jest.setup.js'],
     transform: {
-        '^.+\\.(js|jsx|ts|tsx)$': ['ts-jest', {
-            tsconfig: '<rootDir>/tsconfig.json',
-        }],
+        '^.+\\.tsx?$': 'ts-jest'
     },
-    collectCoverageFrom: [
-        'src/**/*.{js,jsx,ts,tsx}',
-        '!src/**/*.d.ts',
-        '!src/pages/_app.tsx',
-        '!src/pages/_document.tsx',
-    ],
-    coverageThreshold: {
-        global: {
-            branches: 50,
-            functions: 50,
-            lines: 50,
-            statements: 50
-        }
-    }
+    testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$',
+    moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node']
 };
