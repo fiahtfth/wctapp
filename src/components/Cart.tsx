@@ -78,16 +78,25 @@ export default function Cart() {
     };
 
     const handleExport = () => {
-        // Prepare export data
-        const exportData = questions.map((question, index) => ({
-            'S.No': index + 1,
-            'Question': question.Question || question.text || 'No Question Text',
-            'Answer': question.Answer || 'No Answer Provided',
-            'Explanation': question.Explanation || 'No Explanation Provided'
-        }));
+        // Prepare export data with ALL available question details
+        const exportData = questions.map((question, index) => {
+            // Extract all keys from the question object
+            const questionDetails = { ...question };
+
+            // Ensure S.No is the first column
+            delete questionDetails.id;
+            const exportRow = {
+                'S.No': index + 1,
+                ...questionDetails
+            };
+
+            return exportRow;
+        });
 
         // Create workbook and worksheet
         const wb = XLSX.utils.book_new();
+        
+        // Create first sheet with test details and questions
         const ws = XLSX.utils.json_to_sheet([
             {
                 'Test Name': testDetails.testName,
