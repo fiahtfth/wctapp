@@ -79,14 +79,17 @@ export default function Cart() {
     const handleExport = () => {
         // Prepare export data with ALL available question details
         const exportData = questions.map((question, index) => {
-            // Extract all keys from the question object
-            const questionDetails = { ...question };
-
-            // Ensure S.No is the first column
-            delete questionDetails.id;
+            // Create a structured row with specific fields in desired order
             const exportRow = {
                 'S.No': index + 1,
-                ...questionDetails
+                'Question': question.Question,
+                'Answer': question.Answer || '',
+                'Explanation': question.Explanation || '',
+                'Subject': question.Subject,
+                'Module Name': question['Module Name'] || '',
+                'Topic': question.Topic,
+                'Difficulty Level': question['Difficulty Level'] || '',
+                'Question Type': question.Question_Type || ''
             };
 
             return exportRow;
@@ -95,21 +98,20 @@ export default function Cart() {
         // Create workbook and worksheet
         const wb = XLSX.utils.book_new();
         
-        // Create first sheet with test details and questions
-        const ws = XLSX.utils.json_to_sheet([
-            {
-                'Test Name': testDetails.testName,
-                'Batch': testDetails.batch,
-                'Date': testDetails.date
-            },
-            ...exportData
-        ]);
+        // Create first sheet with test details
+        const testDetailsSheet = XLSX.utils.json_to_sheet([{
+            'Test Name': testDetails.testName,
+            'Batch': testDetails.batch,
+            'Date': testDetails.date
+        }]);
+        XLSX.utils.book_append_sheet(wb, testDetailsSheet, 'Test Details');
 
-        // Add worksheet to workbook
-        XLSX.utils.book_append_sheet(wb, ws, 'Test Questions');
+        // Create second sheet with questions
+        const questionsSheet = XLSX.utils.json_to_sheet(exportData);
+        XLSX.utils.book_append_sheet(wb, questionsSheet, 'Questions');
 
         // Export to Excel
-        XLSX.writeFile(wb, `${testDetails.testName || 'Test'}_Questions.xlsx`);
+        XLSX.writeFile(wb, `${testDetails.testName || 'Test'}_Export.xlsx`);
 
         // Close modal
         setExportModalOpen(false);

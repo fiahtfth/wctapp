@@ -2,10 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Question } from '@/types/question';
 
-interface CartQuestion extends Partial<Question> {
+interface CartQuestion extends Question {
   id: string | number;
-  text?: string;
-  Question?: string;
 }
 
 interface CartStore {
@@ -24,11 +22,7 @@ export const useCartStore = create<CartStore>()(
         console.log('Adding question to cart', question);
         set((state) => {
           // Check if question is already in cart
-          const isAlreadyInCart = state.questions.some(q => 
-            q.id === question.id || 
-            q.text === question.text || 
-            q.Question === question.Question
-          );
+          const isAlreadyInCart = state.questions.some(q => q.id === question.id);
 
           if (isAlreadyInCart) {
             console.log('Question already in cart, skipping');
@@ -43,11 +37,7 @@ export const useCartStore = create<CartStore>()(
       removeQuestion: (questionId) => {
         console.log('Removing question from cart', questionId);
         set((state) => {
-          const newQuestions = state.questions.filter((q) => 
-            q.id !== questionId && 
-            q.text !== questionId && 
-            q.Question !== questionId
-          );
+          const newQuestions = state.questions.filter((q) => q.id !== questionId);
           console.log('Updated cart questions after removal', newQuestions);
           return { questions: newQuestions };
         });

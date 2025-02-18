@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { jwtVerify } from 'jose';
 import path from 'path';
 import fs from 'fs';
+import { User } from '@/types/user';
 
 // Enhanced logging function
 function log(level: 'error' | 'warn' | 'info' | 'debug', message: string, data?: any) {
@@ -26,6 +27,23 @@ function log(level: 'error' | 'warn' | 'info' | 'debug', message: string, data?:
     } catch (fileLogError) {
         console.error('Error logging to file:', fileLogError);
     }
+}
+
+// Type guard to validate user objects
+function isUser(obj: unknown): obj is User {
+    return (
+        typeof obj === 'object' && 
+        obj !== null && 
+        'email' in obj && 
+        'role' in obj && 
+        typeof (obj as User).email === 'string' && 
+        typeof (obj as User).role === 'string'
+    );
+}
+
+// Type guard to validate array of users
+function isUserArray(arr: unknown): arr is User[] {
+    return Array.isArray(arr) && arr.every(isUser);
 }
 
 export async function GET(request: NextRequest) {
@@ -120,7 +138,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Prepare select statement with error handling
-        let users;
+        let users: User[] = [];
         try {
             const stmt = db.prepare(`
                 SELECT 
@@ -133,19 +151,27 @@ export async function GET(request: NextRequest) {
                 ORDER BY created_at DESC
             `);
 
-            users = stmt.all();
+            const rawUsers = stmt.all();
 
             // Log detailed information about retrieved users
             log('debug', 'Users retrieval details', {
-                userCount: users ? users.length : 0,
-                usersType: typeof users,
-                usersIsArray: Array.isArray(users)
+                userCount: rawUsers ? rawUsers.length : 0,
+                usersType: typeof rawUsers,
+                usersIsArray: Array.isArray(rawUsers)
             });
 
-            // Handle cases where users might be null or not an array
-            if (!users || !Array.isArray(users)) {
-                log('warn', 'Users retrieval returned non-array or null result', { users });
-                users = []; // Ensure users is always an array
+            // Validate and filter users
+            if (isUserArray(rawUsers)) {
+                users = rawUsers;
+            } else {
+                const validUsers = rawUsers.filter(isUser);
+                
+                log('warn', 'Some retrieved users did not match the User type', {
+                    totalRetrieved: rawUsers.length,
+                    validUsersCount: validUsers.length
+                });
+
+                users = validUsers;
             }
 
             // Optional: Add a default user if no users exist (for testing/development)
@@ -174,7 +200,13 @@ export async function GET(request: NextRequest) {
                     });
 
                     // Refetch users to get the newly inserted user
-                    users = stmt.all();
+                    const newRawUsers = stmt.all();
+                    if (isUserArray(newRawUsers)) {
+                        users = newRawUsers;
+                    } else {
+                        const validNewUsers = newRawUsers.filter(isUser);
+                        users = validNewUsers;
+                    }
                 } catch (insertError) {
                     log('error', 'Failed to insert default admin user', insertError);
                 }
@@ -196,7 +228,7 @@ export async function GET(request: NextRequest) {
 
         // Return users with additional metadata
         return NextResponse.json({ 
-            users,
+            users: users as User[],
             total: users.length,
             timestamp: new Date().toISOString(),
             message: users.length === 0 ? 'No users found' : 'Users retrieved successfully'

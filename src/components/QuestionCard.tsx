@@ -215,14 +215,11 @@ const QuestionCard = ({
                 } else {
                     // Add to cart
                     addQuestion({
+                        ...question,
                         id: question.id,
-                        text: question.Question,
-                        Question: question.Question,
-                        Subject: question.Subject,
-                        'Module Name': question['Module Name'],
-                        Topic: question.Topic,
-                        'Difficulty Level': question['Difficulty Level'],
-                        'Question_Type': question['Question_Type']
+                        Answer: question.Answer || '',
+                        Explanation: question.Explanation || '',
+                        'Question_Type': question.Question_Type || ''
                     });
                     setInCart(true);
                 }
