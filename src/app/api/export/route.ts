@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCartQuestions } from '@/lib/database/queries';
+import { getCartQuestions } from '@/types/question';
 import * as XLSX from 'xlsx';
 
 export async function POST(request: NextRequest) {

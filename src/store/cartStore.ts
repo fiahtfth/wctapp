@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Question } from '@/lib/database/queries';
+import { Question } from '@/types/question';
 
 interface CartQuestion extends Partial<Question> {
   id: string | number;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addQuestionToCart, getCartQuestions } from '@/lib/database/queries';
+import { addQuestionToCart, getCartQuestions } from '@/types/question';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {

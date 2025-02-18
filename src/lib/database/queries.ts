@@ -2,6 +2,7 @@
 
 import Database from 'better-sqlite3';
 import path from 'path';
+import { Question, isQuestion } from '@/types/question';
 
 const DB_PATH = path.join(process.cwd(), 'src', 'lib', 'database', 'questions.db');
 
@@ -48,166 +49,102 @@ export async function getQuestions(filters: {
     const db = await openDatabase();
 
     try {
-        // Precise mapping of frontend parameter names to actual database column names
-        const columnMap: { [key: string]: string } = {
-            'subject': 'Subject',
-            'module': '"Module Name"',  // Use double quotes for column names with spaces
-            'topic': 'Topic',
-            'sub_topic': '"Sub Topic"',
-            'question_type': 'Question_Type'
-        };
+        console.log('getQuestions - Received filters:', filters);
 
-        // Default pagination values
+        // Validate and normalize filters
         const page = filters.page || 1;
         const pageSize = filters.pageSize || 10;
         const offset = (page - 1) * pageSize;
 
-        // Base query to count total items
-        let countQuery = 'SELECT COUNT(*) as total FROM questions WHERE 1=1';
+        // Construct base query
         let query = 'SELECT * FROM questions WHERE 1=1';
-        const params: any[] = [];
-        const countParams: any[] = [];
+        const queryParams: any[] = [];
 
-        // Debugging log for input filters
-        console.log('Input Filters:', JSON.stringify(filters, null, 2));
+        // Dynamic filter conditions
+        const conditions: string[] = [];
 
-        // Modify addCondition to be more flexible
-        const addCondition = (column: string, value: string | string[] | undefined) => {
-            if (value) {
-                const dbColumn = columnMap[column] || column;
-                
-                // Normalize value to an array
-                const values = Array.isArray(value) 
-                    ? value.filter(v => v && v.trim() !== '') 
-                    : (typeof value === 'string' && value.trim() !== '' 
-                        ? [value] 
-                        : []);
+        // Subject filter
+        if (filters.subject) {
+            const subjects = Array.isArray(filters.subject) ? filters.subject : [filters.subject];
+            conditions.push(`"Subject" IN (${subjects.map(() => '?').join(',')})`);
+            queryParams.push(...subjects);
+        }
 
-                if (values.length > 0) {
-                    // Use LIKE for more flexible matching
-                    const conditions = values.map(() => `${dbColumn} LIKE ?`).join(' OR ');
-                    query += ` AND (${conditions})`;
-                    countQuery += ` AND (${conditions})`;
-                    
-                    // Add wildcard % to each value for partial matching
-                    params.push(...values.map(v => `%${v}%`));
-                    countParams.push(...values.map(v => `%${v}%`));
-                    
-                    console.log(`Adding flexible filter for ${dbColumn}: LIKE (${values.join(', ')})`);
-                }
-            }
-        };
-
-        // Apply filters with precise column mapping
-        if (filters.subject) addCondition('subject', filters.subject);
+        // Module filter
         if (filters.module) {
-            console.log('Module Filters:', filters.module);
-            addCondition('module', filters.module);
+            const modules = Array.isArray(filters.module) ? filters.module : [filters.module];
+            conditions.push(`"Module Name" IN (${modules.map(() => '?').join(',')})`);
+            queryParams.push(...modules);
         }
-        if (filters.topic) addCondition('topic', filters.topic);
-        if (filters.sub_topic) addCondition('sub_topic', filters.sub_topic);
-        if (filters.question_type) addCondition('question_type', filters.question_type);
 
-        // Add search condition if provided
+        // Topic filter
+        if (filters.topic) {
+            const topics = Array.isArray(filters.topic) ? filters.topic : [filters.topic];
+            conditions.push(`"Topic" IN (${topics.map(() => '?').join(',')})`);
+            queryParams.push(...topics);
+        }
+
+        // Sub Topic filter
+        if (filters.sub_topic) {
+            const subTopics = Array.isArray(filters.sub_topic) ? filters.sub_topic : [filters.sub_topic];
+            conditions.push(`"Sub Topic" IN (${subTopics.map(() => '?').join(',')})`);
+            queryParams.push(...subTopics);
+        }
+
+        // Question Type filter
+        if (filters.question_type) {
+            const questionTypes = Array.isArray(filters.question_type) ? filters.question_type : [filters.question_type];
+            conditions.push(`"Question_Type" IN (${questionTypes.map(() => '?').join(',')})`);
+            queryParams.push(...questionTypes);
+        }
+
+        // Search filter
         if (filters.search) {
+            conditions.push(`("Question" LIKE ? OR "Answer" LIKE ? OR "Explanation" LIKE ?)`);
             const searchTerm = `%${filters.search}%`;
-            query += ` AND (
-                Question LIKE ? OR 
-                Subject LIKE ? OR 
-                "Module Name" LIKE ? OR 
-                Topic LIKE ? OR 
-                "Sub Topic" LIKE ? OR
-                Answer LIKE ? OR
-                Explanation LIKE ?
-            )`;
-            countQuery += ` AND (
-                Question LIKE ? OR 
-                Subject LIKE ? OR 
-                "Module Name" LIKE ? OR 
-                Topic LIKE ? OR 
-                "Sub Topic" LIKE ? OR
-                Answer LIKE ? OR
-                Explanation LIKE ?
-            )`;
-            
-            // Add search term multiple times for each column
-            params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
-            countParams.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
-            
-            console.log(`Adding search filter: ${searchTerm}`);
+            queryParams.push(searchTerm, searchTerm, searchTerm);
         }
 
-        // Add question type filter
-        if (filters.question_type && filters.question_type.length > 0) {
-            const questionTypeArray = Array.isArray(filters.question_type) 
-                ? filters.question_type 
-                : [filters.question_type];
-            
-            const questionTypeConditions = questionTypeArray
-                .map(() => '"Question_Type" = ?')
-                .join(' OR ');
-            
-            query += ` AND (${questionTypeConditions})`;
-            countQuery += ` AND (${questionTypeConditions})`;
-            
-            params.push(...questionTypeArray);
-            countParams.push(...questionTypeArray);
-            
-            console.log(`Adding question type filter: ${questionTypeArray}`);
+        // Combine conditions
+        if (conditions.length > 0) {
+            query += ' AND ' + conditions.join(' AND ');
         }
-
-        // Add ORDER BY clause for consistent results
-        query += ' ORDER BY Subject, "Module Name", Topic, "Sub Topic"';
 
         // Add pagination
         query += ' LIMIT ? OFFSET ?';
-        params.push(pageSize, offset);
+        queryParams.push(pageSize, offset);
 
-        console.log('Final Query:', query);
-        console.log('Query Params:', params);
+        // Count total matching records
+        let countQuery = 'SELECT COUNT(*) as total FROM questions WHERE 1=1';
+        if (conditions.length > 0) {
+            countQuery += ' AND ' + conditions.join(' AND ');
+        }
 
-        // Execute count query to get total items
-        const countResult = await db.prepare(countQuery).get(...countParams) as { total: number };
-        const totalItems = countResult.total;
-        const totalPages = Math.ceil(totalItems / pageSize);
+        console.log('Executing query:', query);
+        console.log('Query parameters:', queryParams);
 
-        // Execute main query
-        const questions = db.prepare(query).all(...params) as Question[];
+        // Execute queries
+        const questionsStmt = db.prepare(query);
+        const countStmt = db.prepare(countQuery);
 
-        console.log('Questions fetched:', questions.length);
+        const questions = questionsStmt.all(...queryParams);
+        const totalResult = countStmt.get(...(conditions.length > 0 ? queryParams.slice(0, -2) : []));
 
-        // Map the results to match the Question interface
-        const mappedQuestions = questions
-            .filter(isQuestionResult)
-            .map((q: QuestionResult) => ({
-                id: q.id || undefined,
-                Question: q.Question,
-                Answer: q.Answer,
-                Explanation: q.Explanation,
-                Subject: q.Subject,
-                'Module Number': q['Module Number'],
-                'Module Name': q['Module Name'],
-                Topic: q.Topic,
-                'Sub Topic': q['Sub Topic'],
-                'Micro Topic': q['Micro Topic'],
-                'Faculty Approved': q['Faculty Approved'],
-                'Difficulty Level': q['Difficulty Level'],
-                'Nature of Question': q['Nature of Question'],
-                Objective: q.Objective,
-                Question_Type: q.Question_Type
-            }));
+        console.log('Fetched questions:', questions);
+        console.log('Total count:', totalResult);
 
         return {
-            questions: mappedQuestions,
-            total: totalItems,
-            page: page,
-            pageSize: pageSize
+            questions: questions || [],
+            total: totalResult?.total || 0,
+            page,
+            pageSize
         };
     } catch (error) {
         console.error('Error in getQuestions:', error);
+        console.error('Error details:', error.message, error.stack);
         throw error;
     } finally {
-        await db.close();
+        db.close();
     }
 }
 
@@ -860,9 +797,60 @@ export async function updateQuestion(
         return updatedQuestion;
     } catch (error) {
         console.error('Error in updateQuestion:', error);
+        console.error('Error details:', error.message, error.stack);
         throw error;
     } finally {
         await db.close();
+    }
+}
+
+export async function addQuestion(question: Question): Promise<{ id: number }> {
+    const db = await openDatabase();
+
+    try {
+        // Validate required fields
+        if (!question.Question || !question.Answer || !question.Subject || !question.Question_Type) {
+            throw new Error('Missing required fields for question');
+        }
+
+        // Prepare the SQL insert statement dynamically
+        const columns = Object.keys(question)
+            .filter(key => question[key] !== undefined && question[key] !== null)
+            .map(key => `"${key}"`);
+        
+        const placeholders = columns.map(() => '?').join(', ');
+        
+        const values = columns.map(col => question[col.replace(/"/g, '')]);
+
+        const query = `
+            INSERT INTO questions (${columns.join(', ')}, "Last Updated")
+            VALUES (${placeholders}, CURRENT_TIMESTAMP)
+            RETURNING id;
+        `;
+
+        console.group('Question Insertion Process');
+        console.log('Prepared SQL query:', query);
+        console.log('Columns:', columns);
+        console.log('Values:', values);
+
+        const stmt = db.prepare(query);
+        const result = stmt.get(...values);
+
+        if (!result || !result.id) {
+            console.error('No ID returned from question insertion');
+            throw new Error('Failed to insert question');
+        }
+
+        console.log('Successfully inserted question with ID:', result.id);
+        console.groupEnd();
+
+        return { id: result.id };
+    } catch (error) {
+        console.error('Error in addQuestion:', error);
+        console.error('Error details:', error.message, error.stack);
+        throw error;
+    } finally {
+        db.close();
     }
 }
 

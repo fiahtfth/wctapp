@@ -10,8 +10,6 @@ import {
     AppBar,
     Toolbar,
     Button,
-    IconButton,
-    Drawer,
     Grid,
     Paper,
     Badge,
@@ -22,7 +20,6 @@ import {
 } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 import { createTheme } from '@mui/material/styles';
-import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 
@@ -43,7 +40,6 @@ export default function Home() {
         question_type?: string[];
         search?: string;
     }>({});
-    const [drawerOpen, setDrawerOpen] = useState(false);
     const router = useRouter();
 
     // Load cart count on mount
@@ -136,26 +132,6 @@ export default function Home() {
                             </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <IconButton 
-                                color="inherit"
-                                onClick={() => setDrawerOpen(true)}
-                                sx={{ 
-                                    p: 0.75,
-                                    transition: 'all 0.2s',
-                                    '& .MuiSvgIcon-root': { 
-                                        fontSize: '1.25rem',
-                                        transition: 'all 0.2s'
-                                    },
-                                    '&:hover': {
-                                        backgroundColor: 'rgba(0,0,0,0.05)',
-                                        '& .MuiSvgIcon-root': {
-                                            transform: 'scale(1.1)'
-                                        }
-                                    }
-                                }}
-                            >
-                                <MenuIcon />
-                            </IconButton>
                             <CartIndicator count={cartCount} />
                             <Button 
                                 variant="outlined"
@@ -198,79 +174,59 @@ export default function Home() {
                             >
                                 Logout
                             </Button>
-
-                            {/* Logout Confirmation Dialog */}
-                            <Dialog
-                                open={logoutDialogOpen}
-                                onClose={() => setLogoutDialogOpen(false)}
-                                sx={{
-                                    '& .MuiDialog-paper': {
-                                        borderRadius: 2,
-                                        minWidth: 300
-                                    }
-                                }}
-                            >
-                                <DialogTitle sx={{ pb: 1 }}>
-                                    Confirm Logout
-                                </DialogTitle>
-                                <DialogContent sx={{ pb: 2 }}>
-                                    <Typography 
-                                        variant="body2" 
-                                        sx={{ 
-                                            mb: 0.5,
-                                            display: 'block'  
-                                        }}
-                                    >
-                                        Are you sure you want to logout?
-                                    </Typography>
-                                </DialogContent>
-                                <DialogActions sx={{ px: 3, pb: 2 }}>
-                                    <Button 
-                                        onClick={() => setLogoutDialogOpen(false)}
-                                        variant="text"
-                                        sx={{ 
-                                            textTransform: 'none',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button 
-                                        onClick={confirmLogout}
-                                        variant="contained"
-                                        color="error"
-                                        sx={{ 
-                                            textTransform: 'none',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        Logout
-                                    </Button>
-                                </DialogActions>
-                            </Dialog>
                         </Box>
                     </Toolbar>
                 </AppBar>
 
-                {/* Mobile Drawer Menu */}
-                <Drawer
-                    anchor="right"
-                    open={drawerOpen}
-                    onClose={() => setDrawerOpen(false)}
-                    sx={{ 
-                        display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': { width: '100%' } 
+                {/* Logout Confirmation Dialog */}
+                <Dialog
+                    open={logoutDialogOpen}
+                    onClose={() => setLogoutDialogOpen(false)}
+                    sx={{
+                        '& .MuiDialog-paper': {
+                            borderRadius: 2,
+                            minWidth: 300
+                        }
                     }}
                 >
-                    <Box sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6">Menu</Typography>
-                            <IconButton onClick={() => setDrawerOpen(false)}>
-                                <CloseIcon />
-                            </IconButton>
-                        </Box>
-                    </Box>
-                </Drawer>
+                    <DialogTitle sx={{ pb: 1 }}>
+                        Confirm Logout
+                    </DialogTitle>
+                    <DialogContent sx={{ pb: 2 }}>
+                        <Typography 
+                            variant="body2" 
+                            sx={{ 
+                                mb: 0.5,
+                                display: 'block'  
+                            }}
+                        >
+                            Are you sure you want to logout?
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2 }}>
+                        <Button 
+                            onClick={() => setLogoutDialogOpen(false)}
+                            variant="text"
+                            sx={{ 
+                                textTransform: 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={confirmLogout}
+                            variant="contained"
+                            color="error"
+                            sx={{ 
+                                textTransform: 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Logout
+                        </Button>
+                    </DialogActions>
+                </Dialog>
 
                 {/* Main Content */}
                 <Container 

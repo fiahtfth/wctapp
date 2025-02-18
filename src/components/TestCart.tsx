@@ -14,7 +14,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import type { Question } from '@/lib/database/queries';
+import type { Question } from '@/types/question';
 import * as XLSX from 'xlsx';
 
 interface TestCartProps {

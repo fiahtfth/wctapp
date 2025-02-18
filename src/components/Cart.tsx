@@ -24,7 +24,6 @@ import {
     FileDownload as ExportIcon
 } from '@mui/icons-material';
 import { useCartStore } from '@/store/cartStore';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import QuestionCard from './QuestionCard';
 import * as XLSX from 'xlsx';
@@ -171,13 +170,12 @@ export default function Cart() {
                             Your cart is empty
                         </Typography>
                         <Button
-                            component={Link}
-                            href="/questions"
+                            onClick={() => router.push('/')}
                             variant="contained"
                             color="primary"
                             sx={{ mt: 2 }}
                         >
-                            Browse Questions
+                            Back to Home
                         </Button>
                     </Box>
                 ) : (

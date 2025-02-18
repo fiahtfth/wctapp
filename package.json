@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:question-submission": "ts-node test-question-submission.ts",
+    "test:question-update": "ts-node test-question-update.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

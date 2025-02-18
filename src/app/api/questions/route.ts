@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getQuestions } from '@/lib/database/queries';
+import { getQuestions, addQuestion } from '@/lib/database/queries';
+import { Question } from '@/types/question';
 
 export async function GET(request: NextRequest) {
     try {
@@ -73,6 +74,54 @@ export async function GET(request: NextRequest) {
             total: 0,
             page: 1,
             pageSize: 10
+        }, { status: 500 });
+    }
+}
+
+export async function POST(request: NextRequest) {
+    try {
+        const body = await request.json();
+        
+        // Validate input
+        const requiredFields = ['Question', 'Answer', 'Subject', 'Question_Type'];
+        const missingFields = requiredFields.filter(field => !body[field]);
+
+        if (missingFields.length > 0) {
+            return NextResponse.json({
+                error: `Missing required fields: ${missingFields.join(', ')}`
+            }, { status: 400 });
+        }
+
+        // Sanitize and prepare question data
+        const questionData: Question = {
+            Question: body.Question.trim(),
+            Answer: body.Answer.trim(),
+            Explanation: body.Explanation ? body.Explanation.trim() : null,
+            Subject: body.Subject,
+            'Module Number': body['Module Number'] || '',
+            'Module Name': body['Module Name'] || '',
+            Topic: body.Topic || '',
+            'Sub Topic': body['Sub Topic'] || null,
+            'Micro Topic': body['Micro Topic'] || null,
+            'Faculty Approved': body['Faculty Approved'] || false,
+            'Difficulty Level': body['Difficulty Level'] || null,
+            'Nature of Question': body['Nature of Question'] || null,
+            Objective: body.Objective || '',
+            Question_Type: body.Question_Type
+        };
+
+        // Add question to database
+        const result = await addQuestion(questionData);
+
+        return NextResponse.json({
+            message: 'Question added successfully',
+            questionId: result.id
+        }, { status: 201 });
+    } catch (error) {
+        console.error('Error adding question:', error);
+        return NextResponse.json({
+            error: 'Failed to add question',
+            details: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 });
     }
 }

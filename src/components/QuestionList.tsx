@@ -11,7 +11,7 @@ import {
     Button,
     Box
 } from '@mui/material';
-import { Question } from '@/lib/database/queries';
+import { Question } from '@/types/question';
 import PaginationControls from './PaginationControls';
 import ErrorBoundary from './ErrorBoundary';
 import { CascadingFilters } from './CascadingFilters';
@@ -270,6 +270,26 @@ export default function QuestionList({
         setSelectedQuestions(selectedQuestions.filter(q => q.id !== questionId));
     };
 
+    const handleQuestionUpdate = (updatedQuestion: Question) => {
+        console.group('Question List Update');
+        console.log('Updating question:', updatedQuestion);
+
+        // Replace the question in the existing list
+        setQuestions(prevQuestions => 
+            prevQuestions.map(q => 
+                q.id === updatedQuestion.id ? updatedQuestion : q
+            )
+        );
+
+        // If the updated question was the editing question, reset editing state
+        if (editingQuestion && editingQuestion.id === updatedQuestion.id) {
+            setEditingQuestion(null);
+        }
+
+        console.log('Updated questions list');
+        console.groupEnd();
+    };
+
     const renderQuestionContent = () => {
         if (loading) {
             return (
@@ -309,6 +329,7 @@ export default function QuestionList({
                                 question={question}
                                 onAddToTest={handleAddToTest}
                                 onEdit={handleEdit}
+                                onQuestionUpdate={handleQuestionUpdate}
                             />
                         </Grid>
                     );

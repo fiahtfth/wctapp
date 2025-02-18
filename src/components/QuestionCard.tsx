@@ -23,10 +23,15 @@ import {
     InputAdornment
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import PreviewIcon from '@mui/icons-material/Preview';
-import type { Question } from '@/lib/database/queries';
+import type { Question } from '@/types/question';
 import { useCartStore } from '@/store/cartStore';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import { 
+    getSubjects, 
+    getModules, 
+    getTopics 
+} from '@/lib/database/hierarchicalData';
 
 const formatQuestion = (questionText: string): React.ReactNode => {
     if (!questionText) return null;
@@ -124,30 +129,38 @@ const formatQuestion = (questionText: string): React.ReactNode => {
 
 interface QuestionCardProps {
     question: Question;
-    onAddToTest: (questionId: number) => Promise<void>;
+    onQuestionUpdate: (question: Question) => void;
     onEdit?: (question: Question) => void;
     initialInCart?: boolean;
     onRemove?: () => void;
     showCartButton?: boolean;
 }
 
-export default function QuestionCard({ 
+const QuestionCard = ({ 
     question, 
-    onAddToTest, 
-    onEdit, 
-    initialInCart, 
-    onRemove, 
-    showCartButton = true 
-}: QuestionCardProps) {
+    onQuestionUpdate, 
+    onEdit 
+}: QuestionCardProps) => {
     const [mounted, setMounted] = useState(false);
     const { addQuestion, removeQuestion, isInCart } = useCartStore();
-    const [inCart, setInCart] = useState(initialInCart ?? false);
-    const [previewOpen, setPreviewOpen] = useState(false);
+    const [inCart, setInCart] = useState(question.initialInCart ?? false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editedQuestion, setEditedQuestion] = useState<Question>({
-        ...question
+        ...question,
+        Explanation: question.Explanation || '',
+        'Sub Topic': question['Sub Topic'] || '',
+        'Micro Topic': question['Micro Topic'] || '',
+        'Difficulty Level': question['Difficulty Level'] || '',
+        'Nature of Question': question['Nature of Question'] || '',
+        Objective: question.Objective || ''
     });
     const [editChanges, setEditChanges] = useState<{[key: string]: any}>({});
+    const [isEditing, setIsEditing] = useState(false);
+    const [editError, setEditError] = useState<string>('');
+
+    // State for cascading dropdowns
+    const [availableModules, setAvailableModules] = useState<string[]>([]);
+    const [availableTopics, setAvailableTopics] = useState<string[]>([]);
 
     useEffect(() => {
         setMounted(true);
@@ -156,40 +169,66 @@ export default function QuestionCard({
         setInCart(checkInCart);
     }, []);
 
-    const handleCartToggle = () => {
-        console.log('Cart Toggle Called', {
-            questionId: question.id,
-            currentCartState: inCart,
-            fullQuestion: question
-        });
+    // Cascading dropdown logic
+    useEffect(() => {
+        // Update available modules based on selected subject
+        if (editedQuestion.Subject) {
+            const modules = getModules(editedQuestion.Subject);
+            setAvailableModules(modules);
 
-        try {
-            if (inCart) {
-                console.log('Removing question from cart', question.id);
-                removeQuestion(question.id);
-                if (onRemove) onRemove();
-            } else {
-                console.log('Adding question to cart', {
-                    id: question.id,
-                    text: question.text || question.Question,
-                    subject: question.subject || question.Subject,
-                    module: question.module || question['Module Name']
-                });
-                addQuestion({
-                    id: question.id,
-                    text: question.text || question.Question,
-                    subject: question.subject || question.Subject,
-                    module: question.module || question['Module Name'],
-                    topic: question.topic || question.Topic,
-                    // Add any other necessary fields
-                    ...question
-                });
+            // Reset module and topic if they're not in the new list
+            if (!modules.includes(editedQuestion['Module Name'])) {
+                handleEditChange('Module Name', '');
+                handleEditChange('Topic', '');
             }
-            
-            // Force a re-render and state update
-            setInCart(!inCart);
+        } else {
+            // Reset modules and topics when no subject is selected
+            setAvailableModules([]);
+            setAvailableTopics([]);
+        }
+    }, [editedQuestion.Subject]);
+
+    useEffect(() => {
+        // Update available topics based on selected subject and module
+        if (editedQuestion.Subject && editedQuestion['Module Name']) {
+            const topics = getTopics(editedQuestion.Subject, editedQuestion['Module Name']);
+            setAvailableTopics(topics);
+
+            // Reset topic if it's not in the new list
+            if (!topics.includes(editedQuestion.Topic)) {
+                handleEditChange('Topic', '');
+            }
+        } else {
+            // Reset topics when subject or module is not selected
+            setAvailableTopics([]);
+        }
+    }, [editedQuestion.Subject, editedQuestion['Module Name']]); 
+
+    // Cart toggle functionality
+    const handleCartToggle = () => {
+        try {
+            if (question.id) {
+                if (isInCart(question.id)) {
+                    // Remove from cart
+                    removeQuestion(question.id);
+                    setInCart(false);
+                } else {
+                    // Add to cart
+                    addQuestion({
+                        id: question.id,
+                        text: question.Question,
+                        Question: question.Question,
+                        Subject: question.Subject,
+                        'Module Name': question['Module Name'],
+                        Topic: question.Topic,
+                        'Difficulty Level': question['Difficulty Level'],
+                        'Question_Type': question['Question_Type']
+                    });
+                    setInCart(true);
+                }
+            }
         } catch (error) {
-            console.error('Error in cart toggle:', error);
+            console.error('Error toggling cart:', error);
         }
     };
 
@@ -208,7 +247,7 @@ export default function QuestionCard({
     const handleAddToTest = async () => {
         try {
             if (question.id) {
-                await onAddToTest(question.id);
+                // await onAddToTest(question.id);
             }
         } catch (error) {
             console.error('Error adding question to test:', error);
@@ -216,84 +255,202 @@ export default function QuestionCard({
     };
 
     const handleEditClick = () => {
+        console.group('Edit Click Difficulty Level Debug');
+        console.log('Original Question Object:', question);
+        console.log('Original Difficulty Level:', question['Difficulty Level']);
+        console.log('Difficulty Level Type:', typeof question['Difficulty Level']);
+        
+        // Normalize difficulty level
+        const normalizedDifficultyLevel = 
+            question['Difficulty Level']?.toLowerCase() === 'difficult' ? 'Hard' :
+            question['Difficulty Level']?.toLowerCase() === 'easy' ? 'Easy' :
+            'Medium';
+
+        console.log('Normalized Difficulty Level:', normalizedDifficultyLevel);
+
+        // Ensure the normalized level is one of the valid options
+        const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
+        const finalDifficultyLevel = validDifficultyLevels.includes(normalizedDifficultyLevel) 
+            ? normalizedDifficultyLevel 
+            : 'Medium';
+
+        console.log('Final Difficulty Level:', finalDifficultyLevel);
+        console.groupEnd();
+
         setEditModalOpen(true);
         setEditedQuestion({
-            ...question
+            ...question,
+            'Difficulty Level': finalDifficultyLevel
         });
     };
 
-    const handleEditChange = (field: string, value: string | boolean | number) => {
-        // Capitalize Difficulty Level
-        let processedValue = value;
-        if (field === 'Difficulty Level' && typeof value === 'string') {
-            const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
-            const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-            
-            // Ensure only valid difficulty levels are used
-            processedValue = validDifficultyLevels.includes(capitalizedValue) 
-                ? capitalizedValue 
-                : value;
+    const handleEditChange = (field: string, value: any) => {
+        console.group('Edit Change Difficulty Level Debug');
+        console.log(`Editing field: ${field}, Original Value:`, value);
+        console.log('Current Edited Question:', editedQuestion);
+
+        // Convert null or undefined to empty string
+        if (value === null || value === undefined) {
+            value = '';
         }
 
-        // Track which fields have been changed
-        const newChanges = {
-            ...editChanges,
-            [field]: processedValue
-        };
-        setEditChanges(newChanges);
+        // Ensure value is a string
+        const stringValue = String(value).trim();
 
-        // Update the edited question
-        const updatedQuestion = {
-            ...editedQuestion,
-            [field]: processedValue
-        };
-        setEditedQuestion(updatedQuestion);
+        // Capitalize Difficulty Level
+        if (field === 'Difficulty Level') {
+            const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
+            
+            console.log('Input Difficulty Level:', stringValue);
+            console.log('Input Difficulty Level Type:', typeof stringValue);
 
-        // Log changes for debugging
-        console.group('Question Edit Changes');
-        console.log('Field Changed:', field);
-        console.log('Original Value:', value);
-        console.log('Processed Value:', processedValue);
-        console.log('All Changes:', newChanges);
-        console.groupEnd();
-    };
+            // Normalize input to match UI expectations
+            const normalizedDifficulty = 
+                stringValue.toLowerCase() === 'difficult' ? 'Hard' :
+                stringValue.toLowerCase() === 'easy' ? 'Easy' :
+                stringValue.toLowerCase() === 'medium' ? 'Medium' :
+                'Medium';
 
-    const handleSaveEdit = () => {
-        console.group('Question Edit Process');
-        console.log('1. Original Question:', JSON.parse(JSON.stringify(question)));
-        console.log('2. Edited Question:', JSON.parse(JSON.stringify(editedQuestion)));
-        console.log('3. Edit Changes:', JSON.parse(JSON.stringify(editChanges)));
+            console.log('Normalized Difficulty:', normalizedDifficulty);
 
-        // Create a complete question object with all changes
-        const completeQuestion = {
-            ...question,  // Start with original question
-            ...editedQuestion,  // Overlay edited question details
-            ...editChanges,  // Ensure any specific changes are captured
-            // Explicitly map potential key mismatches
-            'Question_Type': editChanges['Question Type'] || editedQuestion['Question Type'] || question['Question Type'],
-            'Difficulty Level': editChanges['Difficulty Level'] || editedQuestion['Difficulty Level'] || question['Difficulty Level'],
-            'Nature of Question': editChanges['Nature of Question'] || editedQuestion['Nature of Question'] || question['Nature of Question'],
-            'Faculty Approved': editChanges['Faculty Approved'] ?? editedQuestion['Faculty Approved'] ?? question['Faculty Approved']
-        };
+            // Validate and correct difficulty level
+            value = validDifficultyLevels.includes(normalizedDifficulty) 
+                ? normalizedDifficulty 
+                : 'Medium';
 
-        console.log('4. Complete Question for Saving:', JSON.parse(JSON.stringify(completeQuestion)));
-        console.groupEnd();
+            console.log('Final Difficulty Level:', value);
+        }
 
-        // Call onEdit with the complete question
-        if (onEdit) {
-            try {
-                console.log('Calling onEdit with:', JSON.parse(JSON.stringify(completeQuestion)));
-                onEdit(completeQuestion);
-            } catch (error) {
-                console.error('Error in onEdit callback:', error);
+        // Question Type processing remains the same
+        if (field === 'Question_Type') {
+            const validQuestionTypes = [
+                'Objective', 
+                'Subjective', 
+                'MCQ', 
+                'True/False', 
+                'Fill in the Blank'
+            ];
+            
+            const capitalizedType = stringValue ? 
+                stringValue.split(' ').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                ).join(' ') : 
+                'Objective';
+            
+            // Validate and correct question type
+            if (!validQuestionTypes.includes(capitalizedType)) {
+                console.warn(`Invalid question type: ${value}. Defaulting to 'Objective'`);
+                value = 'Objective';
+            } else {
+                value = capitalizedType;
             }
         }
 
-        // Close the edit modal
-        setEditModalOpen(false);
-        
-        // Reset changes after saving
-        setEditChanges({});
+        // Nature of Question processing remains the same
+        if (field === 'Nature of Question') {
+            const validNatureOfQuestions = ['Factual', 'Conceptual', 'Analytical'];
+            
+            const capitalizedNature = stringValue ? 
+                stringValue.charAt(0).toUpperCase() + stringValue.slice(1).toLowerCase() : 
+                'Factual';
+            
+            // Validate and correct nature of question
+            if (!validNatureOfQuestions.includes(capitalizedNature)) {
+                console.warn(`Invalid nature of question: ${value}. Defaulting to 'Factual'`);
+                value = 'Factual';
+            } else {
+                value = capitalizedNature;
+            }
+        }
+
+        // Update the local state with the potentially modified value
+        setEditedQuestion(prevQuestion => {
+            const updatedQuestion = {
+                ...prevQuestion,
+                [field]: value || ''  // Ensure empty string for falsy values
+            };
+            
+            console.log('Updated Edited Question:', updatedQuestion);
+            console.groupEnd();
+            
+            return updatedQuestion;
+        });
+    };
+
+    const handleSaveEdit = async () => {
+        try {
+            console.group('Question Edit Process');
+            console.log('Original Edited Question:', editedQuestion);
+
+            // Enhanced ID conversion with type checking
+            const questionId = typeof editedQuestion.id === 'string' 
+                ? parseInt(editedQuestion.id, 10) 
+                : Number(editedQuestion.id);
+
+            // Validate ID
+            if (isNaN(questionId) || questionId <= 0) {
+                console.error('Invalid question ID:', editedQuestion.id);
+                setEditError('Invalid question ID. Please refresh and try again.');
+                console.groupEnd();
+                return;
+            }
+
+            // Normalize Difficulty Level
+            const normalizedDifficultyLevel = 
+                editedQuestion['Difficulty Level']?.toLowerCase() === 'difficult' ? 'Hard' :
+                editedQuestion['Difficulty Level']?.toLowerCase() === 'easy' ? 'Easy' :
+                'Medium';
+
+            // Prepare payload with intentional capitalization variations for testing
+            const editPayload = {
+                ...editedQuestion,
+                id: questionId,  // Use validated ID
+                'Difficulty Level': normalizedDifficultyLevel,
+                'Question_Type': editedQuestion['Question_Type'] || 'Objective',
+                'Nature of Question': editedQuestion['Nature of Question'] || 'Factual'
+            };
+
+            console.log('Prepared Edit Payload:', editPayload);
+
+            const response = await fetch('/api/questions/edit', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(editPayload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Edit failed:', errorText);
+                setEditError(errorText);
+                console.groupEnd();
+                return;
+            }
+
+            const updatedQuestion = await response.json();
+            console.log('Successfully edited question:', updatedQuestion);
+            
+            // Verify the processed values
+            console.log('Processed Difficulty Level:', updatedQuestion['Difficulty Level']);
+            console.log('Processed Question Type:', updatedQuestion['Question_Type']);
+            console.log('Processed Nature of Question:', updatedQuestion['Nature of Question']);
+
+            // Update local state with the processed question
+            if (onQuestionUpdate) {
+                onQuestionUpdate(updatedQuestion);
+            }
+            
+            // Reset edit mode
+            setIsEditing(false);
+            setEditError('');
+
+            console.groupEnd();
+        } catch (error) {
+            console.error('Critical error during question edit:', error);
+            setEditError(error instanceof Error ? error.message : 'An unknown error occurred');
+            console.groupEnd();
+        }
     };
 
     const getDifficultyColor = (level?: string) => {
@@ -407,7 +564,7 @@ export default function QuestionCard({
                     right: 8, 
                     display: 'flex', 
                     gap: 1, 
-                    justifyContent: 'flex-end' 
+                    justifyContent: 'flex-end'
                 }}
             >
                 {onEdit && (
@@ -419,14 +576,7 @@ export default function QuestionCard({
                         <EditIcon />
                     </IconButton>
                 )}
-                <IconButton
-                    size="small"
-                    onClick={() => setPreviewOpen(true)}
-                    title="Preview Question"
-                >
-                    <PreviewIcon />
-                </IconButton>
-                {showCartButton && (
+                {(question.showCartButton !== false) && (
                     <IconButton
                         size="small"
                         onClick={handleCartToggle}
@@ -464,7 +614,7 @@ export default function QuestionCard({
                                 rows={4}
                                 label="Question"
                                 variant="outlined"
-                                value={editedQuestion.Question}
+                                value={String(editedQuestion.Question)}
                                 onChange={(e) => handleEditChange('Question', e.target.value)}
                                 sx={{
                                     marginBottom: 2,
@@ -497,7 +647,7 @@ export default function QuestionCard({
                                 rows={4}
                                 label="Answer"
                                 variant="outlined"
-                                value={editedQuestion.Answer}
+                                value={String(editedQuestion.Answer)}
                                 onChange={(e) => handleEditChange('Answer', e.target.value)}
                                 sx={{
                                     marginBottom: 2,
@@ -530,7 +680,7 @@ export default function QuestionCard({
                                 rows={3}
                                 label="Explanation"
                                 variant="outlined"
-                                value={editedQuestion['Explanation'] || ''}
+                                value={String(editedQuestion['Explanation'] || '')}
                                 onChange={(e) => handleEditChange('Explanation', e.target.value)}
                                 sx={{
                                     marginBottom: 2,
@@ -559,50 +709,75 @@ export default function QuestionCard({
 
                         {/* Metadata Fields */}
                         <Grid item xs={6}>
-                            <TextField
-                                fullWidth
-                                label="Subject"
-                                value={editedQuestion.Subject}
-                                onChange={(e) => handleEditChange('Subject', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            />
+                            <FormControl fullWidth variant="outlined" margin="normal">
+                                <InputLabel>Subject</InputLabel>
+                                <Select
+                                    value={String(editedQuestion.Subject)}
+                                    onChange={(e) => {
+                                        const selectedSubject = String(e.target.value);
+                                        handleEditChange('Subject', selectedSubject);
+                                        
+                                        // Reset dependent fields when subject changes
+                                        handleEditChange('Module Name', '');
+                                        handleEditChange('Topic', '');
+                                    }}
+                                    label="Subject"
+                                >
+                                    {getSubjects().map((subject) => (
+                                        <MenuItem key={subject} value={subject}>
+                                            {subject}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                         </Grid>
                         <Grid item xs={6}>
-                            <TextField
-                                fullWidth
-                                label="Module Name"
-                                value={editedQuestion['Module Name']}
-                                onChange={(e) => handleEditChange('Module Name', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            />
+                            <FormControl fullWidth variant="outlined" margin="normal">
+                                <InputLabel>Module Name</InputLabel>
+                                <Select
+                                    value={String(editedQuestion['Module Name'])}
+                                    onChange={(e) => handleEditChange('Module Name', String(e.target.value))}
+                                    label="Module Name"
+                                >
+                                    {availableModules.map((module) => (
+                                        <MenuItem key={module} value={module}>
+                                            {module}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                         </Grid>
                         <Grid item xs={4}>
                             <TextField
                                 fullWidth
                                 label="Module Number"
-                                value={editedQuestion['Module Number']}
+                                value={String(editedQuestion['Module Number'])}
                                 onChange={(e) => handleEditChange('Module Number', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
                             />
                         </Grid>
                         <Grid item xs={4}>
-                            <TextField
-                                fullWidth
-                                label="Topic"
-                                value={editedQuestion.Topic}
-                                onChange={(e) => handleEditChange('Topic', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
-                            />
+                            <FormControl fullWidth variant="outlined" margin="normal">
+                                <InputLabel>Topic</InputLabel>
+                                <Select
+                                    value={String(editedQuestion.Topic)}
+                                    onChange={(e) => handleEditChange('Topic', String(e.target.value))}
+                                    label="Topic"
+                                >
+                                    {availableTopics.map((topic) => (
+                                        <MenuItem key={topic} value={topic}>
+                                            {topic}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                         </Grid>
                         <Grid item xs={4}>
                             <TextField
                                 fullWidth
                                 label="Sub Topic"
-                                value={editedQuestion['Sub Topic']}
+                                value={String(editedQuestion['Sub Topic'])}
                                 onChange={(e) => handleEditChange('Sub Topic', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
@@ -612,7 +787,7 @@ export default function QuestionCard({
                             <TextField
                                 fullWidth
                                 label="Micro Topic"
-                                value={editedQuestion['Micro Topic']}
+                                value={String(editedQuestion['Micro Topic'])}
                                 onChange={(e) => handleEditChange('Micro Topic', e.target.value)}
                                 variant="outlined"
                                 margin="normal"
@@ -622,8 +797,8 @@ export default function QuestionCard({
                             <FormControl fullWidth variant="outlined" margin="normal">
                                 <InputLabel>Difficulty Level</InputLabel>
                                 <Select
-                                    value={editedQuestion['Difficulty Level'] || ''}
-                                    onChange={(e) => handleEditChange('Difficulty Level', e.target.value)}
+                                    value={String(editedQuestion['Difficulty Level'])}
+                                    onChange={(e) => handleEditChange('Difficulty Level', String(e.target.value))}
                                     label="Difficulty Level"
                                     sx={editChanges['Difficulty Level'] 
                                         ? { 
@@ -659,8 +834,8 @@ export default function QuestionCard({
                             <FormControl fullWidth variant="outlined" margin="normal">
                                 <InputLabel>Question Type</InputLabel>
                                 <Select
-                                    value={editedQuestion['Question Type'] || ''}
-                                    onChange={(e) => handleEditChange('Question Type', e.target.value)}
+                                    value={String(editedQuestion['Question_Type'])}
+                                    onChange={(e) => handleEditChange('Question_Type', String(e.target.value))}
                                     label="Question Type"
                                 >
                                     {questionTypes.map((type) => (
@@ -675,8 +850,8 @@ export default function QuestionCard({
                             <FormControl fullWidth variant="outlined" margin="normal">
                                 <InputLabel>Nature of Question</InputLabel>
                                 <Select
-                                    value={editedQuestion['Nature of Question'] || ''}
-                                    onChange={(e) => handleEditChange('Nature of Question', e.target.value)}
+                                    value={String(editedQuestion['Nature of Question'])}
+                                    onChange={(e) => handleEditChange('Nature of Question', String(e.target.value))}
                                     label="Nature of Question"
                                 >
                                     {natureOfQuestions.map((nature) => (
@@ -718,114 +893,8 @@ export default function QuestionCard({
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            <Dialog 
-                open={previewOpen} 
-                onClose={() => setPreviewOpen(false)}
-                maxWidth="md"
-                fullWidth
-            >
-                <DialogTitle>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        Question Preview
-                        {onEdit && (
-                            <IconButton 
-                                onClick={handleEditClick}
-                                color="primary"
-                                size="large"
-                            >
-                                <EditIcon fontSize="medium" />
-                            </IconButton>
-                        )}
-                    </Box>
-                </DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                            Question
-                        </Typography>
-                        <Typography 
-                            variant="body2" 
-                            sx={{ 
-                                mb: 2,  
-                                fontWeight: 'normal', 
-                                whiteSpace: 'pre-line', 
-                                fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                                fontSize: '0.875rem',
-                                lineHeight: 1.4,
-                                letterSpacing: '0.01071em',
-                            }}
-                        >
-                            {formatQuestion(question.Question)}
-                        </Typography>
-                    </Box>
-
-                    <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                            Answer
-                        </Typography>
-                        <Typography 
-                            variant="body1" 
-                            sx={{ 
-                                mb: 2,  
-                                fontWeight: 'normal' 
-                            }}
-                        >
-                            Answer: {formatQuestion(question.Answer)}
-                        </Typography>
-                    </Box>
-
-                    {question.Explanation && (
-                        <Box sx={{ mb: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Explanation
-                            </Typography>
-                            <Typography variant="body1" paragraph>
-                                {question.Explanation}
-                            </Typography>
-                        </Box>
-                    )}
-
-                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                        <Box component="span">
-                            <Typography variant="body2" component="span" color="text.secondary">
-                                <strong>Subject:</strong> {question.Subject}
-                            </Typography>
-                        </Box>
-                        <Box component="span">
-                            <Typography variant="body2" component="span" color="text.secondary">
-                                <strong>Topic:</strong> {question.Topic}
-                            </Typography>
-                        </Box>
-                        <Box component="span">
-                            <Typography variant="body2" component="span" color="text.secondary">
-                                <strong>Sub Topic:</strong> {question["Sub Topic"]}
-                            </Typography>
-                        </Box>
-                        <Box component="span">
-                            <Typography variant="body2" component="span" color="text.secondary">
-                                <strong>Micro Topic:</strong> {question["Micro Topic"]}
-                            </Typography>
-                        </Box>
-                        <Box component="span">
-                            <Typography variant="body2" component="span" color="text.secondary">
-                                <strong>Difficulty:</strong> {question['Difficulty Level']}
-                            </Typography>
-                        </Box>
-                        <Box component="span">
-                            <Typography variant="body2" component="span" color="text.secondary">
-                                <strong>Type:</strong> {question['Nature of Question']}
-                            </Typography>
-                        </Box>
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setPreviewOpen(false)}>Close</Button>
-                    <Button onClick={handleAddToTest} variant="contained" startIcon={<AddShoppingCartIcon />}>
-                        Add to Test
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </Card>
     );
 }
+
+export default QuestionCard;

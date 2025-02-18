@@ -11,7 +11,7 @@ import {
 import { 
   Assessment as AssessmentIcon, 
   QuestionAnswer as QuestionAnswerIcon, 
-  ShoppingCart as CartIcon 
+  AddCircle as AddQuestionIcon 
 } from '@mui/icons-material';
 
 export default function Dashboard() {
@@ -105,19 +105,19 @@ export default function Dashboard() {
               } 
             }}
           >
-            <CartIcon 
-              color="success" 
+            <AddQuestionIcon 
+              color="info" 
               sx={{ fontSize: 60, mb: 2 }} 
             />
             <Typography variant="h6" sx={{ mb: 2 }}>
-              Cart
+              Add Question
             </Typography>
             <Button 
               variant="contained" 
-              color="success"
-              href="/cart"
+              color="info"
+              href="/add-question"
             >
-              View Cart
+              Add to Database
             </Button>
           </Paper>
         </Grid>

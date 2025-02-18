@@ -2,7 +2,7 @@ import React from 'react';
 import { IconButton, Tooltip, Badge } from '@mui/material';
 import { ShoppingCart as CartIcon } from '@mui/icons-material';
 import { useCartStore } from '@/store/cartStore';
-import { Question } from '@/lib/database/queries';
+import { Question } from '@/types/question';
 
 interface CartButtonProps {
   question: Question;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { removeQuestionFromCart } from '@/lib/database/queries';
+import { removeQuestionFromCart } from '@/types/question';
 
 export async function POST(request: NextRequest) {
     try {
