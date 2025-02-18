@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateQuestion } from '@/lib/database/queries';
-import { Question } from '@/lib/database/queries';
+import Database from 'better-sqlite3';
+
+const db = new Database('./src/lib/database/questions.db');
 
 export async function PUT(request: NextRequest) {
     try {
+        console.group('QUESTION EDIT API ROUTE');
+        console.log('1. Request Received');
+
         // Parse and validate the request body
         const body = await request.json();
-        const question: Question = body;
+        const question = body;
         
-        console.log('DETAILED EDIT REQUEST RECEIVED');
-        console.log('Full Question Object:', JSON.stringify(question, null, 2));
+        console.log('2. Full Question Object:', JSON.stringify(question, null, 2));
 
         // Ensure id is present and valid
         if (!question.id || typeof question.id !== 'number' || question.id <= 0) {
+            console.error('3. Invalid question ID');
+            console.groupEnd();
             return new NextResponse(
                 JSON.stringify({ error: 'Invalid question ID' }),
                 { status: 400 }
@@ -20,7 +25,7 @@ export async function PUT(request: NextRequest) {
         }
 
         // Log request headers for additional context
-        console.log('Request Headers:', Object.fromEntries(request.headers));
+        console.log('4. Request Headers:', Object.fromEntries(request.headers));
 
         // Comprehensive Validation
         const validationErrors: string[] = [];
@@ -77,7 +82,8 @@ export async function PUT(request: NextRequest) {
 
         // If there are validation errors, return them
         if (validationErrors.length > 0) {
-            console.error('EDIT VALIDATION ERRORS:', validationErrors);
+            console.error('5. EDIT VALIDATION ERRORS:', validationErrors);
+            console.groupEnd();
             return NextResponse.json(
                 { 
                     error: 'Validation failed', 
@@ -87,20 +93,62 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        // Update the question in the database
-        const updatedQuestion = await updateQuestion(question);
+        // Prepare update statement
+        const stmt = db.prepare(`
+            UPDATE questions 
+            SET 
+                Question = ?, 
+                Answer = ?, 
+                Subject = ?, 
+                Topic = ?, 
+                'Difficulty Level' = ?, 
+                'Question_Type' = ?, 
+                'Nature of Question' = ?, 
+                'Faculty Approved' = ?,
+                Explanation = ?,
+                'Sub Topic' = ?,
+                'Micro Topic' = ?,
+                'Module Name' = ?,
+                'Module Number' = ?
+            WHERE id = ?
+        `);
 
-        console.log('Successfully updated question:', updatedQuestion);
+        // Execute update
+        const result = stmt.run(
+            question.Question,
+            question.Answer,
+            question.Subject,
+            question.Topic,
+            question['Difficulty Level'],
+            question['Question_Type'],
+            question['Nature of Question'],
+            question['Faculty Approved'] ? 1 : 0,
+            question.Explanation || '',
+            question['Sub Topic'] || '',
+            question['Micro Topic'] || '',
+            question['Module Name'] || '',
+            question['Module Number'] || '',
+            question.id
+        );
 
-        // Return the updated question directly
+        console.log('6. Database Update Result:', {
+            changes: result.changes,
+            lastInsertRowid: result.lastInsertRowid
+        });
+
+        // Fetch the updated question to return
+        const updatedQuestionStmt = db.prepare('SELECT * FROM questions WHERE id = ?');
+        const updatedQuestion = updatedQuestionStmt.get(question.id);
+
+        console.log('7. Updated Question:', JSON.stringify(updatedQuestion, null, 2));
+        console.groupEnd();
+
         return NextResponse.json(updatedQuestion, { status: 200 });
     } catch (error) {
-        console.error('CRITICAL EDIT ERROR:', error);
+        console.error('8. EDIT ROUTE ERROR:', error);
+        console.groupEnd();
         return NextResponse.json(
-            { 
-                error: 'Failed to update question', 
-                details: error instanceof Error ? error.message : 'Unknown error' 
-            }, 
+            { error: 'Internal Server Error', details: error.message }, 
             { status: 500 }
         );
     }

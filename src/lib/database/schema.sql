@@ -17,6 +17,23 @@ CREATE TABLE IF NOT EXISTS questions (
     Question_Type TEXT CHECK(Question_Type IN ('Objective', 'Subjective'))
 );
 
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT DEFAULT 'user' CHECK(role IN ('admin', 'user')),
+    is_active BOOLEAN DEFAULT 1,
+    last_login DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create an index for faster username/email lookups
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
 -- Cart/Test Table
 CREATE TABLE IF NOT EXISTS cart (
     test_id TEXT PRIMARY KEY,

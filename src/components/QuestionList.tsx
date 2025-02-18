@@ -181,8 +181,8 @@ export default function QuestionList({
         if (!editingQuestion) return;
 
         try {
-            console.group('Question Edit Process');
-            console.log('Original Editing Question:', JSON.parse(JSON.stringify(editingQuestion)));
+            console.group('Question Edit Process in QuestionList');
+            console.log('1. Original Editing Question:', JSON.parse(JSON.stringify(editingQuestion)));
 
             // Create a deep copy of the editing question to avoid mutation
             const questionToSave = JSON.parse(JSON.stringify(editingQuestion));
@@ -206,55 +206,62 @@ export default function QuestionList({
                 return;
             }
 
-            console.log('Attempting to save question:', JSON.parse(JSON.stringify(questionToSave)));
+            console.log('2. Preparing to save question:', JSON.parse(JSON.stringify(questionToSave)));
 
             // Ensure id is present and is a number
             if (!questionToSave.id || typeof questionToSave.id !== 'number') {
                 throw new Error('Invalid question ID');
             }
 
+            // Prepare the request body with all fields
+            const requestBody = {
+                ...questionToSave,
+                id: Number(questionToSave.id), // Ensure ID is a number
+                // Explicitly map any potential key mismatches
+                'Question_Type': questionToSave['Question Type'] || questionToSave['Question_Type'],
+                'Difficulty Level': questionToSave['Difficulty Level'],
+                'Nature of Question': questionToSave['Nature of Question'],
+                'Faculty Approved': questionToSave['Faculty Approved']
+            };
+
+            console.log('3. Prepared Request Body:', JSON.parse(JSON.stringify(requestBody)));
+
             const response = await fetch('/api/questions/edit', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    ...questionToSave,
-                    id: Number(questionToSave.id) // Ensure ID is a number
-                })
+                body: JSON.stringify(requestBody)
             });
 
-            console.log('Edit response status:', response.status);
-            console.log('Edit response headers:', Object.fromEntries(response.headers));
+            console.log('4. Edit response status:', response.status);
+            console.log('5. Edit response headers:', Object.fromEntries(response.headers));
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Edit error response:', errorData);
+                console.error('6. Edit error response:', errorData);
                 console.groupEnd();
                 throw new Error(errorData.error || 'Failed to update question');
             }
 
             const updatedQuestion = await response.json();
-            console.log('Updated question from server:', JSON.parse(JSON.stringify(updatedQuestion)));
+            console.log('7. Updated question from server:', JSON.parse(JSON.stringify(updatedQuestion)));
 
             // Update local questions list
             const updatedQuestions = questions.map(q => 
                 q.id === updatedQuestion.id ? updatedQuestion : q
             );
             
-            console.log('Updated Questions List:', JSON.parse(JSON.stringify(updatedQuestions)));
+            console.log('8. Updated Questions List:', JSON.parse(JSON.stringify(updatedQuestions)));
             setQuestions(updatedQuestions);
 
             // Close edit modal
             setEditingQuestion(null);
 
-            console.log('Question updated successfully');
+            console.log('9. Question updated successfully');
             console.groupEnd();
-
-            // Optional: Show success notification
         } catch (error) {
-            console.error('Error updating question:', error);
-            // TODO: Show error notification to user
+            console.error('Error in handleSaveEdit:', error);
             console.groupEnd();
         }
     };

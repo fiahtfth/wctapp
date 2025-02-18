@@ -259,105 +259,41 @@ export default function QuestionCard({
     };
 
     const handleSaveEdit = () => {
+        console.group('Question Edit Process');
+        console.log('1. Original Question:', JSON.parse(JSON.stringify(question)));
+        console.log('2. Edited Question:', JSON.parse(JSON.stringify(editedQuestion)));
+        console.log('3. Edit Changes:', JSON.parse(JSON.stringify(editChanges)));
+
+        // Create a complete question object with all changes
+        const completeQuestion = {
+            ...question,  // Start with original question
+            ...editedQuestion,  // Overlay edited question details
+            ...editChanges,  // Ensure any specific changes are captured
+            // Explicitly map potential key mismatches
+            'Question_Type': editChanges['Question Type'] || editedQuestion['Question Type'] || question['Question Type'],
+            'Difficulty Level': editChanges['Difficulty Level'] || editedQuestion['Difficulty Level'] || question['Difficulty Level'],
+            'Nature of Question': editChanges['Nature of Question'] || editedQuestion['Nature of Question'] || question['Nature of Question'],
+            'Faculty Approved': editChanges['Faculty Approved'] ?? editedQuestion['Faculty Approved'] ?? question['Faculty Approved']
+        };
+
+        console.log('4. Complete Question for Saving:', JSON.parse(JSON.stringify(completeQuestion)));
+        console.groupEnd();
+
+        // Call onEdit with the complete question
         if (onEdit) {
-            // Create a complete question with all changes
-            const completeQuestion = {
-                ...question,  // Start with original question
-                id: question.id,  // Ensure original ID is preserved
-            };
-
-            console.group('Building Complete Question');
-            console.log('1. Base Question:', JSON.parse(JSON.stringify(completeQuestion)));
-
-            // Apply all tracked changes with explicit logging
-            Object.entries(editChanges).forEach(([field, value]) => {
-                console.log(`Applying change: ${field} = ${value}`);
-                
-                // Special handling for specific fields
-                switch(field) {
-                    case 'Question Type':
-                        completeQuestion['Question_Type'] = value;
-                        console.log('Mapped Question Type to Question_Type:', value);
-                        break;
-                    case 'Difficulty Level':
-                        completeQuestion['Difficulty Level'] = value;
-                        console.log('Updated Difficulty Level:', value);
-                        break;
-                    case 'Nature of Question':
-                        completeQuestion['Nature of Question'] = value;
-                        console.log('Updated Nature of Question:', value);
-                        break;
-                    case 'Faculty Approved':
-                        completeQuestion['Faculty Approved'] = value;
-                        console.log('Updated Faculty Approved:', value);
-                        break;
-                    default:
-                        completeQuestion[field] = value;
-                        console.log(`Set ${field} to:`, value);
-                }
-            });
-
-            console.log('2. After Changes:', JSON.parse(JSON.stringify(completeQuestion)));
-
-            // Ensure required fields have values
-            const requiredFields = ['Question', 'Answer', 'Subject', 'Topic'];
-            requiredFields.forEach(field => {
-                if (!completeQuestion[field]) {
-                    completeQuestion[field] = question[field];
-                    console.log(`Restored required field ${field}:`, question[field]);
-                }
-            });
-
-            // Validate key fields before saving
-            const requiredFieldNames = ['Question', 'Answer', 'Subject', 'Topic'];
-            const missingFields = requiredFieldNames.filter(field => 
-                !completeQuestion[field] || 
-                completeQuestion[field] === null || 
-                completeQuestion[field] === undefined
-            );
-            
-            if (missingFields.length > 0) {
-                console.error('Cannot save question. Missing required fields:', missingFields);
-                return;
+            try {
+                console.log('Calling onEdit with:', JSON.parse(JSON.stringify(completeQuestion)));
+                onEdit(completeQuestion);
+            } catch (error) {
+                console.error('Error in onEdit callback:', error);
             }
-
-            // Validate Difficulty Level
-            const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
-            const difficultyLevel = completeQuestion['Difficulty Level'] || question['Difficulty Level'];
-            if (difficultyLevel && !validDifficultyLevels.includes(difficultyLevel)) {
-                console.error('Invalid Difficulty Level. Must be one of:', validDifficultyLevels);
-                return;
-            }
-
-            // Ensure all original fields are preserved if not changed
-            const allOriginalFields = Object.keys(question);
-            allOriginalFields.forEach(field => {
-                if (!(field in completeQuestion)) {
-                    completeQuestion[field] = question[field];
-                }
-            });
-
-            // Explicitly set Question_Type if not already set
-            if (!completeQuestion['Question_Type'] && completeQuestion['Question Type']) {
-                completeQuestion['Question_Type'] = completeQuestion['Question Type'];
-            }
-
-            console.log('3. Final Question for Saving:', JSON.parse(JSON.stringify(completeQuestion)));
-            console.groupEnd();
-
-            // Extensive logging before saving
-            console.group('Question Save Details');
-            console.log('Original Changes:', JSON.parse(JSON.stringify(editChanges)));
-            console.log('Complete Question:', JSON.parse(JSON.stringify(completeQuestion)));
-            console.groupEnd();
-
-            // Call onEdit with the complete question
-            onEdit(completeQuestion);
-            setEditModalOpen(false);
-            
-            // Reset changes after saving
-            setEditChanges({});
         }
+
+        // Close the edit modal
+        setEditModalOpen(false);
+        
+        // Reset changes after saving
+        setEditChanges({});
     };
 
     const getDifficultyColor = (level?: string) => {
