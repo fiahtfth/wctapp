@@ -41,6 +41,19 @@ CREATE TABLE IF NOT EXISTS cart (
     FOREIGN KEY (question_id) REFERENCES questions(id)
 );
 
+-- Draft Cart Table
+CREATE TABLE IF NOT EXISTS draft_carts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    test_name TEXT NOT NULL,
+    batch TEXT,
+    date DATE,
+    user_id INTEGER,
+    questions TEXT,  -- Storing question IDs as JSON
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 -- Sample Data Insertion
 INSERT INTO questions (
     Question, 

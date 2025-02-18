@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Typography, 
     Box, 
@@ -27,6 +27,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/navigation';
 import QuestionCard from './QuestionCard';
 import * as XLSX from 'xlsx';
+import { saveDraftCart } from '@/lib/database/queries';
 
 export default function Cart() {
     const [mounted, setMounted] = useState(false);
@@ -38,6 +39,8 @@ export default function Cart() {
         date: new Date().toISOString().split('T')[0]
     });
     const [removedQuestion, setRemovedQuestion] = useState<string | null>(null);
+    const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+    const [user, setUser] = useState<{id?: number} | null>(null);
     const { questions, removeQuestion, clearCart } = useCartStore();
     const router = useRouter();
 
@@ -49,6 +52,18 @@ export default function Cart() {
         
         // Log cart contents on mount
         console.log('Cart Component Mounted, Current Questions:', questions);
+    }, []);
+
+    useEffect(() => {
+        // Check for user in localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (error) {
+                console.error('Error parsing user from localStorage:', error);
+            }
+        }
     }, []);
 
     const handleRemoveQuestion = (questionId: string) => {
@@ -115,6 +130,45 @@ export default function Cart() {
 
         // Close modal
         setExportModalOpen(false);
+    };
+
+    const handleSaveDraft = async () => {
+        try {
+            // Validate test details
+            if (!testDetails.testName) {
+                setDraftSaveError('Test Name is required');
+                return;
+            }
+
+            // Check for user authentication
+            if (!user || !user.id) {
+                setDraftSaveError('Please log in to save a draft');
+                router.push('/login');
+                return;
+            }
+
+            // Extract question IDs
+            const questionIds = questions.map(q => Number(q.id));
+
+            // Save draft cart
+            await saveDraftCart(
+                Number(user.id), 
+                testDetails.testName, 
+                testDetails.batch, 
+                testDetails.date, 
+                questionIds
+            );
+
+            // Reset modal and show success message
+            setExportModalOpen(false);
+            setDraftSaveError(null);
+            
+            // Optional: Show a success snackbar or toast
+            console.log('Draft cart saved successfully');
+        } catch (error) {
+            console.error('Error saving draft cart:', error);
+            setDraftSaveError('Failed to save draft cart');
+        }
     };
 
     if (!mounted) {
@@ -218,62 +272,68 @@ export default function Cart() {
                 maxWidth="sm"
                 fullWidth
             >
-                <DialogTitle>Export Test Questions</DialogTitle>
+                <DialogTitle>Export Test</DialogTitle>
                 <DialogContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                        <TextField
-                            label="Test Name"
-                            variant="outlined"
-                            fullWidth
-                            value={testDetails.testName}
-                            onChange={(e) => setTestDetails(prev => ({
-                                ...prev, 
-                                testName: e.target.value
-                            }))}
-                            required
-                        />
-                        <TextField
-                            label="Batch"
-                            variant="outlined"
-                            fullWidth
-                            value={testDetails.batch}
-                            onChange={(e) => setTestDetails(prev => ({
-                                ...prev, 
-                                batch: e.target.value
-                            }))}
-                            required
-                        />
-                        <TextField
-                            label="Date"
-                            type="date"
-                            variant="outlined"
-                            fullWidth
-                            value={testDetails.date}
-                            onChange={(e) => setTestDetails(prev => ({
-                                ...prev, 
-                                date: e.target.value
-                            }))}
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            required
-                        />
-                    </Box>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                label="Test Name"
+                                value={testDetails.testName}
+                                onChange={(e) => setTestDetails(prev => ({ ...prev, testName: e.target.value }))}
+                                required
+                                error={!testDetails.testName}
+                                helperText={!testDetails.testName ? 'Test Name is required' : ''}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Batch"
+                                value={testDetails.batch}
+                                onChange={(e) => setTestDetails(prev => ({ ...prev, batch: e.target.value }))}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Date"
+                                type="date"
+                                value={testDetails.date}
+                                onChange={(e) => setTestDetails(prev => ({ ...prev, date: e.target.value }))}
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
+                            />
+                        </Grid>
+                        {draftSaveError && (
+                            <Grid item xs={12}>
+                                <Typography color="error">{draftSaveError}</Typography>
+                            </Grid>
+                        )}
+                    </Grid>
                 </DialogContent>
                 <DialogActions>
                     <Button 
-                        onClick={() => setExportModalOpen(false)}
-                        color="secondary"
+                        onClick={handleSaveDraft} 
+                        color="secondary" 
+                        variant="outlined"
                     >
-                        Cancel
+                        Save Draft
                     </Button>
                     <Button 
-                        onClick={handleExport}
-                        color="primary"
+                        onClick={handleExport} 
+                        color="primary" 
                         variant="contained"
-                        disabled={!testDetails.testName || !testDetails.batch || !testDetails.date}
+                        disabled={!testDetails.testName}
                     >
                         Export
+                    </Button>
+                    <Button 
+                        onClick={() => setExportModalOpen(false)} 
+                        color="error"
+                    >
+                        Cancel
                     </Button>
                 </DialogActions>
             </Dialog>

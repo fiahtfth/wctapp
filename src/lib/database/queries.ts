@@ -891,3 +891,130 @@ export async function debugQuestionsTable() {
         await db.close();
     }
 }
+
+export async function saveDraftCart(
+    userId: number, 
+    testName: string, 
+    batch: string, 
+    date: string, 
+    questionIds: number[]
+): Promise<number> {
+    const db = await openDatabase();
+    
+    try {
+        const result = await db.run(
+            'INSERT INTO draft_carts (test_name, batch, date, user_id, questions) VALUES (?, ?, ?, ?, ?)',
+            [testName, batch, date, userId, JSON.stringify(questionIds)]
+        );
+        
+        return result.lastID;
+    } catch (error) {
+        console.error('Error saving draft cart:', error);
+        throw error;
+    } finally {
+        await db.close();
+    }
+}
+
+export async function updateDraftCart(
+    draftCartId: number, 
+    testName?: string, 
+    batch?: string, 
+    date?: string, 
+    questionIds?: number[]
+): Promise<void> {
+    const db = await openDatabase();
+    
+    try {
+        const updateFields: string[] = [];
+        const params: any[] = [];
+
+        if (testName) {
+            updateFields.push('test_name = ?');
+            params.push(testName);
+        }
+        if (batch) {
+            updateFields.push('batch = ?');
+            params.push(batch);
+        }
+        if (date) {
+            updateFields.push('date = ?');
+            params.push(date);
+        }
+        if (questionIds) {
+            updateFields.push('questions = ?');
+            params.push(JSON.stringify(questionIds));
+        }
+
+        params.push(draftCartId);
+
+        if (updateFields.length > 0) {
+            const query = `UPDATE draft_carts SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+            await db.run(query, params);
+        }
+    } catch (error) {
+        console.error('Error updating draft cart:', error);
+        throw error;
+    } finally {
+        await db.close();
+    }
+}
+
+export async function getDraftCarts(userId: number): Promise<any[]> {
+    const db = await openDatabase();
+    
+    try {
+        const draftCarts = await db.all(
+            'SELECT id, test_name, batch, date, questions, created_at FROM draft_carts WHERE user_id = ? ORDER BY created_at DESC',
+            [userId]
+        );
+        
+        return draftCarts.map(cart => ({
+            ...cart,
+            questions: JSON.parse(cart.questions || '[]')
+        }));
+    } catch (error) {
+        console.error('Error fetching draft carts:', error);
+        throw error;
+    } finally {
+        await db.close();
+    }
+}
+
+export async function getDraftCartById(draftCartId: number): Promise<any | null> {
+    const db = await openDatabase();
+    
+    try {
+        const cart = await db.get(
+            'SELECT id, test_name, batch, date, questions FROM draft_carts WHERE id = ?',
+            [draftCartId]
+        );
+        
+        if (cart) {
+            return {
+                ...cart,
+                questions: JSON.parse(cart.questions || '[]')
+            };
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error fetching draft cart:', error);
+        throw error;
+    } finally {
+        await db.close();
+    }
+}
+
+export async function deleteDraftCart(draftCartId: number): Promise<void> {
+    const db = await openDatabase();
+    
+    try {
+        await db.run('DELETE FROM draft_carts WHERE id = ?', [draftCartId]);
+    } catch (error) {
+        console.error('Error deleting draft cart:', error);
+        throw error;
+    } finally {
+        await db.close();
+    }
+}
