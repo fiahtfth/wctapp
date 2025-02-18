@@ -788,6 +788,10 @@ export async function debugDatabaseSchema() {
 export async function updateQuestion(
     question: Question
 ): Promise<Question> {
+    if (!question.id || typeof question.id !== 'number' || question.id <= 0) {
+        throw new Error('Invalid question ID');
+    }
+
     const db = await openDatabase();
 
     try {
@@ -795,6 +799,12 @@ export async function updateQuestion(
         const updateFields: Partial<Question> = { ...question };
         delete updateFields.id;
         delete updateFields['Last Updated'];
+
+        // Verify the question exists before updating
+        const existingQuestion = db.prepare('SELECT id FROM questions WHERE id = ?').get(question.id);
+        if (!existingQuestion) {
+            throw new Error(`Question with ID ${question.id} not found`);
+        }
 
         // Prepare the update clause dynamically
         const updateKeys = Object.keys(updateFields)

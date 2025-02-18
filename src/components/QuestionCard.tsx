@@ -851,24 +851,36 @@ export default function QuestionCard({
                     )}
 
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                        <Typography variant="body2" color="text.secondary">
-                            <strong>Subject:</strong> {question.Subject}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            <strong>Topic:</strong> {question.Topic}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            <strong>Sub Topic:</strong> {question["Sub Topic"]}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            <strong>Micro Topic:</strong> {question["Micro Topic"]}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            <strong>Difficulty:</strong> {question['Difficulty Level']}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            <strong>Type:</strong> {question['Nature of Question']}
-                        </Typography>
+                        <Box component="span">
+                            <Typography variant="body2" component="span" color="text.secondary">
+                                <strong>Subject:</strong> {question.Subject}
+                            </Typography>
+                        </Box>
+                        <Box component="span">
+                            <Typography variant="body2" component="span" color="text.secondary">
+                                <strong>Topic:</strong> {question.Topic}
+                            </Typography>
+                        </Box>
+                        <Box component="span">
+                            <Typography variant="body2" component="span" color="text.secondary">
+                                <strong>Sub Topic:</strong> {question["Sub Topic"]}
+                            </Typography>
+                        </Box>
+                        <Box component="span">
+                            <Typography variant="body2" component="span" color="text.secondary">
+                                <strong>Micro Topic:</strong> {question["Micro Topic"]}
+                            </Typography>
+                        </Box>
+                        <Box component="span">
+                            <Typography variant="body2" component="span" color="text.secondary">
+                                <strong>Difficulty:</strong> {question['Difficulty Level']}
+                            </Typography>
+                        </Box>
+                        <Box component="span">
+                            <Typography variant="body2" component="span" color="text.secondary">
+                                <strong>Type:</strong> {question['Nature of Question']}
+                            </Typography>
+                        </Box>
                     </Box>
                 </DialogContent>
                 <DialogActions>

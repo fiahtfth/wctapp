@@ -29,6 +29,7 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import QuestionList from '@/components/QuestionList';
 import CartIndicator from '@/components/CartIndicator';
 import { addQuestionToCart, getCartItems } from '@/lib/actions';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
     const [testId] = useState("home-question-list");
@@ -43,6 +44,7 @@ export default function Home() {
         search?: string;
     }>({});
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const router = useRouter();
 
     // Load cart count on mount
     useEffect(() => {
@@ -155,6 +157,27 @@ export default function Home() {
                                 <MenuIcon />
                             </IconButton>
                             <CartIndicator count={cartCount} />
+                            <Button 
+                                variant="outlined"
+                                color="primary"
+                                onClick={() => router.push('/dashboard')}
+                                sx={{ 
+                                    fontSize: '0.8rem',
+                                    textTransform: 'none',
+                                    px: 1,
+                                    py: 0.5,
+                                    mr: 1,
+                                    borderRadius: 2,
+                                    transition: 'all 0.2s',
+                                    '&:hover': {
+                                        backgroundColor: 'primary.light',
+                                        color: 'white',
+                                        transform: 'translateY(-1px)'
+                                    }
+                                }}
+                            >
+                                Dashboard
+                            </Button>
                             <Button 
                                 variant="outlined"
                                 color="error"

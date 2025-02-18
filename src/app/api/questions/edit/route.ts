@@ -4,10 +4,20 @@ import { Question } from '@/lib/database/queries';
 
 export async function PUT(request: NextRequest) {
     try {
-        // Parse the request body
-        const question: Question = await request.json();
+        // Parse and validate the request body
+        const body = await request.json();
+        const question: Question = body;
+        
         console.log('DETAILED EDIT REQUEST RECEIVED');
         console.log('Full Question Object:', JSON.stringify(question, null, 2));
+
+        // Ensure id is present and valid
+        if (!question.id || typeof question.id !== 'number' || question.id <= 0) {
+            return new NextResponse(
+                JSON.stringify({ error: 'Invalid question ID' }),
+                { status: 400 }
+            );
+        }
 
         // Log request headers for additional context
         console.log('Request Headers:', Object.fromEntries(request.headers));

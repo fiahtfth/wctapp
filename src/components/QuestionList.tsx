@@ -208,12 +208,20 @@ export default function QuestionList({
 
             console.log('Attempting to save question:', JSON.parse(JSON.stringify(questionToSave)));
 
+            // Ensure id is present and is a number
+            if (!questionToSave.id || typeof questionToSave.id !== 'number') {
+                throw new Error('Invalid question ID');
+            }
+
             const response = await fetch('/api/questions/edit', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(questionToSave)
+                body: JSON.stringify({
+                    ...questionToSave,
+                    id: Number(questionToSave.id) // Ensure ID is a number
+                })
             });
 
             console.log('Edit response status:', response.status);
