@@ -1,37 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateQuestion } from '@/lib/database/queries';
-import { Question } from '@/lib/types';
+import { Question } from '@/lib/database/queries';
 
 export async function PUT(request: NextRequest) {
     try {
         // Parse the request body
         const question: Question = await request.json();
-        console.log('Received question for edit:', question);
+        console.log('DETAILED EDIT REQUEST RECEIVED');
+        console.log('Full Question Object:', JSON.stringify(question, null, 2));
 
-        // Validate required fields
-        if (!question.id) {
-            console.error('Question ID is missing');
-            return NextResponse.json(
-                { error: 'Question ID is required' }, 
-                { status: 400 }
-            );
-        }
+        // Log request headers for additional context
+        console.log('Request Headers:', Object.fromEntries(request.headers));
 
-        // Validate core question content
-        if (!question.Question || !question.Answer) {
-            console.error('Question or Answer is missing');
-            return NextResponse.json(
-                { error: 'Question and Answer are required' }, 
-                { status: 400 }
-            );
-        }
-
-        // Validate additional metadata (optional)
+        // Comprehensive Validation
         const validationErrors: string[] = [];
 
-        // Check Subject and Topic
-        if (!question.Subject) validationErrors.push('Subject is required');
-        if (!question.Topic) validationErrors.push('Topic is required');
+        // Validate ID
+        if (!question.id || question.id <= 0) {
+            validationErrors.push('Valid Question ID is required');
+        }
+
+        // Validate core question content with length constraints
+        if (!question.Question || question.Question.trim().length < 5) {
+            validationErrors.push('Question must be at least 5 characters long');
+        }
+        if (!question.Answer || question.Answer.trim().length < 2) {
+            validationErrors.push('Answer must be at least 2 characters long');
+        }
+
+        // Optional but recommended fields
+        if (!question.Subject || question.Subject.trim().length < 2) {
+            validationErrors.push('Subject is required and must be at least 2 characters');
+        }
+        if (!question.Topic || question.Topic.trim().length < 2) {
+            validationErrors.push('Topic is required and must be at least 2 characters');
+        }
 
         // Validate Difficulty Level
         const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
@@ -47,7 +50,7 @@ export async function PUT(request: NextRequest) {
             'True/False', 
             'Fill in the Blank'
         ];
-        if (question['Question Type'] && !validQuestionTypes.includes(question['Question Type'])) {
+        if (question['Question_Type'] && !validQuestionTypes.includes(question['Question_Type'])) {
             validationErrors.push('Invalid Question Type');
         }
 
@@ -57,9 +60,14 @@ export async function PUT(request: NextRequest) {
             validationErrors.push('Invalid Nature of Question');
         }
 
+        // Optional field length validations
+        if (question.Explanation && question.Explanation.length > 1000) {
+            validationErrors.push('Explanation must be less than 1000 characters');
+        }
+
         // If there are validation errors, return them
         if (validationErrors.length > 0) {
-            console.error('Validation errors:', validationErrors);
+            console.error('EDIT VALIDATION ERRORS:', validationErrors);
             return NextResponse.json(
                 { 
                     error: 'Validation failed', 
@@ -69,20 +77,15 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        // Update the question
-        console.log('Attempting to update question in database');
+        // Update the question in the database
         const updatedQuestion = await updateQuestion(question);
-        console.log('Question updated successfully:', updatedQuestion);
 
-        return NextResponse.json(
-            { 
-                message: 'Question updated successfully', 
-                question: updatedQuestion 
-            }, 
-            { status: 200 }
-        );
+        console.log('Successfully updated question:', updatedQuestion);
+
+        // Return the updated question directly
+        return NextResponse.json(updatedQuestion, { status: 200 });
     } catch (error) {
-        console.error('Error in question edit route:', error);
+        console.error('CRITICAL EDIT ERROR:', error);
         return NextResponse.json(
             { 
                 error: 'Failed to update question', 

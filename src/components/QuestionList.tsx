@@ -181,41 +181,73 @@ export default function QuestionList({
         if (!editingQuestion) return;
 
         try {
-            console.log('Attempting to save question:', editingQuestion);
+            console.group('Question Edit Process');
+            console.log('Original Editing Question:', JSON.parse(JSON.stringify(editingQuestion)));
+
+            // Create a deep copy of the editing question to avoid mutation
+            const questionToSave = JSON.parse(JSON.stringify(editingQuestion));
+
+            // Validate key fields before sending
+            const requiredFields = ['Question', 'Answer', 'Subject', 'Topic', 'id'];
+            const missingFields = requiredFields.filter(field => !questionToSave[field]);
+            
+            if (missingFields.length > 0) {
+                console.error('Cannot save question. Missing required fields:', missingFields);
+                console.groupEnd();
+                return;
+            }
+
+            // Validate Difficulty Level
+            const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
+            if (questionToSave['Difficulty Level'] && 
+                !validDifficultyLevels.includes(questionToSave['Difficulty Level'])) {
+                console.error('Invalid Difficulty Level. Must be one of:', validDifficultyLevels);
+                console.groupEnd();
+                return;
+            }
+
+            console.log('Attempting to save question:', JSON.parse(JSON.stringify(questionToSave)));
 
             const response = await fetch('/api/questions/edit', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(editingQuestion)
+                body: JSON.stringify(questionToSave)
             });
 
             console.log('Edit response status:', response.status);
+            console.log('Edit response headers:', Object.fromEntries(response.headers));
 
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Edit error response:', errorData);
+                console.groupEnd();
                 throw new Error(errorData.error || 'Failed to update question');
             }
 
-            const { question: updatedQuestion } = await response.json();
-            console.log('Updated question:', updatedQuestion);
+            const updatedQuestion = await response.json();
+            console.log('Updated question from server:', JSON.parse(JSON.stringify(updatedQuestion)));
 
             // Update local questions list
             const updatedQuestions = questions.map(q => 
                 q.id === updatedQuestion.id ? updatedQuestion : q
             );
+            
+            console.log('Updated Questions List:', JSON.parse(JSON.stringify(updatedQuestions)));
             setQuestions(updatedQuestions);
 
             // Close edit modal
             setEditingQuestion(null);
 
-            // Optional: Show success notification
             console.log('Question updated successfully');
+            console.groupEnd();
+
+            // Optional: Show success notification
         } catch (error) {
             console.error('Error updating question:', error);
             // TODO: Show error notification to user
+            console.groupEnd();
         }
     };
 

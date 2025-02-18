@@ -19,7 +19,8 @@ import {
     FormControl,
     InputLabel,
     Checkbox,
-    FormControlLabel
+    FormControlLabel,
+    InputAdornment
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
@@ -146,6 +147,7 @@ export default function QuestionCard({
     const [editedQuestion, setEditedQuestion] = useState<Question>({
         ...question
     });
+    const [editChanges, setEditChanges] = useState<{[key: string]: any}>({});
 
     useEffect(() => {
         setMounted(true);
@@ -220,37 +222,149 @@ export default function QuestionCard({
         });
     };
 
+    const handleEditChange = (field: string, value: string | boolean | number) => {
+        // Capitalize Difficulty Level
+        let processedValue = value;
+        if (field === 'Difficulty Level' && typeof value === 'string') {
+            const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
+            const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+            
+            // Ensure only valid difficulty levels are used
+            processedValue = validDifficultyLevels.includes(capitalizedValue) 
+                ? capitalizedValue 
+                : value;
+        }
+
+        // Track which fields have been changed
+        const newChanges = {
+            ...editChanges,
+            [field]: processedValue
+        };
+        setEditChanges(newChanges);
+
+        // Update the edited question
+        const updatedQuestion = {
+            ...editedQuestion,
+            [field]: processedValue
+        };
+        setEditedQuestion(updatedQuestion);
+
+        // Log changes for debugging
+        console.group('Question Edit Changes');
+        console.log('Field Changed:', field);
+        console.log('Original Value:', value);
+        console.log('Processed Value:', processedValue);
+        console.log('All Changes:', newChanges);
+        console.groupEnd();
+    };
+
     const handleSaveEdit = () => {
         if (onEdit) {
-            // Ensure all fields are passed, even if they're undefined
-            const completeQuestion: Question = {
-                ...question,  // Original question as base
-                ...editedQuestion,  // Overwrite with edited values
+            // Create a complete question with all changes
+            const completeQuestion = {
+                ...question,  // Start with original question
                 id: question.id,  // Ensure original ID is preserved
-                
-                // Explicitly set fields to ensure they're included
-                'Explanation': editedQuestion['Explanation'] ?? null,
-                'Sub Topic': editedQuestion['Sub Topic'] ?? null,
-                'Micro Topic': editedQuestion['Micro Topic'] ?? null,
-                'Difficulty Level': editedQuestion['Difficulty Level'] ?? null,
-                'Nature of Question': editedQuestion['Nature of Question'] ?? null,
-                'Question_Type': editedQuestion['Question_Type'] ?? null,
-                'Module Name': editedQuestion['Module Name'] ?? null,
-                'Module Number': editedQuestion['Module Number'] ?? null,
-                'Faculty Approved': editedQuestion['Faculty Approved'] ?? false
             };
 
-            console.log('Saving complete question:', completeQuestion);
+            console.group('Building Complete Question');
+            console.log('1. Base Question:', JSON.parse(JSON.stringify(completeQuestion)));
+
+            // Apply all tracked changes with explicit logging
+            Object.entries(editChanges).forEach(([field, value]) => {
+                console.log(`Applying change: ${field} = ${value}`);
+                
+                // Special handling for specific fields
+                switch(field) {
+                    case 'Question Type':
+                        completeQuestion['Question_Type'] = value;
+                        console.log('Mapped Question Type to Question_Type:', value);
+                        break;
+                    case 'Difficulty Level':
+                        completeQuestion['Difficulty Level'] = value;
+                        console.log('Updated Difficulty Level:', value);
+                        break;
+                    case 'Nature of Question':
+                        completeQuestion['Nature of Question'] = value;
+                        console.log('Updated Nature of Question:', value);
+                        break;
+                    case 'Faculty Approved':
+                        completeQuestion['Faculty Approved'] = value;
+                        console.log('Updated Faculty Approved:', value);
+                        break;
+                    default:
+                        completeQuestion[field] = value;
+                        console.log(`Set ${field} to:`, value);
+                }
+            });
+
+            console.log('2. After Changes:', JSON.parse(JSON.stringify(completeQuestion)));
+
+            // Ensure required fields have values
+            const requiredFields = ['Question', 'Answer', 'Subject', 'Topic'];
+            requiredFields.forEach(field => {
+                if (!completeQuestion[field]) {
+                    completeQuestion[field] = question[field];
+                    console.log(`Restored required field ${field}:`, question[field]);
+                }
+            });
+
+            // Validate key fields before saving
+            const requiredFieldNames = ['Question', 'Answer', 'Subject', 'Topic'];
+            const missingFields = requiredFieldNames.filter(field => 
+                !completeQuestion[field] || 
+                completeQuestion[field] === null || 
+                completeQuestion[field] === undefined
+            );
+            
+            if (missingFields.length > 0) {
+                console.error('Cannot save question. Missing required fields:', missingFields);
+                return;
+            }
+
+            // Validate Difficulty Level
+            const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
+            const difficultyLevel = completeQuestion['Difficulty Level'] || question['Difficulty Level'];
+            if (difficultyLevel && !validDifficultyLevels.includes(difficultyLevel)) {
+                console.error('Invalid Difficulty Level. Must be one of:', validDifficultyLevels);
+                return;
+            }
+
+            // Ensure all original fields are preserved if not changed
+            const allOriginalFields = Object.keys(question);
+            allOriginalFields.forEach(field => {
+                if (!(field in completeQuestion)) {
+                    completeQuestion[field] = question[field];
+                }
+            });
+
+            // Explicitly set Question_Type if not already set
+            if (!completeQuestion['Question_Type'] && completeQuestion['Question Type']) {
+                completeQuestion['Question_Type'] = completeQuestion['Question Type'];
+            }
+
+            console.log('3. Final Question for Saving:', JSON.parse(JSON.stringify(completeQuestion)));
+            console.groupEnd();
+
+            // Extensive logging before saving
+            console.group('Question Save Details');
+            console.log('Original Changes:', JSON.parse(JSON.stringify(editChanges)));
+            console.log('Complete Question:', JSON.parse(JSON.stringify(completeQuestion)));
+            console.groupEnd();
+
+            // Call onEdit with the complete question
             onEdit(completeQuestion);
             setEditModalOpen(false);
+            
+            // Reset changes after saving
+            setEditChanges({});
         }
     };
 
-    const handleEditChange = (field: keyof Question, value: string | boolean | number) => {
-        setEditedQuestion(prev => ({
-            ...prev,
-            [field]: typeof value === 'number' ? value.toString() : value
-        }));
+    const getDifficultyColor = (level?: string) => {
+        const normalizedLevel = level?.toLowerCase();
+        return normalizedLevel === 'easy' ? 'success' :
+               normalizedLevel === 'medium' ? 'warning' :
+               normalizedLevel === 'hard' ? 'error' : 'default';
     };
 
     return (
@@ -341,11 +455,7 @@ export default function QuestionCard({
                         label={question['Difficulty Level'] || 'Unknown'} 
                         size="small" 
                         sx={{ fontSize: '0.625rem', height: 20 }}
-                        color={
-                            question['Difficulty Level'] === 'easy' ? 'success' :
-                            question['Difficulty Level'] === 'medium' ? 'warning' :
-                            'error'
-                        } 
+                        color={getDifficultyColor(question['Difficulty Level'])} 
                     />
                     <Chip 
                         label={question['Nature of Question'] || 'Unknown'} 
@@ -417,10 +527,31 @@ export default function QuestionCard({
                                 multiline
                                 rows={4}
                                 label="Question"
+                                variant="outlined"
                                 value={editedQuestion.Question}
                                 onChange={(e) => handleEditChange('Question', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
+                                sx={{
+                                    marginBottom: 2,
+                                    '& .MuiOutlinedInput-root': editChanges.Question 
+                                        ? { 
+                                            '& fieldset': { 
+                                                borderColor: 'primary.main',
+                                                borderWidth: 2 
+                                            }
+                                        } 
+                                        : {}
+                                }}
+                                InputProps={{
+                                    endAdornment: editChanges.Question ? (
+                                        <InputAdornment position="end">
+                                            <Chip 
+                                                label="Changed" 
+                                                color="primary" 
+                                                size="small" 
+                                            />
+                                        </InputAdornment>
+                                    ) : null
+                                }}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -429,10 +560,31 @@ export default function QuestionCard({
                                 multiline
                                 rows={4}
                                 label="Answer"
+                                variant="outlined"
                                 value={editedQuestion.Answer}
                                 onChange={(e) => handleEditChange('Answer', e.target.value)}
-                                variant="outlined"
-                                margin="normal"
+                                sx={{
+                                    marginBottom: 2,
+                                    '& .MuiOutlinedInput-root': editChanges.Answer 
+                                        ? { 
+                                            '& fieldset': { 
+                                                borderColor: 'primary.main',
+                                                borderWidth: 2 
+                                            }
+                                        } 
+                                        : {}
+                                }}
+                                InputProps={{
+                                    endAdornment: editChanges.Answer ? (
+                                        <InputAdornment position="end">
+                                            <Chip 
+                                                label="Changed" 
+                                                color="primary" 
+                                                size="small" 
+                                            />
+                                        </InputAdornment>
+                                    ) : null
+                                }}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -441,10 +593,31 @@ export default function QuestionCard({
                                 multiline
                                 rows={3}
                                 label="Explanation"
-                                value={editedQuestion['Explanation']}
-                                onChange={(e) => handleEditChange('Explanation', e.target.value)}
                                 variant="outlined"
-                                margin="normal"
+                                value={editedQuestion['Explanation'] || ''}
+                                onChange={(e) => handleEditChange('Explanation', e.target.value)}
+                                sx={{
+                                    marginBottom: 2,
+                                    '& .MuiOutlinedInput-root': editChanges.Explanation 
+                                        ? { 
+                                            '& fieldset': { 
+                                                borderColor: 'primary.main',
+                                                borderWidth: 2 
+                                            }
+                                        } 
+                                        : {}
+                                }}
+                                InputProps={{
+                                    endAdornment: editChanges.Explanation ? (
+                                        <InputAdornment position="end">
+                                            <Chip 
+                                                label="Changed" 
+                                                color="primary" 
+                                                size="small" 
+                                            />
+                                        </InputAdornment>
+                                    ) : null
+                                }}
                             />
                         </Grid>
 
@@ -516,6 +689,14 @@ export default function QuestionCard({
                                     value={editedQuestion['Difficulty Level'] || ''}
                                     onChange={(e) => handleEditChange('Difficulty Level', e.target.value)}
                                     label="Difficulty Level"
+                                    sx={editChanges['Difficulty Level'] 
+                                        ? { 
+                                            '& .MuiOutlinedInput-notchedOutline': { 
+                                                borderColor: 'primary.main',
+                                                borderWidth: 2 
+                                            }
+                                        } 
+                                        : {}}
                                 >
                                     {difficultyLevels.map((level) => (
                                         <MenuItem key={level} value={level}>
@@ -523,6 +704,19 @@ export default function QuestionCard({
                                         </MenuItem>
                                     ))}
                                 </Select>
+                                {editChanges['Difficulty Level'] && (
+                                    <Chip 
+                                        label="Changed" 
+                                        color="primary" 
+                                        size="small" 
+                                        sx={{ 
+                                            position: 'absolute', 
+                                            right: 10, 
+                                            top: '50%', 
+                                            transform: 'translateY(-50%)' 
+                                        }} 
+                                    />
+                                )}
                             </FormControl>
                         </Grid>
                         <Grid item xs={4}>

@@ -41,21 +41,16 @@ describe('Question Edit Functionality', function() {
 
         (updateQuestion as jest.Mock).mockResolvedValue(updatedQuestion);
 
-        const result = await updateQuestion(
-            { id: 1 },  // Explicitly use number 
-            updatedQuestion
-        );
+        const result = await updateQuestion(updatedQuestion);
 
         expect(result).toEqual(updatedQuestion);
-        expect(updateQuestion).toHaveBeenCalledWith(
-            { id: 1 },  // Explicitly use number
-            updatedQuestion
-        );
+        expect(updateQuestion).toHaveBeenCalledWith(updatedQuestion);
     });
 
     // Test 2: Partial Update
     test('should successfully update partial fields', async () => {
         const partialUpdate = {
+            ...baseQuestion,
             'Difficulty Level': 'Hard',
             'Faculty Approved': true
         };
@@ -67,91 +62,73 @@ describe('Question Edit Functionality', function() {
 
         (updateQuestion as jest.Mock).mockResolvedValue(expectedUpdatedQuestion);
 
-        const result = await updateQuestion(
-            { id: 1 },  // Explicitly use number
-            partialUpdate
-        );
+        const result = await updateQuestion(partialUpdate);
 
         expect(result).toEqual(expectedUpdatedQuestion);
-        expect(updateQuestion).toHaveBeenCalledWith(
-            { id: 1 },  // Explicitly use number
-            partialUpdate
-        );
+        expect(updateQuestion).toHaveBeenCalledWith(partialUpdate);
     });
 
     // Test 3: Invalid Difficulty Level
     test('should reject invalid difficulty level', async () => {
         const invalidUpdate = {
+            ...baseQuestion,
             'Difficulty Level': 'Invalid Level'
         };
 
         (updateQuestion as jest.Mock).mockRejectedValue(new Error('Invalid difficulty level'));
 
-        await expect(updateQuestion(
-            { id: 1 },  // Explicitly use number
-            invalidUpdate
-        )).rejects.toThrow('Invalid difficulty level');
+        await expect(updateQuestion(invalidUpdate)).rejects.toThrow('Invalid difficulty level');
     });
 
     // Test 4: Invalid Question Type
     test('should reject invalid question type', async function() {
         const invalidUpdate = {
+            ...baseQuestion,
             'Question_Type': 'Invalid Type'
         };
 
         (updateQuestion as jest.Mock).mockRejectedValue(new Error('Invalid question type'));
 
-        await expect(
-            updateQuestion(
-                { id: 1 },  // Explicitly use number
-                invalidUpdate
-            )
-        ).rejects.toThrowError('Invalid question type');
+        await expect(updateQuestion(invalidUpdate)).rejects.toThrowError('Invalid question type');
     });
 
     // Test 5: Empty Required Fields
     test('should prevent updating with empty required fields', async () => {
         const invalidUpdate = {
+            ...baseQuestion,
             Question: '',
             Answer: ''
         };
 
         (updateQuestion as jest.Mock).mockRejectedValue(new Error('Required fields cannot be empty'));
 
-        await expect(updateQuestion(
-            { id: 1 },  // Explicitly use number
-            invalidUpdate
-        )).rejects.toThrow('Required fields cannot be empty');
+        await expect(updateQuestion(invalidUpdate)).rejects.toThrow('Required fields cannot be empty');
     });
 
     // Test 6: Non-Existent Question ID
     test('should handle non-existent question ID', async () => {
-        const nonExistentId = 9999;
         const updateData = {
+            ...baseQuestion,
+            id: 9999,
             'Difficulty Level': 'Easy'
         };
 
         (updateQuestion as jest.Mock).mockRejectedValue(new Error('Question not found'));
 
-        await expect(updateQuestion(
-            { id: nonExistentId },  // Explicitly use number
-            updateData
-        )).rejects.toThrow('Question not found');
+        await expect(updateQuestion(updateData)).rejects.toThrow('Question not found');
     });
 
     // Test 7: Boundary Value Testing
     test('should handle extreme input lengths', async () => {
         const extremeUpdate = {
+            ...baseQuestion,
             Question: 'A'.repeat(10000), // Very long question
             Answer: 'B'.repeat(10000)    // Very long answer
         };
 
         (updateQuestion as jest.Mock).mockRejectedValue(new Error('Input length exceeds maximum limit'));
 
-        await expect(updateQuestion(
-            { id: 1 },  // Explicitly use number
-            extremeUpdate
-        )).rejects.toThrow('Input length exceeds maximum limit');
+        await expect(updateQuestion(extremeUpdate)).rejects.toThrow('Input length exceeds maximum limit');
     });
 });
 

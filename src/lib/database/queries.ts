@@ -786,20 +786,34 @@ export async function debugDatabaseSchema() {
 }
 
 export async function updateQuestion(
-    question: { id: number }, 
-    updateFields: Partial<Question>
+    question: Question
 ): Promise<Question> {
     const db = await openDatabase();
 
     try {
+        // Extract fields to update, excluding id and some system fields
+        const updateFields: Partial<Question> = { ...question };
+        delete updateFields.id;
+        delete updateFields['Last Updated'];
+
         // Prepare the update clause dynamically
         const updateKeys = Object.keys(updateFields)
-            .filter(key => updateFields[key] !== undefined && updateFields[key] !== null)
+            .filter(key => 
+                updateFields[key] !== undefined && 
+                updateFields[key] !== null && 
+                key !== 'id' && 
+                key !== 'Last Updated'
+            )
             .map(key => `"${key}" = ?`)
             .join(', ');
 
         const values = Object.keys(updateFields)
-            .filter(key => updateFields[key] !== undefined && updateFields[key] !== null)
+            .filter(key => 
+                updateFields[key] !== undefined && 
+                updateFields[key] !== null && 
+                key !== 'id' && 
+                key !== 'Last Updated'
+            )
             .map(key => updateFields[key]);
         
         // Add question ID to the end of values for WHERE clause
@@ -812,7 +826,9 @@ export async function updateQuestion(
             RETURNING *;
         `;
 
+        console.group('Question Update Process');
         console.log('Prepared SQL query:', query);
+        console.log('Update Fields:', updateFields);
         console.log('Query values:', values);
 
         const stmt = await db.prepare(query);
@@ -822,12 +838,15 @@ export async function updateQuestion(
 
         if (result.length === 0) {
             console.error('No rows updated. Question might not exist.');
+            console.groupEnd();
             throw new Error('Question not found or no changes made');
         }
 
         // Type assertion to ensure the result is a Question
         const updatedQuestion = result[0] as Question;
         console.log('Successfully updated question:', updatedQuestion);
+        console.groupEnd();
+
         return updatedQuestion;
     } catch (error) {
         console.error('Error in updateQuestion:', error);

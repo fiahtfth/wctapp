@@ -20,7 +20,7 @@ interface QuestionFilterProps {
         topic?: string;
         module?: string;
         sub_topic?: string;
-        difficulty_level?: 'easy' | 'medium' | 'hard';
+        difficulty_level?: 'Easy' | 'Medium' | 'Hard';
         nature_of_question?: string;
         search?: string;
     }) => void;
@@ -34,9 +34,9 @@ const SUBJECTS = [
 ];
 
 const DIFFICULTY_LEVELS = [
-    { value: 'easy', color: 'success' },
-    { value: 'medium', color: 'warning' },
-    { value: 'hard', color: 'error' }
+    { value: 'Easy', label: 'Easy' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'Hard', label: 'Hard' }
 ];
 
 export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) {
@@ -54,7 +54,9 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             topic: topic || undefined,
             module: module || undefined,
             sub_topic: subTopic || undefined,
-            difficulty_level: difficulty as 'easy' | 'medium' | 'hard' || undefined,
+            difficulty_level: difficulty ? 
+                (difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase()) as 'Easy' | 'Medium' | 'Hard' : 
+                undefined,
             nature_of_question: natureOfQuestion || undefined,
             search: searchTerm || undefined
         });
@@ -118,7 +120,7 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
                         >
                             <MenuItem value="">All Difficulties</MenuItem>
                             {DIFFICULTY_LEVELS.map((diff) => (
-                                <MenuItem key={diff.value} value={diff.value}>{diff.value}</MenuItem>
+                                <MenuItem key={diff.value} value={diff.value}>{diff.label}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
