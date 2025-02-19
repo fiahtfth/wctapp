@@ -1,6 +1,7 @@
 # Planned Features for WCT Question Bank
 
 ## 1. Question Paper Generator 📝
+
 - **Automated Generation**
   - Configure total marks
   - Set difficulty distribution
@@ -13,6 +14,7 @@
   - Question sequencing
 
 ## 2. Advanced Analytics Dashboard 📊
+
 - **Usage Statistics**
   - Question utilization rates
   - Difficulty level distribution
@@ -24,6 +26,7 @@
   - Performance metrics
 
 ## 3. Question Preview & Print Layout 🖨️
+
 - **Multiple View Options**
   - Question paper preview
   - Answer key view
@@ -35,6 +38,7 @@
   - Institution branding
 
 ## 4. Question Tagging & Organization 🏷️
+
 - **Organization Features**
   - Custom tagging system
   - Collection creation
@@ -47,6 +51,7 @@
   - Tag analytics
 
 ## 5. Collaborative Features 👥
+
 - **User Roles**
   - Administrator
   - Teacher
@@ -59,6 +64,7 @@
   - Change notifications
 
 ## 6. Smart Search & Filters 🔍
+
 - **Search Capabilities**
   - Full-text search
   - Similar question finding
@@ -71,6 +77,7 @@
   - Quick filters
 
 ## 7. Question Version Control 📜
+
 - **Version Management**
   - Change tracking
   - Version history
@@ -83,6 +90,7 @@
   - Version notes
 
 ## 8. Question Quality Score ⭐
+
 - **Quality Metrics**
   - Language consistency
   - Format validation
@@ -95,6 +103,7 @@
   - Quality checklist
 
 ## 9. Mobile Responsive UI Improvements 📱
+
 - **Mobile Features**
   - Responsive design
   - Touch optimization
@@ -107,6 +116,7 @@
   - Quick access
 
 ## 10. Integration Features 🔄
+
 - **Data Exchange**
   - Multiple import formats
   - LMS integration
@@ -119,6 +129,7 @@
   - External service connectors
 
 ## Implementation Priority
+
 1. Question Paper Generator (High Impact)
 2. Preview & Print Layout (Essential Functionality)
 3. Smart Search & Filters (User Experience)
@@ -131,6 +142,7 @@
 10. Integration Features (Extensibility)
 
 ## Notes
+
 - Features will be implemented incrementally
 - Each feature will undergo thorough testing
 - User feedback will be incorporated

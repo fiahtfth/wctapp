@@ -166,3 +166,171 @@
   "usersIsArray": true
 }
 [2025-02-18T18:12:42.101Z] [DEBUG] Database connection closed
+[2025-02-18T22:34:45.904Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.9",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDAwMDQ0NzN9.keTGyxQPCJjkfkB5gXzAgswC3xqFGQKjsU3VfLEHATk",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-18T22:34:45.909Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-18T22:34:45.911Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/dev.db"
+}
+[2025-02-18T22:34:45.912Z] [DEBUG] Users retrieval details
+{
+  "userCount": 2,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-18T22:34:45.912Z] [DEBUG] Database connection closed
+[2025-02-18T22:34:46.470Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.9",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDAwMDQ0NzN9.keTGyxQPCJjkfkB5gXzAgswC3xqFGQKjsU3VfLEHATk",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-18T22:34:46.519Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-18T22:34:46.525Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/dev.db"
+}
+[2025-02-18T22:34:46.526Z] [DEBUG] Users retrieval details
+{
+  "userCount": 2,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-18T22:34:46.527Z] [DEBUG] Database connection closed
+[2025-02-18T22:40:29.071Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.9",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDAwMDQ4Mjd9.ZniUFB2vEzzKrjXbWUQNnyI-C7e1oxa0UFcp188bM6s",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-18T22:40:29.073Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-18T22:40:29.073Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/dev.db"
+}
+[2025-02-18T22:40:29.074Z] [DEBUG] Users retrieval details
+{
+  "userCount": 2,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-18T22:40:29.074Z] [DEBUG] Database connection closed
+[2025-02-18T22:40:29.081Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.9",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDAwMDQ4Mjd9.ZniUFB2vEzzKrjXbWUQNnyI-C7e1oxa0UFcp188bM6s",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-18T22:40:29.081Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-18T22:40:29.081Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/dev.db"
+}
+[2025-02-18T22:40:29.081Z] [DEBUG] Users retrieval details
+{
+  "userCount": 2,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-18T22:40:29.081Z] [DEBUG] Database connection closed

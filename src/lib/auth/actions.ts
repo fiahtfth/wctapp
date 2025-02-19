@@ -1,5 +1,5 @@
 // Authentication-related server actions
-'use server';
+"use server";
 
 export async function login(credentials: { email: string; password: string }) {
   // Implement login logic
@@ -7,7 +7,7 @@ export async function login(credentials: { email: string; password: string }) {
     // Placeholder for authentication
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Login failed' };
+    return { success: false, error: "Login failed" };
   }
 }
 
@@ -17,6 +17,6 @@ export async function logout() {
     // Placeholder for logout
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Logout failed' };
+    return { success: false, error: "Logout failed" };
   }
 }
