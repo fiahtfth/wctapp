@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Checkbox,
@@ -13,14 +13,9 @@ import {
   SelectChangeEvent,
   TextField,
   InputAdornment,
-} from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import {
-  getSubjects,
-  getModules,
-  getTopics,
-  getQuestions,
-} from "@/lib/database/hierarchicalData";
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import { getSubjects, getModules, getTopics, getQuestions } from '@/lib/database/hierarchicalData';
 
 interface CascadingFiltersProps {
   onFilterChange?: (filters: {
@@ -40,15 +35,13 @@ interface CascadingFiltersProps {
 
 export const CascadingFilters = ({
   onFilterChange,
-  testId = "cascading-filters",
+  testId = 'cascading-filters',
 }: CascadingFiltersProps) => {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>(
-    [],
-  );
-  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [subjects, setSubjects] = useState<string[]>([]);
   const [modules, setModules] = useState<string[]>([]);
@@ -57,7 +50,7 @@ export const CascadingFilters = ({
 
   useEffect(() => {
     const subjects = getSubjects();
-    console.log("Loaded Subjects:", subjects);
+    console.log('Loaded Subjects:', subjects);
     setSubjects(subjects);
   }, []);
 
@@ -65,9 +58,7 @@ export const CascadingFilters = ({
   useEffect(() => {
     if (selectedSubjects.length > 0) {
       // Get unique modules across all selected subjects
-      const uniqueModules = selectedSubjects.flatMap((subject) =>
-        getModules(subject),
-      );
+      const uniqueModules = selectedSubjects.flatMap(subject => getModules(subject));
 
       // Remove duplicates while preserving order
       const deduplicatedModules = [...new Set(uniqueModules)];
@@ -75,9 +66,7 @@ export const CascadingFilters = ({
       setModules(deduplicatedModules);
 
       // Reset dependent filters if they're no longer valid
-      const validModules = selectedModules.filter((module) =>
-        deduplicatedModules.includes(module),
-      );
+      const validModules = selectedModules.filter(module => deduplicatedModules.includes(module));
 
       setSelectedModules(validModules);
     } else {
@@ -93,8 +82,8 @@ export const CascadingFilters = ({
   useEffect(() => {
     if (selectedSubjects.length > 0 && selectedModules.length > 0) {
       // Get unique topics across all selected subject-module combinations
-      const uniqueTopics = selectedSubjects.flatMap((subject) =>
-        selectedModules.flatMap((module) => getTopics(subject, module)),
+      const uniqueTopics = selectedSubjects.flatMap(subject =>
+        selectedModules.flatMap(module => getTopics(subject, module))
       );
 
       // Remove duplicates while preserving order
@@ -103,9 +92,7 @@ export const CascadingFilters = ({
       setTopics(deduplicatedTopics);
 
       // Reset dependent filters if they're no longer valid
-      const validTopics = selectedTopics.filter((topic) =>
-        deduplicatedTopics.includes(topic),
-      );
+      const validTopics = selectedTopics.filter(topic => deduplicatedTopics.includes(topic));
 
       setSelectedTopics(validTopics);
     } else {
@@ -117,14 +104,14 @@ export const CascadingFilters = ({
 
   useEffect(() => {
     // Static list of question types
-    const questionTypes = ["Objective", "Subjective"];
-    console.log("Loaded Question Types:", questionTypes);
+    const questionTypes = ['Objective', 'Subjective'];
+    console.log('Loaded Question Types:', questionTypes);
     setQuestionTypes(questionTypes);
   }, []);
 
   const handleSubjectChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
-    const subjects = typeof value === "string" ? value.split(",") : value;
+    const subjects = typeof value === 'string' ? value.split(',') : value;
 
     setSelectedSubjects(subjects);
 
@@ -133,20 +120,17 @@ export const CascadingFilters = ({
       subject: subjects.length > 0 ? subjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
       topic: selectedTopics.length > 0 ? selectedTopics : undefined,
-      question_type:
-        selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+      question_type: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: searchQuery,
     });
   };
 
   const handleModuleChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
-    const modules = typeof value === "string" ? value.split(",") : value;
+    const modules = typeof value === 'string' ? value.split(',') : value;
 
     // Reset topics when modules change
-    const validTopics = selectedTopics.filter((topic) =>
-      topics.includes(topic),
-    );
+    const validTopics = selectedTopics.filter(topic => topics.includes(topic));
 
     setSelectedModules(modules);
     setSelectedTopics(validTopics);
@@ -156,15 +140,14 @@ export const CascadingFilters = ({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: modules.length > 0 ? modules : undefined,
       topic: validTopics.length > 0 ? validTopics : undefined,
-      question_type:
-        selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+      question_type: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: searchQuery,
     });
   };
 
   const handleTopicChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
-    const topics = typeof value === "string" ? value.split(",") : value;
+    const topics = typeof value === 'string' ? value.split(',') : value;
 
     setSelectedTopics(topics);
 
@@ -173,15 +156,14 @@ export const CascadingFilters = ({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
       topic: topics.length > 0 ? topics : undefined,
-      question_type:
-        selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+      question_type: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: searchQuery,
     });
   };
 
   const handleQuestionTypeChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
-    const types = typeof value === "string" ? value.split(",") : value;
+    const types = typeof value === 'string' ? value.split(',') : value;
 
     setSelectedQuestionTypes(types);
 
@@ -204,8 +186,7 @@ export const CascadingFilters = ({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
       topic: selectedTopics.length > 0 ? selectedTopics : undefined,
-      question_type:
-        selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+      question_type: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: value,
     });
   };
@@ -217,9 +198,9 @@ export const CascadingFilters = ({
         mb: 1,
         py: 0.75,
         px: 1.5,
-        backgroundColor: "background.paper",
+        backgroundColor: 'background.paper',
         borderBottom: 1,
-        borderColor: "divider",
+        borderColor: 'divider',
       }}
       data-testid={testId}
     >
@@ -229,13 +210,13 @@ export const CascadingFilters = ({
             fullWidth
             size="small"
             sx={{
-              "& .MuiInputBase-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputBase-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiInputLabel-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputLabel-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiSelect-select": {
+              '& .MuiSelect-select': {
                 py: 1,
               },
             }}
@@ -247,9 +228,9 @@ export const CascadingFilters = ({
               value={selectedSubjects}
               label="Subject"
               onChange={handleSubjectChange}
-              renderValue={(selected) => selected.join(", ")}
+              renderValue={selected => selected.join(', ')}
             >
-              {subjects.map((subject) => (
+              {subjects.map(subject => (
                 <MenuItem key={`subject-${subject}`} value={subject}>
                   <Checkbox checked={selectedSubjects.includes(subject)} />
                   <ListItemText primary={subject} />
@@ -265,13 +246,13 @@ export const CascadingFilters = ({
             size="small"
             disabled={selectedSubjects.length === 0}
             sx={{
-              "& .MuiInputBase-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputBase-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiInputLabel-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputLabel-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiSelect-select": {
+              '& .MuiSelect-select': {
                 py: 1,
               },
             }}
@@ -283,9 +264,9 @@ export const CascadingFilters = ({
               value={selectedModules}
               label="Module"
               onChange={handleModuleChange}
-              renderValue={(selected) => selected.join(", ")}
+              renderValue={selected => selected.join(', ')}
             >
-              {modules.map((module) => (
+              {modules.map(module => (
                 <MenuItem key={`module-${module}`} value={module}>
                   <Checkbox checked={selectedModules.includes(module)} />
                   <ListItemText primary={module} />
@@ -299,17 +280,15 @@ export const CascadingFilters = ({
           <FormControl
             fullWidth
             size="small"
-            disabled={
-              selectedSubjects.length === 0 || selectedModules.length === 0
-            }
+            disabled={selectedSubjects.length === 0 || selectedModules.length === 0}
             sx={{
-              "& .MuiInputBase-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputBase-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiInputLabel-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputLabel-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiSelect-select": {
+              '& .MuiSelect-select': {
                 py: 1,
               },
             }}
@@ -321,9 +300,9 @@ export const CascadingFilters = ({
               value={selectedTopics}
               label="Topic"
               onChange={handleTopicChange}
-              renderValue={(selected) => selected.join(", ")}
+              renderValue={selected => selected.join(', ')}
             >
-              {topics.map((topic) => (
+              {topics.map(topic => (
                 <MenuItem key={`topic-${topic}`} value={topic}>
                   <Checkbox checked={selectedTopics.includes(topic)} />
                   <ListItemText primary={topic} />
@@ -338,13 +317,13 @@ export const CascadingFilters = ({
             fullWidth
             size="small"
             sx={{
-              "& .MuiInputBase-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputBase-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiInputLabel-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputLabel-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiSelect-select": {
+              '& .MuiSelect-select': {
                 py: 1,
               },
             }}
@@ -356,9 +335,9 @@ export const CascadingFilters = ({
               value={selectedQuestionTypes}
               label="Question Type"
               onChange={handleQuestionTypeChange}
-              renderValue={(selected) => selected.join(", ")}
+              renderValue={selected => selected.join(', ')}
             >
-              {questionTypes.map((type) => (
+              {questionTypes.map(type => (
                 <MenuItem key={`question-type-${type}`} value={type}>
                   <Checkbox checked={selectedQuestionTypes.includes(type)} />
                   <ListItemText primary={type} />
@@ -377,11 +356,11 @@ export const CascadingFilters = ({
             value={searchQuery}
             onChange={handleSearchChange}
             sx={{
-              "& .MuiInputBase-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputBase-root': {
+                fontSize: '0.875rem',
               },
-              "& .MuiInputLabel-root": {
-                fontSize: "0.875rem",
+              '& .MuiInputLabel-root': {
+                fontSize: '0.875rem',
               },
             }}
             InputProps={{

@@ -1,14 +1,14 @@
-import Database from "better-sqlite3";
-import fs from "fs";
-import path from "path";
-import bcrypt from "bcryptjs";
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
+import bcrypt from 'bcryptjs';
 
-const DB_PATH = path.resolve("./src/lib/database/questions.db");
+const DB_PATH = path.resolve('./src/lib/database/questions.db');
 
 export function initializeDatabase() {
   // Check if database already exists
   if (fs.existsSync(DB_PATH)) {
-    console.log("Database already exists");
+    console.log('Database already exists');
     return;
   }
 
@@ -17,16 +17,16 @@ export function initializeDatabase() {
     const db = new Database(DB_PATH);
 
     // Read SQL schema
-    const schemaPath = path.resolve("./src/lib/database/schema.sql");
-    const schema = fs.readFileSync(schemaPath, "utf8");
+    const schemaPath = path.resolve('./src/lib/database/schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf8');
 
     // Execute schema
     db.exec(schema);
 
     // Create hardcoded admin user
-    const adminUsername = "superadmin";
-    const adminEmail = "admin@nextias.com";
-    const adminPassword = "Admin_2025!";
+    const adminUsername = 'superadmin';
+    const adminEmail = 'admin@nextias.com';
+    const adminPassword = 'Admin_2025!';
 
     // Hash the password
     const saltRounds = 10;
@@ -41,15 +41,15 @@ export function initializeDatabase() {
 
     insertAdminStmt.run(adminUsername, adminEmail, passwordHash);
 
-    console.log("Database initialized successfully");
-    console.log("Hardcoded Admin Credentials:");
+    console.log('Database initialized successfully');
+    console.log('Hardcoded Admin Credentials:');
     console.log(`Username: ${adminUsername}`);
     console.log(`Email: ${adminEmail}`);
     console.log(`Password: ${adminPassword}`);
 
     db.close();
   } catch (error) {
-    console.error("Error initializing database:", error);
+    console.error('Error initializing database:', error);
   }
 }
 

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Button, Stack, Typography } from "@mui/material";
-import React from "react";
+import { Button, Stack, Typography } from '@mui/material';
+import React from 'react';
 
 interface PaginationControlsProps extends React.HTMLAttributes<HTMLDivElement> {
   currentPage: number;
@@ -16,13 +16,7 @@ export default function PaginationControls({
   ...props
 }: PaginationControlsProps) {
   return (
-    <Stack
-      direction="row"
-      spacing={2}
-      alignItems="center"
-      sx={{ mt: 3 }}
-      {...props}
-    >
+    <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 3 }} {...props}>
       <Button
         variant="outlined"
         disabled={currentPage === 1}

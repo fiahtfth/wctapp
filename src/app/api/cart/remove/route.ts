@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { removeQuestionFromCart } from "@/types/question";
+import { NextRequest, NextResponse } from 'next/server';
+import { removeQuestionFromCart } from '@/types/question';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,10 +8,7 @@ export async function POST(request: NextRequest) {
     const { questionId, testId } = body;
 
     if (!questionId || !testId) {
-      return NextResponse.json(
-        { error: "Question ID and Test ID are required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'Question ID and Test ID are required' }, { status: 400 });
     }
 
     // Remove question from cart
@@ -21,13 +18,10 @@ export async function POST(request: NextRequest) {
       {
         success: result,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
-    console.error("Error removing question from cart:", error);
-    return NextResponse.json(
-      { error: "Failed to remove question from cart" },
-      { status: 500 },
-    );
+    console.error('Error removing question from cart:', error);
+    return NextResponse.json({ error: 'Failed to remove question from cart' }, { status: 500 });
   }
 }

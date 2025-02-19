@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -16,29 +16,25 @@ import {
   Checkbox,
   FormControlLabel,
   FormGroup,
-} from "@mui/material";
-import {
-  getSubjects,
-  getModules,
-  getTopics,
-} from "@/lib/database/hierarchicalData";
+} from '@mui/material';
+import { getSubjects, getModules, getTopics } from '@/lib/database/hierarchicalData';
 
 export default function AddQuestionPage() {
   const [formData, setFormData] = useState({
-    Question: "",
-    Answer: "",
-    Explanation: "",
-    Subject: "",
-    "Module Number": "",
-    "Module Name": "",
-    Topic: "",
-    "Sub Topic": "",
-    "Micro Topic": "",
-    "Faculty Approved": false,
-    "Difficulty Level": "",
-    "Nature of Question": "",
-    Objective: "",
-    Question_Type: "",
+    Question: '',
+    Answer: '',
+    Explanation: '',
+    Subject: '',
+    'Module Number': '',
+    'Module Name': '',
+    Topic: '',
+    'Sub Topic': '',
+    'Micro Topic': '',
+    'Faculty Approved': false,
+    'Difficulty Level': '',
+    'Nature of Question': '',
+    Objective: '',
+    Question_Type: '',
   });
 
   const [subjects, setSubjects] = useState<string[]>([]);
@@ -46,10 +42,8 @@ export default function AddQuestionPage() {
   const [topics, setTopics] = useState<string[]>([]);
 
   const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
-    "success",
-  );
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   // Fetch subjects on component mount
   useEffect(() => {
@@ -76,18 +70,15 @@ export default function AddQuestionPage() {
   // Dynamically update topics when module changes
   useEffect(() => {
     const loadTopics = () => {
-      if (formData.Subject && formData["Module Name"]) {
-        const availableTopics = getTopics(
-          formData.Subject,
-          formData["Module Name"],
-        );
+      if (formData.Subject && formData['Module Name']) {
+        const availableTopics = getTopics(formData.Subject, formData['Module Name']);
         setTopics(availableTopics);
       } else {
         setTopics([]);
       }
     };
     loadTopics();
-  }, [formData.Subject, formData["Module Name"]]);
+  }, [formData.Subject, formData['Module Name']]);
 
   // Dynamic handler for form inputs
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -97,15 +88,15 @@ export default function AddQuestionPage() {
     };
 
     // Reset dependent fields when parent field changes
-    if (field === "Subject") {
-      updatedFormData["Module Name"] = "";
-      updatedFormData["Topic"] = "";
-      updatedFormData["Sub Topic"] = "";
-      updatedFormData["Micro Topic"] = "";
-    } else if (field === "Module Name") {
-      updatedFormData["Topic"] = "";
-      updatedFormData["Sub Topic"] = "";
-      updatedFormData["Micro Topic"] = "";
+    if (field === 'Subject') {
+      updatedFormData['Module Name'] = '';
+      updatedFormData['Topic'] = '';
+      updatedFormData['Sub Topic'] = '';
+      updatedFormData['Micro Topic'] = '';
+    } else if (field === 'Module Name') {
+      updatedFormData['Topic'] = '';
+      updatedFormData['Sub Topic'] = '';
+      updatedFormData['Micro Topic'] = '';
     }
 
     setFormData(updatedFormData);
@@ -115,61 +106,57 @@ export default function AddQuestionPage() {
     e.preventDefault();
 
     // Basic validation
-    const requiredFields = ["Question", "Answer", "Subject", "Question_Type"];
-    const missingFields = requiredFields.filter((field) => !(formData as any)[field]);
+    const requiredFields = ['Question', 'Answer', 'Subject', 'Question_Type'];
+    const missingFields = requiredFields.filter(field => !(formData as any)[field]);
 
     if (missingFields.length > 0) {
       setSnackbarMessage(
-        `Please fill in the following required fields: ${missingFields.join(", ")}`,
+        `Please fill in the following required fields: ${missingFields.join(', ')}`
       );
-      setSnackbarSeverity("error");
+      setSnackbarSeverity('error');
       setOpenSnackbar(true);
       return;
     }
 
     try {
-      const response = await fetch("/api/questions", {
-        method: "POST",
+      const response = await fetch('/api/questions', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
 
       if (response.ok) {
         const result = await response.json();
-        setSnackbarMessage(
-          `Question added successfully! ID: ${result.questionId}`,
-        );
-        setSnackbarSeverity("success");
+        setSnackbarMessage(`Question added successfully! ID: ${result.questionId}`);
+        setSnackbarSeverity('success');
 
         // Reset form
         setFormData({
-          Question: "",
-          Answer: "",
-          Explanation: "",
-          Subject: "",
-          "Module Number": "",
-          "Module Name": "",
-          Topic: "",
-          "Sub Topic": "",
-          "Micro Topic": "",
-          "Faculty Approved": false,
-          "Difficulty Level": "",
-          "Nature of Question": "",
-          Objective: "",
-          Question_Type: "",
+          Question: '',
+          Answer: '',
+          Explanation: '',
+          Subject: '',
+          'Module Number': '',
+          'Module Name': '',
+          Topic: '',
+          'Sub Topic': '',
+          'Micro Topic': '',
+          'Faculty Approved': false,
+          'Difficulty Level': '',
+          'Nature of Question': '',
+          Objective: '',
+          Question_Type: '',
         });
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add question");
+        throw new Error(errorData.error || 'Failed to add question');
       }
     } catch (error) {
-      console.error("Error adding question:", error);
-      setSnackbarMessage(
-        error instanceof Error ? error.message : "Error adding question",
-      );
-      setSnackbarSeverity("error");
+      console.error('Error adding question:', error);
+      setSnackbarMessage(error instanceof Error ? error.message : 'Error adding question');
+      setSnackbarSeverity('error');
     }
 
     setOpenSnackbar(true);
@@ -180,14 +167,14 @@ export default function AddQuestionPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 800, margin: "auto", p: 3 }}>
+    <Box sx={{ maxWidth: 800, margin: 'auto', p: 3 }}>
       <Typography
         variant="h4"
         sx={{
           mb: 3,
           fontWeight: 600,
-          color: "text.primary",
-          textAlign: "center",
+          color: 'text.primary',
+          textAlign: 'center',
         }}
       >
         Add Question to Database
@@ -204,7 +191,7 @@ export default function AddQuestionPage() {
               label="Question Text *"
               variant="outlined"
               value={formData.Question}
-              onChange={(e) => handleInputChange("Question", e.target.value)}
+              onChange={e => handleInputChange('Question', e.target.value)}
               required
             />
           </Grid>
@@ -218,7 +205,7 @@ export default function AddQuestionPage() {
               label="Answer *"
               variant="outlined"
               value={formData.Answer}
-              onChange={(e) => handleInputChange("Answer", e.target.value)}
+              onChange={e => handleInputChange('Answer', e.target.value)}
               required
             />
           </Grid>
@@ -232,7 +219,7 @@ export default function AddQuestionPage() {
               label="Explanation"
               variant="outlined"
               value={formData.Explanation}
-              onChange={(e) => handleInputChange("Explanation", e.target.value)}
+              onChange={e => handleInputChange('Explanation', e.target.value)}
             />
           </Grid>
 
@@ -243,9 +230,9 @@ export default function AddQuestionPage() {
               <Select
                 value={formData.Subject}
                 label="Subject *"
-                onChange={(e) => handleInputChange("Subject", e.target.value)}
+                onChange={e => handleInputChange('Subject', e.target.value)}
               >
-                {subjects.map((subject) => (
+                {subjects.map(subject => (
                   <MenuItem key={subject} value={subject}>
                     {subject}
                   </MenuItem>
@@ -259,15 +246,13 @@ export default function AddQuestionPage() {
             <FormControl fullWidth>
               <InputLabel>Module Name</InputLabel>
               <Select
-                value={formData["Module Name"]}
+                value={formData['Module Name']}
                 label="Module Name"
-                onChange={(e) =>
-                  handleInputChange("Module Name", e.target.value)
-                }
+                onChange={e => handleInputChange('Module Name', e.target.value)}
                 disabled={!formData.Subject}
               >
                 <MenuItem value="">None</MenuItem>
-                {modules.map((module) => (
+                {modules.map(module => (
                   <MenuItem key={module} value={module}>
                     {module}
                   </MenuItem>
@@ -283,11 +268,11 @@ export default function AddQuestionPage() {
               <Select
                 value={formData.Topic}
                 label="Topic"
-                onChange={(e) => handleInputChange("Topic", e.target.value)}
-                disabled={!formData.Subject || !formData["Module Name"]}
+                onChange={e => handleInputChange('Topic', e.target.value)}
+                disabled={!formData.Subject || !formData['Module Name']}
               >
                 <MenuItem value="">None</MenuItem>
-                {topics.map((topic) => (
+                {topics.map(topic => (
                   <MenuItem key={topic} value={topic}>
                     {topic}
                   </MenuItem>
@@ -302,8 +287,8 @@ export default function AddQuestionPage() {
               fullWidth
               label="Sub Topic"
               variant="outlined"
-              value={formData["Sub Topic"]}
-              onChange={(e) => handleInputChange("Sub Topic", e.target.value)}
+              value={formData['Sub Topic']}
+              onChange={e => handleInputChange('Sub Topic', e.target.value)}
             />
           </Grid>
 
@@ -313,8 +298,8 @@ export default function AddQuestionPage() {
               fullWidth
               label="Micro Topic"
               variant="outlined"
-              value={formData["Micro Topic"]}
-              onChange={(e) => handleInputChange("Micro Topic", e.target.value)}
+              value={formData['Micro Topic']}
+              onChange={e => handleInputChange('Micro Topic', e.target.value)}
             />
           </Grid>
 
@@ -323,11 +308,9 @@ export default function AddQuestionPage() {
             <FormControl fullWidth>
               <InputLabel>Difficulty Level</InputLabel>
               <Select
-                value={formData["Difficulty Level"]}
+                value={formData['Difficulty Level']}
                 label="Difficulty Level"
-                onChange={(e) =>
-                  handleInputChange("Difficulty Level", e.target.value)
-                }
+                onChange={e => handleInputChange('Difficulty Level', e.target.value)}
               >
                 <MenuItem value="">None</MenuItem>
                 <MenuItem value="easy">Easy</MenuItem>
@@ -344,9 +327,7 @@ export default function AddQuestionPage() {
               <Select
                 value={formData.Question_Type}
                 label="Question Type *"
-                onChange={(e) =>
-                  handleInputChange("Question_Type", e.target.value)
-                }
+                onChange={e => handleInputChange('Question_Type', e.target.value)}
               >
                 <MenuItem value="Objective">Objective</MenuItem>
                 <MenuItem value="Subjective">Subjective</MenuItem>
@@ -360,10 +341,8 @@ export default function AddQuestionPage() {
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={formData["Faculty Approved"]}
-                    onChange={(e) =>
-                      handleInputChange("Faculty Approved", e.target.checked)
-                    }
+                    checked={formData['Faculty Approved']}
+                    onChange={e => handleInputChange('Faculty Approved', e.target.checked)}
                   />
                 }
                 label="Faculty Approved"
@@ -377,10 +356,8 @@ export default function AddQuestionPage() {
               fullWidth
               label="Nature of Question"
               variant="outlined"
-              value={formData["Nature of Question"]}
-              onChange={(e) =>
-                handleInputChange("Nature of Question", e.target.value)
-              }
+              value={formData['Nature of Question']}
+              onChange={e => handleInputChange('Nature of Question', e.target.value)}
             />
           </Grid>
 
@@ -391,18 +368,12 @@ export default function AddQuestionPage() {
               label="Objective"
               variant="outlined"
               value={formData.Objective}
-              onChange={(e) => handleInputChange("Objective", e.target.value)}
+              onChange={e => handleInputChange('Objective', e.target.value)}
             />
           </Grid>
 
           <Grid item xs={12}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ py: 1.5 }}
-            >
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ py: 1.5 }}>
               Add Question
             </Button>
           </Grid>
@@ -413,13 +384,9 @@ export default function AddQuestionPage() {
         open={openSnackbar}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

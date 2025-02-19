@@ -1,16 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import Database from "better-sqlite3";
-import { jwtVerify } from "jose";
-import path from "path";
-import fs from "fs";
-import { User } from "@/types/user";
+import { NextRequest, NextResponse } from 'next/server';
+import Database from 'better-sqlite3';
+import { jwtVerify } from 'jose';
+import path from 'path';
+import fs from 'fs';
+import { User } from '@/types/user';
 
 // Enhanced logging function
-function log(
-  level: "error" | "warn" | "info" | "debug",
-  message: string,
-  data?: any,
-) {
+function log(level: 'error' | 'warn' | 'info' | 'debug', message: string, data?: any) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
 
@@ -22,29 +18,29 @@ function log(
 
   // Optional: Log to file for persistent debugging
   try {
-    const logDir = path.resolve(process.cwd(), "logs");
+    const logDir = path.resolve(process.cwd(), 'logs');
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
-    const logFile = path.join(logDir, "users_list.log");
+    const logFile = path.join(logDir, 'users_list.log');
     fs.appendFileSync(
       logFile,
-      `${logMessage}\n${data ? JSON.stringify(data, null, 2) + "\n" : ""}`,
+      `${logMessage}\n${data ? JSON.stringify(data, null, 2) + '\n' : ''}`
     );
   } catch (fileLogError) {
-    console.error("Error logging to file:", fileLogError);
+    console.error('Error logging to file:', fileLogError);
   }
 }
 
 // Type guard to validate user objects
 function isUser(obj: unknown): obj is User {
   return (
-    typeof obj === "object" &&
+    typeof obj === 'object' &&
     obj !== null &&
-    "email" in obj &&
-    "role" in obj &&
-    typeof (obj as User).email === "string" &&
-    typeof (obj as User).role === "string"
+    'email' in obj &&
+    'role' in obj &&
+    typeof (obj as User).email === 'string' &&
+    typeof (obj as User).role === 'string'
   );
 }
 
@@ -57,47 +53,38 @@ export async function GET(request: NextRequest) {
   let db;
   try {
     // Log incoming request details
-    log("debug", "Incoming user list request", {
+    log('debug', 'Incoming user list request', {
       method: request.method,
       url: request.url,
       headers: Object.fromEntries(request.headers),
     });
 
     // Verify admin token
-    const authHeader = request.headers.get("authorization");
+    const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      log("warn", "No authorization header");
-      return NextResponse.json(
-        { error: "No authorization header" },
-        { status: 401 },
-      );
+      log('warn', 'No authorization header');
+      return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = authHeader.split(' ')[1];
     if (!token) {
-      log("warn", "No token provided");
-      return NextResponse.json({ error: "No token provided" }, { status: 401 });
+      log('warn', 'No token provided');
+      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
     }
 
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      log("error", "JWT_SECRET is not set");
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 },
-      );
+      log('error', 'JWT_SECRET is not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
     let decoded;
     try {
-      const { payload } = await jwtVerify(
-        token,
-        new TextEncoder().encode(jwtSecret),
-      );
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret));
 
       // Validate payload structure
       if (!payload.role || !payload.userId) {
-        throw new Error("Invalid token payload");
+        throw new Error('Invalid token payload');
       }
 
       decoded = payload as {
@@ -108,57 +95,55 @@ export async function GET(request: NextRequest) {
         exp: number;
       };
 
-      log("debug", "Token verification successful", {
+      log('debug', 'Token verification successful', {
         userId: decoded.userId,
         role: decoded.role,
       });
     } catch (verifyError) {
-      log("error", "Token verification error", verifyError);
+      log('error', 'Token verification error', verifyError);
       return NextResponse.json(
         {
-          error: "Invalid token",
+          error: 'Invalid token',
           details:
-            verifyError instanceof Error
-              ? verifyError.message
-              : "Unknown verification error",
+            verifyError instanceof Error ? verifyError.message : 'Unknown verification error',
         },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
     // Only admins can list users
-    if (decoded.role !== "admin") {
-      log("warn", "Unauthorized access attempt", { role: decoded.role });
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (decoded.role !== 'admin') {
+      log('warn', 'Unauthorized access attempt', { role: decoded.role });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Resolve database path dynamically
-    const dbPath = path.resolve(process.cwd(), "dev.db");
+    const dbPath = path.resolve(process.cwd(), 'dev.db');
 
     // Verify database file exists
     if (!fs.existsSync(dbPath)) {
-      log("error", "Database file not found", { dbPath });
+      log('error', 'Database file not found', { dbPath });
       return NextResponse.json(
         {
-          error: "Database file not found",
+          error: 'Database file not found',
           details: `Path: ${dbPath}`,
         },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
     // Open database connection
     try {
       db = new Database(dbPath, { readonly: true });
-      log("debug", "Database connection established", { dbPath });
+      log('debug', 'Database connection established', { dbPath });
     } catch (dbError) {
-      log("error", "Database connection error", dbError);
+      log('error', 'Database connection error', dbError);
       return NextResponse.json(
         {
-          error: "Database connection failed",
-          details: dbError instanceof Error ? dbError.message : "Unknown error",
+          error: 'Database connection failed',
+          details: dbError instanceof Error ? dbError.message : 'Unknown error',
         },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -179,7 +164,7 @@ export async function GET(request: NextRequest) {
       const rawUsers = stmt.all();
 
       // Log detailed information about retrieved users
-      log("debug", "Users retrieval details", {
+      log('debug', 'Users retrieval details', {
         userCount: rawUsers ? rawUsers.length : 0,
         usersType: typeof rawUsers,
         usersIsArray: Array.isArray(rawUsers),
@@ -191,7 +176,7 @@ export async function GET(request: NextRequest) {
       } else {
         const validUsers = rawUsers.filter(isUser);
 
-        log("warn", "Some retrieved users did not match the User type", {
+        log('warn', 'Some retrieved users did not match the User type', {
           totalRetrieved: rawUsers.length,
           validUsersCount: validUsers.length,
         });
@@ -201,7 +186,7 @@ export async function GET(request: NextRequest) {
 
       // Optional: Add a default user if no users exist (for testing/development)
       if (users.length === 0) {
-        log("warn", "No users found in database. Adding a default admin user.");
+        log('warn', 'No users found in database. Adding a default admin user.');
 
         // Prepare a default admin user insertion statement
         const insertStmt = db.prepare(`
@@ -211,16 +196,12 @@ export async function GET(request: NextRequest) {
                 `);
 
         // Use a hashed password for the default admin (in a real scenario, this would be more secure)
-        const hashedPassword = "$2a$10$ExampleHashedPasswordForDevelopment";
+        const hashedPassword = '$2a$10$ExampleHashedPasswordForDevelopment';
 
         try {
-          const result = insertStmt.run(
-            "default_admin@example.com",
-            hashedPassword,
-            "admin",
-          );
+          const result = insertStmt.run('default_admin@example.com', hashedPassword, 'admin');
 
-          log("info", "Default admin user created", {
+          log('info', 'Default admin user created', {
             insertedId: result.lastInsertRowid,
           });
 
@@ -233,25 +214,24 @@ export async function GET(request: NextRequest) {
             users = validNewUsers;
           }
         } catch (insertError) {
-          log("error", "Failed to insert default admin user", insertError);
+          log('error', 'Failed to insert default admin user', insertError);
         }
       }
     } catch (queryError) {
-      log("error", "User query error", queryError);
+      log('error', 'User query error', queryError);
       return NextResponse.json(
         {
-          error: "Failed to retrieve users",
-          details:
-            queryError instanceof Error ? queryError.message : "Unknown error",
-          suggestedAction: "Check database connection and user table",
+          error: 'Failed to retrieve users',
+          details: queryError instanceof Error ? queryError.message : 'Unknown error',
+          suggestedAction: 'Check database connection and user table',
         },
-        { status: 500 },
+        { status: 500 }
       );
     } finally {
       // Always close the database connection
       if (db) {
         db.close();
-        log("debug", "Database connection closed");
+        log('debug', 'Database connection closed');
       }
     }
 
@@ -261,29 +241,23 @@ export async function GET(request: NextRequest) {
         users: users as User[],
         total: users.length,
         timestamp: new Date().toISOString(),
-        message:
-          users.length === 0
-            ? "No users found"
-            : "Users retrieved successfully",
+        message: users.length === 0 ? 'No users found' : 'Users retrieved successfully',
       },
       {
         status: 200,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-      },
+      }
     );
   } catch (unexpectedError) {
-    log("error", "Unexpected error in user listing", unexpectedError);
+    log('error', 'Unexpected error in user listing', unexpectedError);
     return NextResponse.json(
       {
-        error: "Critical server error",
-        details:
-          unexpectedError instanceof Error
-            ? unexpectedError.message
-            : "Unknown error",
+        error: 'Critical server error',
+        details: unexpectedError instanceof Error ? unexpectedError.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

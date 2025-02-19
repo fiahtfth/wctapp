@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import Database from "better-sqlite3";
+import { NextRequest, NextResponse } from 'next/server';
+import Database from 'better-sqlite3';
 
-const db = new Database("./src/lib/database/questions.db");
+const db = new Database('./src/lib/database/questions.db');
 
 // Utility function to capitalize and validate fields
 function processField(field: string, value: any): any {
   // If value is null or undefined, return as is
   if (value === null || value === undefined) {
     // Special handling for Difficulty Level
-    if (field === "Difficulty Level") {
-      return "medium";
+    if (field === 'Difficulty Level') {
+      return 'medium';
     }
     return value;
   }
@@ -18,63 +18,54 @@ function processField(field: string, value: any): any {
   const stringValue = String(value).trim();
 
   switch (field) {
-    case "Difficulty Level": {
-      const validDifficultyLevels = ["easy", "medium", "difficult"];
+    case 'Difficulty Level': {
+      const validDifficultyLevels = ['easy', 'medium', 'difficult'];
       const lowercaseDifficulty = stringValue.toLowerCase();
 
-      console.log("Processing Difficulty Level:", {
+      console.log('Processing Difficulty Level:', {
         input: stringValue,
         lowercased: lowercaseDifficulty,
         isValid: validDifficultyLevels.includes(lowercaseDifficulty),
       });
 
-      return validDifficultyLevels.includes(lowercaseDifficulty)
-        ? lowercaseDifficulty
-        : "medium";
+      return validDifficultyLevels.includes(lowercaseDifficulty) ? lowercaseDifficulty : 'medium';
     }
-    case "Question_Type":
-    case "Question Type": {
+    case 'Question_Type':
+    case 'Question Type': {
       const validQuestionTypes = [
-        "Objective",
-        "Subjective",
-        "MCQ",
-        "True/False",
-        "Fill in the Blank",
+        'Objective',
+        'Subjective',
+        'MCQ',
+        'True/False',
+        'Fill in the Blank',
       ];
 
       const capitalizedType = stringValue
-        .split(" ")
-        .map(
-          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-        )
-        .join(" ");
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
 
-      return validQuestionTypes.includes(capitalizedType)
-        ? capitalizedType
-        : "Objective";
+      return validQuestionTypes.includes(capitalizedType) ? capitalizedType : 'Objective';
     }
-    case "Nature of Question": {
-      const validNatureOfQuestions = ["Factual", "Conceptual", "Analytical"];
+    case 'Nature of Question': {
+      const validNatureOfQuestions = ['Factual', 'Conceptual', 'Analytical'];
       const capitalizedNature =
-        stringValue.charAt(0).toUpperCase() +
-        stringValue.slice(1).toLowerCase();
+        stringValue.charAt(0).toUpperCase() + stringValue.slice(1).toLowerCase();
 
-      return validNatureOfQuestions.includes(capitalizedNature)
-        ? capitalizedNature
-        : "Theoretical";
+      return validNatureOfQuestions.includes(capitalizedNature) ? capitalizedNature : 'Theoretical';
     }
-    case "Faculty Approved": {
+    case 'Faculty Approved': {
       // Convert to boolean
-      console.log("Processing Faculty Approved:", {
+      console.log('Processing Faculty Approved:', {
         input: stringValue,
-        isValid: stringValue.toLowerCase() === "true" || stringValue === "1",
+        isValid: stringValue.toLowerCase() === 'true' || stringValue === '1',
       });
 
-      return stringValue.toLowerCase() === "true" || stringValue === "1";
+      return stringValue.toLowerCase() === 'true' || stringValue === '1';
     }
     default: {
       // For other fields, trim and return
-      console.log("Processing default field:", {
+      console.log('Processing default field:', {
         input: stringValue,
         output: stringValue || null,
       });
@@ -102,7 +93,7 @@ function isValidAnswer(answer: string): boolean {
 
 // Utility function to validate Difficulty Level
 function isValidDifficultyLevel(level: string): boolean {
-  const validLevels = ["easy", "medium", "difficult"];
+  const validLevels = ['easy', 'medium', 'difficult'];
   if (!level) return false;
 
   // Trim and convert to lowercase
@@ -113,26 +104,26 @@ function isValidDifficultyLevel(level: string): boolean {
 
 // Utility function to standardize Difficulty Level
 function standardizeDifficultyLevel(level: string): string {
-  if (!level) return "medium";
+  if (!level) return 'medium';
 
   const lowercaseLevel = level.trim().toLowerCase();
 
   switch (lowercaseLevel) {
-    case "easy":
-      return "easy";
-    case "hard":
-    case "difficult":
-      return "difficult";
-    case "medium":
+    case 'easy':
+      return 'easy';
+    case 'hard':
+    case 'difficult':
+      return 'difficult';
+    case 'medium':
     default:
-      return "medium";
+      return 'medium';
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    console.group("QUESTION EDIT API ROUTE");
-    console.log("1. Request Received");
+    console.group('QUESTION EDIT API ROUTE');
+    console.log('1. Request Received');
 
     // Parse and validate the request body
     const body = await request.json();
@@ -140,72 +131,68 @@ export async function PUT(request: NextRequest) {
 
     // CRITICAL: Log ENTIRE question object with ALL keys
     console.log(
-      "2. FULL Question Object (ALL KEYS):",
+      '2. FULL Question Object (ALL KEYS):',
       Object.keys(question).reduce((acc, key) => {
         acc[key] = question[key];
         return acc;
-      }, {}),
+      }, {})
     );
 
     // Log ALL keys and their types
     console.log(
-      "2b. Question Object Key Types:",
+      '2b. Question Object Key Types:',
       Object.keys(question).reduce((acc, key) => {
         acc[key] = typeof question[key];
         return acc;
-      }, {}),
+      }, {})
     );
 
     // Enhanced ID validation
     const questionId =
-      typeof question.id === "string"
-        ? parseInt(question.id, 10)
-        : Number(question.id);
+      typeof question.id === 'string' ? parseInt(question.id, 10) : Number(question.id);
 
     if (isNaN(questionId) || questionId <= 0) {
-      console.error("5. Invalid question ID", {
+      console.error('5. Invalid question ID', {
         originalId: question.id,
         parsedId: questionId,
       });
       console.groupEnd();
       return new NextResponse(
         JSON.stringify({
-          error: "Invalid question ID",
+          error: 'Invalid question ID',
           details: {
             id: question.id,
             type: typeof question.id,
             parsedId: questionId,
           },
         }),
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // Fetch the original question to use as a fallback
-    const originalQuestionStmt = db.prepare(
-      "SELECT * FROM questions WHERE id = ?",
-    );
+    const originalQuestionStmt = db.prepare('SELECT * FROM questions WHERE id = ?');
     const originalQuestion = originalQuestionStmt.get(questionId);
 
     if (!originalQuestion) {
-      console.error("6. Original question not found", { questionId });
+      console.error('6. Original question not found', { questionId });
       console.groupEnd();
       return new NextResponse(
         JSON.stringify({
-          error: "Question not found",
+          error: 'Question not found',
           details: { id: questionId },
         }),
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     // Log original question for comparison
     console.log(
-      "6b. Original Question:",
+      '6b. Original Question:',
       Object.keys(originalQuestion).reduce((acc, key) => {
         acc[key] = originalQuestion[key];
         return acc;
-      }, {}),
+      }, {})
     );
 
     // Process and validate each field
@@ -217,10 +204,7 @@ export async function PUT(request: NextRequest) {
       id: questionId, // Use validated ID
     };
 
-    console.log(
-      "3. Processed Question Object:",
-      JSON.stringify(processedQuestion, null, 2),
-    );
+    console.log('3. Processed Question Object:', JSON.stringify(processedQuestion, null, 2));
 
     // Validate core question content
     const validationErrors: string[] = [];
@@ -239,37 +223,37 @@ export async function PUT(request: NextRequest) {
       : originalQuestion.Answer;
 
     // Difficulty Level validation and standardization
-    const inputDifficultyLevel = processedQuestion["Difficulty Level"] || "";
-    const finalDifficultyLevel = processedQuestion["Difficulty Level"]
-      ? isValidDifficultyLevel(processedQuestion["Difficulty Level"])
-        ? standardizeDifficultyLevel(processedQuestion["Difficulty Level"])
-        : "medium"
-      : "medium";
+    const inputDifficultyLevel = processedQuestion['Difficulty Level'] || '';
+    const finalDifficultyLevel = processedQuestion['Difficulty Level']
+      ? isValidDifficultyLevel(processedQuestion['Difficulty Level'])
+        ? standardizeDifficultyLevel(processedQuestion['Difficulty Level'])
+        : 'medium'
+      : 'medium';
 
-    console.log("Difficulty Level Processing:", {
+    console.log('Difficulty Level Processing:', {
       inputLevel: inputDifficultyLevel,
       processedLevel: finalDifficultyLevel,
       isValid: isValidDifficultyLevel(inputDifficultyLevel),
     });
 
     if (!finalQuestion || finalQuestion.trim().length < 5) {
-      validationErrors.push("Question must be at least 5 characters long");
+      validationErrors.push('Question must be at least 5 characters long');
     }
     if (!finalAnswer) {
-      validationErrors.push("Answer is required");
+      validationErrors.push('Answer is required');
     }
 
     // If there are validation errors, return them
     if (validationErrors.length > 0) {
-      console.error("7. EDIT VALIDATION ERRORS:", validationErrors);
+      console.error('7. EDIT VALIDATION ERRORS:', validationErrors);
       console.groupEnd();
       return NextResponse.json(
         {
-          error: "Validation failed",
+          error: 'Validation failed',
           details: validationErrors,
           originalQuestion: originalQuestion,
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -300,60 +284,51 @@ export async function PUT(request: NextRequest) {
       processedQuestion.Subject || originalQuestion.Subject,
       processedQuestion.Topic || originalQuestion.Topic,
       finalDifficultyLevel,
-      processedQuestion["Question_Type"] ||
-        processedQuestion["Question Type"] ||
-        originalQuestion["Question_Type"] ||
+      processedQuestion['Question_Type'] ||
+        processedQuestion['Question Type'] ||
+        originalQuestion['Question_Type'] ||
         null,
-      processedQuestion["Nature of Question"] ||
-        originalQuestion["Nature of Question"] ||
-        null,
-      processedQuestion["Faculty Approved"] !== undefined
-        ? processedQuestion["Faculty Approved"]
+      processedQuestion['Nature of Question'] || originalQuestion['Nature of Question'] || null,
+      processedQuestion['Faculty Approved'] !== undefined
+        ? processedQuestion['Faculty Approved']
           ? 1
           : 0
-        : originalQuestion["Faculty Approved"]
+        : originalQuestion['Faculty Approved']
           ? 1
           : 0,
-      processedQuestion.Explanation || originalQuestion.Explanation || "",
-      processedQuestion["Sub Topic"] || originalQuestion["Sub Topic"] || "",
-      processedQuestion["Micro Topic"] || originalQuestion["Micro Topic"] || "",
-      processedQuestion["Module Name"] || originalQuestion["Module Name"] || "",
-      processedQuestion["Module Number"] ||
-        originalQuestion["Module Number"] ||
-        "",
-      processedQuestion.id,
+      processedQuestion.Explanation || originalQuestion.Explanation || '',
+      processedQuestion['Sub Topic'] || originalQuestion['Sub Topic'] || '',
+      processedQuestion['Micro Topic'] || originalQuestion['Micro Topic'] || '',
+      processedQuestion['Module Name'] || originalQuestion['Module Name'] || '',
+      processedQuestion['Module Number'] || originalQuestion['Module Number'] || '',
+      processedQuestion.id
     );
 
-    console.log("8. Database Update Result:", {
+    console.log('8. Database Update Result:', {
       changes: result.changes,
       lastInsertRowid: result.lastInsertRowid,
     });
 
     // Fetch the updated question to return
-    const updatedQuestionStmt = db.prepare(
-      "SELECT * FROM questions WHERE id = ?",
-    );
+    const updatedQuestionStmt = db.prepare('SELECT * FROM questions WHERE id = ?');
     const updatedQuestion = updatedQuestionStmt.get(processedQuestion.id);
 
-    console.log(
-      "9. Updated Question:",
-      JSON.stringify(updatedQuestion, null, 2),
-    );
+    console.log('9. Updated Question:', JSON.stringify(updatedQuestion, null, 2));
     console.groupEnd();
 
     return NextResponse.json(updatedQuestion, { status: 200 });
   } catch (error) {
-    console.error("10. EDIT ROUTE CRITICAL ERROR:", error);
+    console.error('10. EDIT ROUTE CRITICAL ERROR:', error);
     console.groupEnd();
     return NextResponse.json(
       {
-        error: "Internal Server Error",
+        error: 'Internal Server Error',
         details: {
-          message: error instanceof Error ? error.message : "Unknown error",
-          stack: error instanceof Error ? error.stack : "No stack trace",
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : 'No stack trace',
         },
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

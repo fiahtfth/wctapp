@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { Alert, Snackbar } from "@mui/material";
+import { useEffect } from 'react';
+import { Alert, Snackbar } from '@mui/material';
 
 interface ErrorBoundaryProps {
   error: Error;
@@ -15,12 +15,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
 
   return (
     <Snackbar open={true} autoHideDuration={6000} onClose={reset}>
-      <Alert
-        severity="error"
-        onClose={reset}
-        sx={{ width: "100%" }}
-        variant="filled"
-      >
+      <Alert severity="error" onClose={reset} sx={{ width: '100%' }} variant="filled">
         {error.message}
       </Alert>
     </Snackbar>

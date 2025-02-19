@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   TextField,
   Select,
@@ -12,7 +12,7 @@ import {
   SelectChangeEvent,
   Button,
   Box,
-} from "@mui/material";
+} from '@mui/material';
 
 interface QuestionFilterProps {
   onFilterChange: (filters: {
@@ -20,35 +20,33 @@ interface QuestionFilterProps {
     topic?: string;
     module?: string;
     sub_topic?: string;
-    difficulty_level?: "Easy" | "Medium" | "Hard";
+    difficulty_level?: 'Easy' | 'Medium' | 'Hard';
     nature_of_question?: string;
     search?: string;
   }) => void;
 }
 
 const SUBJECTS = [
-  { value: "Economics", color: "#3f51b5" },
-  { value: "Mathematics", color: "#2196f3" },
-  { value: "Science", color: "#4caf50" },
-  { value: "History", color: "#ff9800" },
+  { value: 'Economics', color: '#3f51b5' },
+  { value: 'Mathematics', color: '#2196f3' },
+  { value: 'Science', color: '#4caf50' },
+  { value: 'History', color: '#ff9800' },
 ];
 
 const DIFFICULTY_LEVELS = [
-  { value: "Easy", label: "Easy" },
-  { value: "Medium", label: "Medium" },
-  { value: "Hard", label: "Hard" },
+  { value: 'Easy', label: 'Easy' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'Hard', label: 'Hard' },
 ];
 
-export default function QuestionFilter({
-  onFilterChange,
-}: QuestionFilterProps) {
-  const [subject, setSubject] = useState("");
-  const [topic, setTopic] = useState("");
-  const [module, setModule] = useState("");
-  const [subTopic, setSubTopic] = useState("");
-  const [difficulty, setDifficulty] = useState("");
-  const [natureOfQuestion, setNatureOfQuestion] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) {
+  const [subject, setSubject] = useState('');
+  const [topic, setTopic] = useState('');
+  const [module, setModule] = useState('');
+  const [subTopic, setSubTopic] = useState('');
+  const [difficulty, setDifficulty] = useState('');
+  const [natureOfQuestion, setNatureOfQuestion] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleFilterChange = () => {
     onFilterChange({
@@ -57,8 +55,10 @@ export default function QuestionFilter({
       module: module || undefined,
       sub_topic: subTopic || undefined,
       difficulty_level: difficulty
-        ? ((difficulty.charAt(0).toUpperCase() +
-            difficulty.slice(1).toLowerCase()) as "Easy" | "Medium" | "Hard")
+        ? ((difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase()) as
+            | 'Easy'
+            | 'Medium'
+            | 'Hard')
         : undefined,
       nature_of_question: natureOfQuestion || undefined,
       search: searchTerm || undefined,
@@ -66,13 +66,13 @@ export default function QuestionFilter({
   };
 
   const handleResetFilters = () => {
-    setSubject("");
-    setTopic("");
-    setModule("");
-    setSubTopic("");
-    setDifficulty("");
-    setNatureOfQuestion("");
-    setSearchTerm("");
+    setSubject('');
+    setTopic('');
+    setModule('');
+    setSubTopic('');
+    setDifficulty('');
+    setNatureOfQuestion('');
+    setSearchTerm('');
     onFilterChange({});
   };
 
@@ -85,13 +85,13 @@ export default function QuestionFilter({
             <Select
               value={subject}
               label="Subject"
-              onChange={(e) => {
+              onChange={e => {
                 setSubject(e.target.value);
                 handleFilterChange();
               }}
             >
               <MenuItem value="">All Subjects</MenuItem>
-              {SUBJECTS.map((subj) => (
+              {SUBJECTS.map(subj => (
                 <MenuItem key={subj.value} value={subj.value}>
                   {subj.value}
                 </MenuItem>
@@ -105,7 +105,7 @@ export default function QuestionFilter({
             fullWidth
             label="Topic"
             value={topic}
-            onChange={(e) => {
+            onChange={e => {
               setTopic(e.target.value);
               handleFilterChange();
             }}
@@ -118,13 +118,13 @@ export default function QuestionFilter({
             <Select
               value={difficulty}
               label="Difficulty"
-              onChange={(e) => {
+              onChange={e => {
                 setDifficulty(e.target.value);
                 handleFilterChange();
               }}
             >
               <MenuItem value="">All Difficulties</MenuItem>
-              {DIFFICULTY_LEVELS.map((diff) => (
+              {DIFFICULTY_LEVELS.map(diff => (
                 <MenuItem key={diff.value} value={diff.value}>
                   {diff.label}
                 </MenuItem>
@@ -138,7 +138,7 @@ export default function QuestionFilter({
             fullWidth
             label="Module"
             value={module}
-            onChange={(e) => {
+            onChange={e => {
               setModule(e.target.value);
               handleFilterChange();
             }}
@@ -150,7 +150,7 @@ export default function QuestionFilter({
             fullWidth
             label="Sub Topic"
             value={subTopic}
-            onChange={(e) => {
+            onChange={e => {
               setSubTopic(e.target.value);
               handleFilterChange();
             }}
@@ -163,7 +163,7 @@ export default function QuestionFilter({
             <Select
               value={natureOfQuestion}
               label="Nature of Question"
-              onChange={(e) => {
+              onChange={e => {
                 setNatureOfQuestion(e.target.value);
                 handleFilterChange();
               }}
@@ -182,7 +182,7 @@ export default function QuestionFilter({
             fullWidth
             label="Search Questions"
             value={searchTerm}
-            onChange={(e) => {
+            onChange={e => {
               setSearchTerm(e.target.value);
               handleFilterChange();
             }}
@@ -190,11 +190,7 @@ export default function QuestionFilter({
         </Grid>
 
         <Grid item xs={12}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={handleResetFilters}
-          >
+          <Button variant="outlined" color="secondary" onClick={handleResetFilters}>
             Reset All Filters
           </Button>
         </Grid>

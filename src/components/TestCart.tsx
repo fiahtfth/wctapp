@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   Drawer,
   Box,
@@ -10,12 +10,12 @@ import {
   ListItemSecondaryAction,
   Button,
   Divider,
-} from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import DeleteIcon from "@mui/icons-material/Delete";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import type { Question } from "@/types/question";
-import * as XLSX from "xlsx";
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import type { Question } from '@/types/question';
+import * as XLSX from 'xlsx';
 
 interface TestCartProps {
   open: boolean;
@@ -24,30 +24,25 @@ interface TestCartProps {
   onRemoveQuestion: (questionId: number) => Promise<void>;
 }
 
-export default function TestCart({
-  open,
-  onClose,
-  questions,
-  onRemoveQuestion,
-}: TestCartProps) {
+export default function TestCart({ open, onClose, questions, onRemoveQuestion }: TestCartProps) {
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
-      questions.map((q) => ({
+      questions.map(q => ({
         Question: q.Question,
         Answer: q.Answer,
         Explanation: q.Explanation,
         Subject: q.Subject,
         Topic: q.Topic,
-        "Difficulty Level": q["Difficulty Level"],
-        "Nature of Question": q["Nature of Question"],
-      })),
+        'Difficulty Level': q['Difficulty Level'],
+        'Nature of Question': q['Nature of Question'],
+      }))
     );
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Questions");
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Questions');
 
     // Generate Excel file
-    XLSX.writeFile(workbook, "test_questions.xlsx");
+    XLSX.writeFile(workbook, 'test_questions.xlsx');
   };
 
   return (
@@ -56,24 +51,22 @@ export default function TestCart({
       open={open}
       onClose={onClose}
       sx={{
-        "& .MuiDrawer-paper": {
-          width: { xs: "100%", sm: 400 },
-          maxWidth: "100%",
+        '& .MuiDrawer-paper': {
+          width: { xs: '100%', sm: 400 },
+          maxWidth: '100%',
         },
       }}
     >
       <Box sx={{ p: 2 }}>
         <Box
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             mb: 2,
           }}
         >
-          <Typography variant="h6">
-            Selected Questions ({questions.length})
-          </Typography>
+          <Typography variant="h6">Selected Questions ({questions.length})</Typography>
           <IconButton onClick={onClose} edge="end">
             <CloseIcon />
           </IconButton>
@@ -90,20 +83,18 @@ export default function TestCart({
                       secondary={`${question.Subject} | ${question.Topic}`}
                       secondaryTypographyProps={{
                         sx: {
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "-webkit-box",
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
                           WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
+                          WebkitBoxOrient: 'vertical',
                         },
                       }}
                     />
                     <ListItemSecondaryAction>
                       <IconButton
                         edge="end"
-                        onClick={() =>
-                          question.id && onRemoveQuestion(question.id)
-                        }
+                        onClick={() => question.id && onRemoveQuestion(question.id)}
                       >
                         <DeleteIcon />
                       </IconButton>
@@ -123,7 +114,7 @@ export default function TestCart({
             </Button>
           </>
         ) : (
-          <Typography variant="body1" sx={{ textAlign: "center", mt: 4 }}>
+          <Typography variant="body1" sx={{ textAlign: 'center', mt: 4 }}>
             No questions selected
           </Typography>
         )}

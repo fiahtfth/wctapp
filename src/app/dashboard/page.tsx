@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Box, Typography, Grid, Paper, Button } from "@mui/material";
+import React from 'react';
+import { Box, Typography, Grid, Paper, Button } from '@mui/material';
 import {
   Assessment as AssessmentIcon,
   QuestionAnswer as QuestionAnswerIcon,
   AddCircle as AddQuestionIcon,
-} from "@mui/icons-material";
+} from '@mui/icons-material';
 
 export default function Dashboard() {
   return (
@@ -16,7 +16,7 @@ export default function Dashboard() {
         sx={{
           mb: 3,
           fontWeight: 600,
-          color: "text.primary",
+          color: 'text.primary',
         }}
       >
         Dashboard
@@ -28,12 +28,12 @@ export default function Dashboard() {
             elevation={2}
             sx={{
               p: 2,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              transition: "transform 0.2s",
-              "&:hover": {
-                transform: "scale(1.02)",
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              transition: 'transform 0.2s',
+              '&:hover': {
+                transform: 'scale(1.02)',
               },
             }}
           >
@@ -52,19 +52,16 @@ export default function Dashboard() {
             elevation={2}
             sx={{
               p: 2,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              transition: "transform 0.2s",
-              "&:hover": {
-                transform: "scale(1.02)",
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              transition: 'transform 0.2s',
+              '&:hover': {
+                transform: 'scale(1.02)',
               },
             }}
           >
-            <QuestionAnswerIcon
-              color="secondary"
-              sx={{ fontSize: 60, mb: 2 }}
-            />
+            <QuestionAnswerIcon color="secondary" sx={{ fontSize: 60, mb: 2 }} />
             <Typography variant="h6" sx={{ mb: 2 }}>
               Question Bank
             </Typography>
@@ -79,12 +76,12 @@ export default function Dashboard() {
             elevation={2}
             sx={{
               p: 2,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              transition: "transform 0.2s",
-              "&:hover": {
-                transform: "scale(1.02)",
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              transition: 'transform 0.2s',
+              '&:hover': {
+                transform: 'scale(1.02)',
               },
             }}
           >

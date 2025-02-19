@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -13,44 +13,44 @@ import {
   IconButton,
   ThemeProvider,
   createTheme,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
   LockOutlined as LockIcon,
   EmailOutlined as EmailIcon,
-} from "@mui/icons-material";
-import { useRouter } from "next/navigation";
+} from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
 
 // Create a custom theme
 const theme = createTheme({
   palette: {
-    mode: "light",
+    mode: 'light',
     primary: {
-      main: "#1976d2", // Adjust to match your brand
+      main: '#1976d2', // Adjust to match your brand
     },
     background: {
-      default: "#f4f6f8", // Soft background
+      default: '#f4f6f8', // Soft background
     },
   },
   typography: {
     fontFamily: [
-      "-apple-system",
-      "BlinkMacSystemFont",
+      '-apple-system',
+      'BlinkMacSystemFont',
       '"Segoe UI"',
-      "Roboto",
+      'Roboto',
       '"Helvetica Neue"',
-      "Arial",
-      "sans-serif",
-    ].join(","),
+      'Arial',
+      'sans-serif',
+    ].join(','),
   },
   components: {
     MuiTextField: {
       styleOverrides: {
         root: {
-          marginBottom: "1rem",
-          "& .MuiOutlinedInput-root": {
-            borderRadius: "12px",
+          marginBottom: '1rem',
+          '& .MuiOutlinedInput-root': {
+            borderRadius: '12px',
           },
         },
       },
@@ -59,21 +59,21 @@ const theme = createTheme({
 });
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
       });
@@ -82,32 +82,32 @@ export default function LoginPage() {
 
       if (!response.ok) {
         // Handle login errors
-        setError(data.error || "Login failed");
+        setError(data.error || 'Login failed');
         return;
       }
 
       // Store token and user info
-      localStorage.setItem("token", data.token);
+      localStorage.setItem('token', data.token);
 
       // Store user details in localStorage
       localStorage.setItem(
-        "user",
+        'user',
         JSON.stringify({
           id: data.user.id,
           email: data.user.email,
           role: data.user.role,
-        }),
+        })
       );
 
       // Redirect based on user role
-      if (data.user.role === "admin") {
-        router.push("/users");
+      if (data.user.role === 'admin') {
+        router.push('/users');
       } else {
-        router.push("/dashboard");
+        router.push('/dashboard');
       }
     } catch (err) {
-      console.error("Login error:", err);
-      setError("An unexpected error occurred");
+      console.error('Login error:', err);
+      setError('An unexpected error occurred');
     }
   };
 
@@ -132,11 +132,11 @@ export default function LoginPage() {
       <Container component="main" maxWidth="xs">
         <Box
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100vh",
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh',
           }}
         >
           <Paper
@@ -144,19 +144,19 @@ export default function LoginPage() {
             elevation={6}
             sx={{
               padding: 4,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
               borderRadius: 4,
-              width: "100%",
+              width: '100%',
               maxWidth: 400,
             }}
           >
             <Box
               sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
                 mb: 3,
               }}
             >
@@ -171,7 +171,7 @@ export default function LoginPage() {
                 component="h1"
                 variant="h4"
                 sx={{
-                  fontWeight: "bold",
+                  fontWeight: 'bold',
                   color: theme.palette.text.primary,
                 }}
               >
@@ -200,7 +200,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 autoFocus
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -216,11 +216,11 @@ export default function LoginPage() {
                 fullWidth
                 name="password"
                 label="Password"
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 id="password"
                 autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -242,11 +242,7 @@ export default function LoginPage() {
               />
 
               {error && (
-                <Typography
-                  color="error"
-                  variant="body2"
-                  sx={{ mt: 1, textAlign: "center" }}
-                >
+                <Typography color="error" variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
                   {error}
                 </Typography>
               )}
@@ -261,8 +257,8 @@ export default function LoginPage() {
                   mb: 2,
                   py: 1.5,
                   borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: "bold",
+                  textTransform: 'none',
+                  fontWeight: 'bold',
                 }}
               >
                 Sign In
