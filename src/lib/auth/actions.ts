@@ -1,6 +1,4 @@
-// Authentication-related server actions
 'use server';
-
 export async function login(credentials: { email: string; password: string }) {
   // Implement login logic
   try {
@@ -10,7 +8,6 @@ export async function login(credentials: { email: string; password: string }) {
     return { success: false, error: 'Login failed' };
   }
 }
-
 export async function logout() {
   // Implement logout logic
   try {

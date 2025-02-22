@@ -1,11 +1,15 @@
 'use client';
-
-import { Geist } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import './globals.css';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useState, useEffect, useCallback } from 'react';
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+});
 
 const theme = createTheme({
   palette: {
@@ -29,7 +33,7 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: 'var(--font-geist-sans), sans-serif',
+    fontFamily: 'var(--font-inter), sans-serif',
     h1: {
       fontWeight: 700,
       fontSize: '2.5rem',
@@ -70,25 +74,18 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
 export default function RootLayout({ children }: RootLayoutProps) {
   const [error, setError] = useState<Error | null>(null);
   const [isClient, setIsClient] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
-
   const resetErrorBoundary = useCallback(() => {
     setError(null);
   }, []);
 
   return (
-    <html lang="en" className={geistSans.className}>
+    <html lang="en" className={inter.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
@@ -96,7 +93,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <link rel="icon" href="/icons/icon-512x512.png" sizes="512x512" type="image/png" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" sizes="192x192" />
       </head>
-      <body className={`base-body ${geistSans.variable}`}>
+      <body className={`base-body ${inter.variable}`}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           {isClient ? (

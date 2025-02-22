@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -22,12 +21,10 @@ import { v4 as uuidv4 } from "uuid";
 import { createTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
-
 import QuestionList from "@/components/QuestionList";
 import CartIndicator from "@/components/CartIndicator";
 import { addQuestionToCart, getCartItems } from "@/lib/actions";
 import { useRouter } from "next/navigation";
-
 export default function Home() {
   const [testId] = useState("home-question-list");
   const [cartCount, setCartCount] = useState(0);
@@ -40,8 +37,10 @@ export default function Home() {
     question_type?: string[];
     search?: string;
   }>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 10;
   const router = useRouter();
-
   // Load cart count on mount
   useEffect(() => {
     const loadCartCount = async () => {
@@ -54,7 +53,6 @@ export default function Home() {
     };
     loadCartCount();
   }, [testId]);
-
   const handleAddToTest = async (questionId: number) => {
     try {
       await addQuestionToCart(questionId, testId);
@@ -63,16 +61,13 @@ export default function Home() {
       console.error("Error adding question to cart:", error);
     }
   };
-
   const handleLogout = () => {
     setLogoutDialogOpen(true);
   };
-
   const confirmLogout = () => {
     // TODO: Implement actual logout logic here
     window.location.href = "/login"; // Redirect to login page
   };
-
   const theme = createTheme({
     palette: {
       mode: "light",
@@ -81,7 +76,6 @@ export default function Home() {
       },
     },
   });
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -179,7 +173,6 @@ export default function Home() {
             </Box>
           </Toolbar>
         </AppBar>
-
         {/* Logout Confirmation Dialog */}
         <Dialog
           open={logoutDialogOpen}
@@ -227,7 +220,6 @@ export default function Home() {
             </Button>
           </DialogActions>
         </Dialog>
-
         {/* Main Content */}
         <Container
           maxWidth="xl"
@@ -251,11 +243,16 @@ export default function Home() {
             }}
           >
             <QuestionList
+              testId={testId}
               filters={filters}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              totalPages={totalPages}
+              onTotalPagesChange={setTotalPages}
               onFilterChange={(newFilters) => {
                 setFilters(newFilters);
               }}
-              testId={"home-question-list"}
             />
           </Paper>
         </Container>

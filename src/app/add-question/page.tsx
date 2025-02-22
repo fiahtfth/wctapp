@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -18,7 +17,6 @@ import {
   FormGroup,
 } from '@mui/material';
 import { getSubjects, getModules, getTopics } from '@/lib/database/hierarchicalData';
-
 export default function AddQuestionPage() {
   const [formData, setFormData] = useState({
     Question: '',
@@ -36,15 +34,12 @@ export default function AddQuestionPage() {
     Objective: '',
     Question_Type: '',
   });
-
   const [subjects, setSubjects] = useState<string[]>([]);
   const [modules, setModules] = useState<string[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
-
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-
   // Fetch subjects on component mount
   useEffect(() => {
     const loadSubjects = () => {
@@ -53,7 +48,6 @@ export default function AddQuestionPage() {
     };
     loadSubjects();
   }, []);
-
   // Dynamically update modules when subject changes
   useEffect(() => {
     const loadModules = () => {
@@ -66,7 +60,6 @@ export default function AddQuestionPage() {
     };
     loadModules();
   }, [formData.Subject]);
-
   // Dynamically update topics when module changes
   useEffect(() => {
     const loadTopics = () => {
@@ -79,14 +72,12 @@ export default function AddQuestionPage() {
     };
     loadTopics();
   }, [formData.Subject, formData['Module Name']]);
-
   // Dynamic handler for form inputs
   const handleInputChange = (field: string, value: string | boolean) => {
     const updatedFormData = {
       ...formData,
       [field]: value,
     };
-
     // Reset dependent fields when parent field changes
     if (field === 'Subject') {
       updatedFormData['Module Name'] = '';
@@ -98,17 +89,13 @@ export default function AddQuestionPage() {
       updatedFormData['Sub Topic'] = '';
       updatedFormData['Micro Topic'] = '';
     }
-
     setFormData(updatedFormData);
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     // Basic validation
     const requiredFields = ['Question', 'Answer', 'Subject', 'Question_Type'];
     const missingFields = requiredFields.filter(field => !(formData as any)[field]);
-
     if (missingFields.length > 0) {
       setSnackbarMessage(
         `Please fill in the following required fields: ${missingFields.join(', ')}`
@@ -117,7 +104,6 @@ export default function AddQuestionPage() {
       setOpenSnackbar(true);
       return;
     }
-
     try {
       const response = await fetch('/api/questions', {
         method: 'POST',
@@ -126,12 +112,10 @@ export default function AddQuestionPage() {
         },
         body: JSON.stringify(formData),
       });
-
       if (response.ok) {
         const result = await response.json();
         setSnackbarMessage(`Question added successfully! ID: ${result.questionId}`);
         setSnackbarSeverity('success');
-
         // Reset form
         setFormData({
           Question: '',
@@ -158,14 +142,11 @@ export default function AddQuestionPage() {
       setSnackbarMessage(error instanceof Error ? error.message : 'Error adding question');
       setSnackbarSeverity('error');
     }
-
     setOpenSnackbar(true);
   };
-
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
   };
-
   return (
     <Box sx={{ maxWidth: 800, margin: 'auto', p: 3 }}>
       <Typography
@@ -179,7 +160,6 @@ export default function AddQuestionPage() {
       >
         Add Question to Database
       </Typography>
-
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           {/* Question Text */}
@@ -195,7 +175,6 @@ export default function AddQuestionPage() {
               required
             />
           </Grid>
-
           {/* Answer */}
           <Grid item xs={12}>
             <TextField
@@ -209,7 +188,6 @@ export default function AddQuestionPage() {
               required
             />
           </Grid>
-
           {/* Explanation (Optional) */}
           <Grid item xs={12}>
             <TextField
@@ -222,7 +200,6 @@ export default function AddQuestionPage() {
               onChange={e => handleInputChange('Explanation', e.target.value)}
             />
           </Grid>
-
           {/* Subject */}
           <Grid item xs={12} md={4}>
             <FormControl fullWidth required>
@@ -240,7 +217,6 @@ export default function AddQuestionPage() {
               </Select>
             </FormControl>
           </Grid>
-
           {/* Module Name */}
           <Grid item xs={12} md={4}>
             <FormControl fullWidth>
@@ -260,7 +236,6 @@ export default function AddQuestionPage() {
               </Select>
             </FormControl>
           </Grid>
-
           {/* Topic */}
           <Grid item xs={12} md={4}>
             <FormControl fullWidth>
@@ -280,7 +255,6 @@ export default function AddQuestionPage() {
               </Select>
             </FormControl>
           </Grid>
-
           {/* Sub Topic */}
           <Grid item xs={12} md={6}>
             <TextField
@@ -291,7 +265,6 @@ export default function AddQuestionPage() {
               onChange={e => handleInputChange('Sub Topic', e.target.value)}
             />
           </Grid>
-
           {/* Micro Topic */}
           <Grid item xs={12} md={6}>
             <TextField
@@ -302,7 +275,6 @@ export default function AddQuestionPage() {
               onChange={e => handleInputChange('Micro Topic', e.target.value)}
             />
           </Grid>
-
           {/* Difficulty Level */}
           <Grid item xs={12} md={4}>
             <FormControl fullWidth>
@@ -319,7 +291,6 @@ export default function AddQuestionPage() {
               </Select>
             </FormControl>
           </Grid>
-
           {/* Question Type */}
           <Grid item xs={12} md={4}>
             <FormControl fullWidth required>
@@ -334,7 +305,6 @@ export default function AddQuestionPage() {
               </Select>
             </FormControl>
           </Grid>
-
           {/* Faculty Approved */}
           <Grid item xs={12} md={4}>
             <FormGroup>
@@ -349,7 +319,6 @@ export default function AddQuestionPage() {
               />
             </FormGroup>
           </Grid>
-
           {/* Nature of Question */}
           <Grid item xs={12}>
             <TextField
@@ -360,7 +329,6 @@ export default function AddQuestionPage() {
               onChange={e => handleInputChange('Nature of Question', e.target.value)}
             />
           </Grid>
-
           {/* Objective */}
           <Grid item xs={12}>
             <TextField
@@ -371,7 +339,6 @@ export default function AddQuestionPage() {
               onChange={e => handleInputChange('Objective', e.target.value)}
             />
           </Grid>
-
           <Grid item xs={12}>
             <Button type="submit" variant="contained" color="primary" fullWidth sx={{ py: 1.5 }}>
               Add Question
@@ -379,7 +346,6 @@ export default function AddQuestionPage() {
           </Grid>
         </Grid>
       </form>
-
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}

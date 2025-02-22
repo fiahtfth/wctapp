@@ -1,14 +1,11 @@
 'use client';
-
 import { Button, Stack, Typography } from '@mui/material';
 import React from 'react';
-
 interface PaginationControlsProps extends React.HTMLAttributes<HTMLDivElement> {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
 }
-
 export default function PaginationControls({
   currentPage,
   totalPages,

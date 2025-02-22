@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState } from 'react';
 import {
   Box,
@@ -21,8 +20,6 @@ import {
   EmailOutlined as EmailIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-
-// Create a custom theme
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -57,18 +54,15 @@ const theme = createTheme({
     },
   },
 });
-
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -77,18 +71,14 @@ export default function LoginPage() {
         },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         // Handle login errors
         setError(data.error || 'Login failed');
         return;
       }
-
       // Store token and user info
       localStorage.setItem('token', data.token);
-
       // Store user details in localStorage
       localStorage.setItem(
         'user',
@@ -98,7 +88,6 @@ export default function LoginPage() {
           role: data.user.role,
         })
       );
-
       // Redirect based on user role
       if (data.user.role === 'admin') {
         router.push('/users');
@@ -110,7 +99,6 @@ export default function LoginPage() {
       setError('An unexpected error occurred');
     }
   };
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -187,7 +175,6 @@ export default function LoginPage() {
                 Sign in to continue
               </Typography>
             </Box>
-
             <form onSubmit={handleLogin}>
               <TextField
                 variant="outlined"
@@ -240,13 +227,11 @@ export default function LoginPage() {
                   ),
                 }}
               />
-
               {error && (
                 <Typography color="error" variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
                   {error}
                 </Typography>
               )}
-
               <Button
                 type="submit"
                 fullWidth

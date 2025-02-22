@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import {
   Typography,
@@ -25,10 +24,10 @@ import {
 } from '@mui/icons-material';
 import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/navigation';
-import QuestionCard from './QuestionCard';
+import { QuestionCard } from './QuestionCard';
 import * as XLSX from 'xlsx';
 import { saveDraftCart } from '@/lib/database/queries';
-
+import { Question } from '@/types/question';
 type CartQuestion = {
   id: string | number;
   text?: string;
@@ -41,7 +40,6 @@ type CartQuestion = {
   'Difficulty Level'?: string;
   Question_Type?: string;
 };
-
 export default function Cart() {
   const [mounted, setMounted] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -56,17 +54,14 @@ export default function Cart() {
   const [user, setUser] = useState<{ id?: number } | null>(null);
   const { questions, removeQuestion, clearCart } = useCartStore();
   const router = useRouter();
-
   useEffect(() => {
     // Ensure this only runs on the client
     setMounted(true);
     // Hydrate the store
     useCartStore.persist.rehydrate();
-
     // Log cart contents on mount
     console.log('Cart Component Mounted, Current Questions:', questions);
   }, []);
-
   useEffect(() => {
     // Check for user in localStorage
     const storedUser = localStorage.getItem('user');
@@ -78,32 +73,27 @@ export default function Cart() {
       }
     }
   }, []);
-
   const handleRemoveQuestion = (questionId: string | number) => {
     console.log('Attempting to remove question from cart:', questionId);
-
     // Find the question being removed (for snackbar)
     const removedQuestionDetails = questions.find(q => q.id === questionId);
-
     // Remove the question
     removeQuestion(String(questionId));
-
     // Set snackbar state
     if (removedQuestionDetails) {
-      setRemovedQuestion(removedQuestionDetails.text || 'Question');
+      setRemovedQuestion(
+        (removedQuestionDetails.text || 'Question').toString()
+      );
       setSnackbarOpen(true);
     }
-
     console.log('Updated cart after removal:', useCartStore.getState().questions);
   };
-
   const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') {
       return;
     }
     setSnackbarOpen(false);
   };
-
   const handleExport = () => {
     // Prepare export data with ALL available question details
     const exportData = questions.map((question, index) => {
@@ -119,13 +109,10 @@ export default function Cart() {
         'Difficulty Level': question['Difficulty Level'] || '',
         'Question Type': question.Question_Type || '',
       };
-
       return exportRow;
     });
-
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
-
     // Create first sheet with test details
     const testDetailsSheet = XLSX.utils.json_to_sheet([
       {
@@ -135,18 +122,14 @@ export default function Cart() {
       },
     ]);
     XLSX.utils.book_append_sheet(wb, testDetailsSheet, 'Test Details');
-
     // Create second sheet with questions
     const questionsSheet = XLSX.utils.json_to_sheet(exportData);
     XLSX.utils.book_append_sheet(wb, questionsSheet, 'Questions');
-
     // Export to Excel
     XLSX.writeFile(wb, `${testDetails.testName || 'Test'}_Export.xlsx`);
-
     // Close modal
     setExportModalOpen(false);
   };
-
   const handleSaveDraft = async () => {
     try {
       // Validate test details
@@ -154,11 +137,9 @@ export default function Cart() {
         setDraftSaveError('Test Name is required');
         return;
       }
-
       // Check for user authentication with more robust checks
       const storedUser = localStorage.getItem('user');
       console.log('Stored User:', storedUser); // Debug log
-
       let parsedUser = null;
       try {
         parsedUser = storedUser ? JSON.parse(storedUser) : null;
@@ -167,19 +148,15 @@ export default function Cart() {
         setDraftSaveError('Invalid user authentication');
         return;
       }
-
       console.log('Parsed User:', parsedUser); // Debug log
-
       // Use default user ID if no user found or user ID is invalid
       const userId = parsedUser && parsedUser.id ? Number(parsedUser.id) : 1;
       console.log('Using User ID:', userId); // Debug log
-
       // Validate questions
       if (questions.length === 0) {
         setDraftSaveError('Cart is empty. Add questions before saving draft.');
         return;
       }
-
       // Extract question IDs
       const questionIds = questions.map(q => {
         const id = Number(q.id);
@@ -189,7 +166,6 @@ export default function Cart() {
         }
         return id;
       });
-
       // Save draft cart
       const draftCartId = await saveDraftCart(
         userId,
@@ -198,14 +174,11 @@ export default function Cart() {
         testDetails.date,
         questionIds
       );
-
       // Reset modal and show success message
       setExportModalOpen(false);
       setDraftSaveError(null);
-
       // Optional: Show a success snackbar or toast
       console.log('Draft cart saved successfully with ID:', draftCartId);
-
       // Show a success message to the user
       setSnackbarOpen(true);
     } catch (error: unknown) {
@@ -213,7 +186,6 @@ export default function Cart() {
       setDraftSaveError(error instanceof Error ? error.message : 'Failed to save draft cart');
     }
   };
-
   if (!mounted) {
     return (
       <Container
@@ -229,7 +201,6 @@ export default function Cart() {
       </Container>
     );
   }
-
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper sx={{ p: 3 }}>
@@ -273,7 +244,6 @@ export default function Cart() {
             )}
           </Box>
         </Box>
-
         {questions.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -292,7 +262,12 @@ export default function Cart() {
           <Grid container spacing={3} position="relative">
             {questions.map((question: CartQuestion) => (
               <Grid item xs={12} sm={6} md={4} key={question.id} position="relative">
-                <QuestionCard question={question} initialInCart={true} showCartButton={false} />
+                <QuestionCard 
+                  question={question as Question} 
+                  onQuestionUpdate={() => {}} 
+                  initialInCart={true} 
+                  showCartButton={false} 
+                />
                 <IconButton
                   onClick={() => handleRemoveQuestion(question.id)}
                   sx={{
@@ -314,7 +289,6 @@ export default function Cart() {
           </Grid>
         )}
       </Paper>
-
       {/* Export Modal */}
       <Dialog
         open={exportModalOpen}
@@ -385,7 +359,6 @@ export default function Cart() {
           </Button>
         </DialogActions>
       </Dialog>
-
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}

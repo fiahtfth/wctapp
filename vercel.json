@@ -13,7 +13,7 @@
     }
   ],
   "env": {
-    "NEXT_PUBLIC_SITE_URL": "@site_url",
-    "DATABASE_URL": "@database_url"
+    "NEXT_PUBLIC_SITE_URL": "https://wctapp.vercel.app",
+    "DATABASE_URL": "file:./dev.db"
   }
 }

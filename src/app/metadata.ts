@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-
 export const metadata: Metadata = {
   title: 'WCT Question Bank',
   description: 'Question Bank Management Application',

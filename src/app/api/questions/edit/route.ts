@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Question } from '@/types/question';
 import Database from 'better-sqlite3';
-
 const db = new Database('./src/lib/database/questions.db');
-
-// Utility function to capitalize and validate fields
 function processField(field: string, value: any): any {
   // If value is null or undefined, return as is
   if (value === null || value === undefined) {
@@ -13,21 +11,17 @@ function processField(field: string, value: any): any {
     }
     return value;
   }
-
   // Convert to string if not already a string
   const stringValue = String(value).trim();
-
   switch (field) {
     case 'Difficulty Level': {
       const validDifficultyLevels = ['easy', 'medium', 'difficult'];
       const lowercaseDifficulty = stringValue.toLowerCase();
-
       console.log('Processing Difficulty Level:', {
         input: stringValue,
         lowercased: lowercaseDifficulty,
         isValid: validDifficultyLevels.includes(lowercaseDifficulty),
       });
-
       return validDifficultyLevels.includes(lowercaseDifficulty) ? lowercaseDifficulty : 'medium';
     }
     case 'Question_Type':
@@ -39,19 +33,16 @@ function processField(field: string, value: any): any {
         'True/False',
         'Fill in the Blank',
       ];
-
       const capitalizedType = stringValue
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
-
       return validQuestionTypes.includes(capitalizedType) ? capitalizedType : 'Objective';
     }
     case 'Nature of Question': {
       const validNatureOfQuestions = ['Factual', 'Conceptual', 'Analytical'];
       const capitalizedNature =
         stringValue.charAt(0).toUpperCase() + stringValue.slice(1).toLowerCase();
-
       return validNatureOfQuestions.includes(capitalizedNature) ? capitalizedNature : 'Theoretical';
     }
     case 'Faculty Approved': {
@@ -60,7 +51,6 @@ function processField(field: string, value: any): any {
         input: stringValue,
         isValid: stringValue.toLowerCase() === 'true' || stringValue === '1',
       });
-
       return stringValue.toLowerCase() === 'true' || stringValue === '1';
     }
     default: {
@@ -69,45 +59,31 @@ function processField(field: string, value: any): any {
         input: stringValue,
         output: stringValue || null,
       });
-
       return stringValue || null;
     }
   }
 }
-
-// Utility function to validate Answer
 function isValidAnswer(answer: string): boolean {
   // Allow single letters a, b, c, d (case-insensitive)
   // Allow multiple letters/words for other types of questions
   if (!answer) return false;
-
   // Trim and convert to lowercase
   const trimmedAnswer = answer.trim().toLowerCase();
-
   // Single letter answers for multiple choice
   if (/^[a-d]$/.test(trimmedAnswer)) return true;
-
   // For other types of answers, require at least 2 characters
   return trimmedAnswer.length >= 2;
 }
-
-// Utility function to validate Difficulty Level
 function isValidDifficultyLevel(level: string): boolean {
   const validLevels = ['easy', 'medium', 'difficult'];
   if (!level) return false;
-
   // Trim and convert to lowercase
   const formattedLevel = level.trim().toLowerCase();
-
   return validLevels.includes(formattedLevel);
 }
-
-// Utility function to standardize Difficulty Level
 function standardizeDifficultyLevel(level: string): string {
   if (!level) return 'medium';
-
   const lowercaseLevel = level.trim().toLowerCase();
-
   switch (lowercaseLevel) {
     case 'easy':
       return 'easy';
@@ -119,38 +95,32 @@ function standardizeDifficultyLevel(level: string): string {
       return 'medium';
   }
 }
-
 export async function PUT(request: NextRequest) {
   try {
     console.group('QUESTION EDIT API ROUTE');
     console.log('1. Request Received');
-
     // Parse and validate the request body
     const body = await request.json();
     const question = body;
-
     // CRITICAL: Log ENTIRE question object with ALL keys
     console.log(
       '2. FULL Question Object (ALL KEYS):',
-      Object.keys(question).reduce((acc, key) => {
-        acc[key] = question[key];
+      Object.keys(question).reduce((acc: Record<string, any>, key) => {
+        acc[key] = question[key as keyof typeof question];
         return acc;
       }, {})
     );
-
     // Log ALL keys and their types
     console.log(
       '2b. Question Object Key Types:',
-      Object.keys(question).reduce((acc, key) => {
-        acc[key] = typeof question[key];
+      Object.keys(question).reduce((acc: Record<string, string>, key) => {
+        acc[key] = typeof question[key as keyof typeof question];
         return acc;
       }, {})
     );
-
     // Enhanced ID validation
     const questionId =
       typeof question.id === 'string' ? parseInt(question.id, 10) : Number(question.id);
-
     if (isNaN(questionId) || questionId <= 0) {
       console.error('5. Invalid question ID', {
         originalId: question.id,
@@ -169,11 +139,9 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-
     // Fetch the original question to use as a fallback
     const originalQuestionStmt = db.prepare('SELECT * FROM questions WHERE id = ?');
     const originalQuestion = originalQuestionStmt.get(questionId);
-
     if (!originalQuestion) {
       console.error('6. Original question not found', { questionId });
       console.groupEnd();
@@ -185,16 +153,14 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       );
     }
-
     // Log original question for comparison
     console.log(
       '6b. Original Question:',
-      Object.keys(originalQuestion).reduce((acc, key) => {
-        acc[key] = originalQuestion[key];
+      Object.keys(originalQuestion).reduce((acc: Record<string, any>, key) => {
+        acc[key] = originalQuestion[key as keyof typeof originalQuestion];
         return acc;
       }, {})
     );
-
     // Process and validate each field
     const processedQuestion = {
       ...Object.keys(question).reduce((acc, key) => {
@@ -203,25 +169,20 @@ export async function PUT(request: NextRequest) {
       }, {} as any),
       id: questionId, // Use validated ID
     };
-
     console.log('3. Processed Question Object:', JSON.stringify(processedQuestion, null, 2));
-
     // Validate core question content
     const validationErrors: string[] = [];
-
     // Question validation with fallback to original
     const finalQuestion =
       processedQuestion.Question?.trim().length >= 5
         ? processedQuestion.Question
-        : originalQuestion.Question;
-
+        : (originalQuestion as Partial<Question>).Question || '';
     // Answer validation with fallback to original and special handling for single letters
     const finalAnswer = processedQuestion.Answer
       ? isValidAnswer(processedQuestion.Answer)
         ? processedQuestion.Answer
-        : originalQuestion.Answer
-      : originalQuestion.Answer;
-
+        : (originalQuestion as Partial<Question>).Answer || ''
+      : (originalQuestion as Partial<Question>).Answer || '';
     // Difficulty Level validation and standardization
     const inputDifficultyLevel = processedQuestion['Difficulty Level'] || '';
     const finalDifficultyLevel = processedQuestion['Difficulty Level']
@@ -229,20 +190,17 @@ export async function PUT(request: NextRequest) {
         ? standardizeDifficultyLevel(processedQuestion['Difficulty Level'])
         : 'medium'
       : 'medium';
-
     console.log('Difficulty Level Processing:', {
       inputLevel: inputDifficultyLevel,
       processedLevel: finalDifficultyLevel,
       isValid: isValidDifficultyLevel(inputDifficultyLevel),
     });
-
     if (!finalQuestion || finalQuestion.trim().length < 5) {
       validationErrors.push('Question must be at least 5 characters long');
     }
     if (!finalAnswer) {
       validationErrors.push('Answer is required');
     }
-
     // If there are validation errors, return them
     if (validationErrors.length > 0) {
       console.error('7. EDIT VALIDATION ERRORS:', validationErrors);
@@ -256,7 +214,6 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-
     // Prepare update statement
     const stmt = db.prepare(`
             UPDATE questions 
@@ -276,46 +233,34 @@ export async function PUT(request: NextRequest) {
                 'Module Number' = ?
             WHERE id = ?
         `);
-
     // Execute update with fallback values
     const result = stmt.run(
       finalQuestion,
       finalAnswer,
-      processedQuestion.Subject || originalQuestion.Subject,
-      processedQuestion.Topic || originalQuestion.Topic,
+      processedQuestion.Subject || (originalQuestion as Partial<Question>).Subject || '',
+      processedQuestion.Topic || (originalQuestion as Partial<Question>).Topic || '',
       finalDifficultyLevel,
-      processedQuestion['Question_Type'] ||
-        processedQuestion['Question Type'] ||
-        originalQuestion['Question_Type'] ||
-        null,
-      processedQuestion['Nature of Question'] || originalQuestion['Nature of Question'] || null,
+      processedQuestion['Question_Type'] || (originalQuestion as Partial<Question>)['Question_Type'] || '',
+      processedQuestion['Nature of Question'] || (originalQuestion as Partial<Question>)['Nature of Question'] || '',
       processedQuestion['Faculty Approved'] !== undefined
-        ? processedQuestion['Faculty Approved']
-          ? 1
-          : 0
-        : originalQuestion['Faculty Approved']
-          ? 1
-          : 0,
-      processedQuestion.Explanation || originalQuestion.Explanation || '',
-      processedQuestion['Sub Topic'] || originalQuestion['Sub Topic'] || '',
-      processedQuestion['Micro Topic'] || originalQuestion['Micro Topic'] || '',
-      processedQuestion['Module Name'] || originalQuestion['Module Name'] || '',
-      processedQuestion['Module Number'] || originalQuestion['Module Number'] || '',
+        ? (processedQuestion['Faculty Approved'] as boolean) ? 1 : 0
+        : (originalQuestion as Partial<Question>)['Faculty Approved'] ? 1 : 0,
+      processedQuestion.Explanation || (originalQuestion as Partial<Question>).Explanation || '',
+      processedQuestion['Sub Topic'] || (originalQuestion as Partial<Question>)['Sub Topic'] || '',
+      processedQuestion['Micro Topic'] || (originalQuestion as Partial<Question>)['Micro Topic'] || '',
+      processedQuestion['Module Name'] || (originalQuestion as Partial<Question>)['Module Name'] || '',
+      processedQuestion['Module Number'] || (originalQuestion as Partial<Question>)['Module Number'] || '',
       processedQuestion.id
     );
-
     console.log('8. Database Update Result:', {
       changes: result.changes,
       lastInsertRowid: result.lastInsertRowid,
     });
-
     // Fetch the updated question to return
     const updatedQuestionStmt = db.prepare('SELECT * FROM questions WHERE id = ?');
     const updatedQuestion = updatedQuestionStmt.get(processedQuestion.id);
-
     console.log('9. Updated Question:', JSON.stringify(updatedQuestion, null, 2));
     console.groupEnd();
-
     return NextResponse.json(updatedQuestion, { status: 200 });
   } catch (error) {
     console.error('10. EDIT ROUTE CRITICAL ERROR:', error);

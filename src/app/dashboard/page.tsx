@@ -1,5 +1,4 @@
 'use client';
-
 import React from 'react';
 import { Box, Typography, Grid, Paper, Button } from '@mui/material';
 import {
@@ -7,7 +6,6 @@ import {
   QuestionAnswer as QuestionAnswerIcon,
   AddCircle as AddQuestionIcon,
 } from '@mui/icons-material';
-
 export default function Dashboard() {
   return (
     <Box>
@@ -21,7 +19,6 @@ export default function Dashboard() {
       >
         Dashboard
       </Typography>
-
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <Paper
@@ -46,7 +43,6 @@ export default function Dashboard() {
             </Button>
           </Paper>
         </Grid>
-
         <Grid item xs={12} md={4}>
           <Paper
             elevation={2}
@@ -70,7 +66,6 @@ export default function Dashboard() {
             </Button>
           </Paper>
         </Grid>
-
         <Grid item xs={12} md={4}>
           <Paper
             elevation={2}

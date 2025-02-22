@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -16,7 +15,6 @@ import MenuIcon from "@mui/icons-material/Menu";
 import { useRouter } from "next/navigation";
 import CartIndicator from "@/components/CartIndicator";
 import { addQuestionToCart, getCartItems } from "@/lib/actions";
-
 export default function DashboardLayout({
   children,
 }: {
@@ -26,7 +24,6 @@ export default function DashboardLayout({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-
   // Load cart count on mount
   useEffect(() => {
     const fetchCartCount = async () => {
@@ -39,16 +36,13 @@ export default function DashboardLayout({
     };
     fetchCartCount();
   }, []);
-
   const handleLogout = () => {
     setLogoutDialogOpen(true);
   };
-
   const confirmLogout = () => {
     // Implement logout logic
     router.push("/login");
   };
-
   return (
     <Box
       sx={{
@@ -164,10 +158,8 @@ export default function DashboardLayout({
           </Box>
         </Toolbar>
       </AppBar>
-
       {/* Main Content */}
       <Box sx={{ flex: 1, p: 3 }}>{children}</Box>
-
       {/* Logout Confirmation Dialog */}
       <Dialog
         open={logoutDialogOpen}

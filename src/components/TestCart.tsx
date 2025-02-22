@@ -16,14 +16,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import type { Question } from '@/types/question';
 import * as XLSX from 'xlsx';
-
 interface TestCartProps {
   open: boolean;
   onClose: () => void;
   questions: Question[];
   onRemoveQuestion: (questionId: number) => Promise<void>;
 }
-
 export default function TestCart({ open, onClose, questions, onRemoveQuestion }: TestCartProps) {
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
@@ -37,14 +35,11 @@ export default function TestCart({ open, onClose, questions, onRemoveQuestion }:
         'Nature of Question': q['Nature of Question'],
       }))
     );
-
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Questions');
-
     // Generate Excel file
     XLSX.writeFile(workbook, 'test_questions.xlsx');
   };
-
   return (
     <Drawer
       anchor="right"
@@ -71,7 +66,6 @@ export default function TestCart({ open, onClose, questions, onRemoveQuestion }:
             <CloseIcon />
           </IconButton>
         </Box>
-
         {questions.length > 0 ? (
           <>
             <List sx={{ mb: 2 }}>

@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -13,22 +12,34 @@ import {
   SelectChangeEvent,
   TextField,
   InputAdornment,
+  Alert,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import { getSubjects, getModules, getTopics, getQuestions } from '@/lib/database/hierarchicalData';
+import { 
+  getSubjects, 
+  getModules, 
+  getTopics, 
+  getQuestions 
+} from '@/lib/database/hierarchicalData';
+import { 
+  FilterConfig, 
+  validateFilters, 
+  logFilterProcessing,
+  sanitizeFilters
+} from '@/config/filters';
 
 interface CascadingFiltersProps {
   onFilterChange?: (filters: {
     subject?: string[];
     module?: string[];
     topic?: string[];
-    question_type?: string[];
+    questionType?: string[];
     search?: string;
   }) => void;
   subject?: string[];
   module?: string[];
   topic?: string[];
-  question_type?: string[];
+  questionType?: string[];
   search?: string;
   testId?: string;
 }
@@ -42,11 +53,11 @@ export const CascadingFilters = ({
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-
   const [subjects, setSubjects] = useState<string[]>([]);
   const [modules, setModules] = useState<string[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
   const [questionTypes, setQuestionTypes] = useState<string[]>([]);
+  const [filterErrors, setFilterErrors] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     const subjects = getSubjects();
@@ -54,23 +65,14 @@ export const CascadingFilters = ({
     setSubjects(subjects);
   }, []);
 
-  // Compute modules based on selected subjects
   useEffect(() => {
     if (selectedSubjects.length > 0) {
-      // Get unique modules across all selected subjects
       const uniqueModules = selectedSubjects.flatMap(subject => getModules(subject));
-
-      // Remove duplicates while preserving order
       const deduplicatedModules = [...new Set(uniqueModules)];
-
       setModules(deduplicatedModules);
-
-      // Reset dependent filters if they're no longer valid
       const validModules = selectedModules.filter(module => deduplicatedModules.includes(module));
-
       setSelectedModules(validModules);
     } else {
-      // Reset when no subjects are selected
       setModules([]);
       setSelectedModules([]);
       setTopics([]);
@@ -78,49 +80,52 @@ export const CascadingFilters = ({
     }
   }, [selectedSubjects]);
 
-  // Compute topics based on selected subjects and modules
   useEffect(() => {
     if (selectedSubjects.length > 0 && selectedModules.length > 0) {
-      // Get unique topics across all selected subject-module combinations
       const uniqueTopics = selectedSubjects.flatMap(subject =>
         selectedModules.flatMap(module => getTopics(subject, module))
       );
-
-      // Remove duplicates while preserving order
       const deduplicatedTopics = [...new Set(uniqueTopics)];
-
       setTopics(deduplicatedTopics);
-
-      // Reset dependent filters if they're no longer valid
       const validTopics = selectedTopics.filter(topic => deduplicatedTopics.includes(topic));
-
       setSelectedTopics(validTopics);
     } else {
-      // Reset when subjects or modules are not selected
       setTopics([]);
       setSelectedTopics([]);
     }
   }, [selectedSubjects, selectedModules]);
 
   useEffect(() => {
-    // Static list of question types
     const questionTypes = ['Objective', 'Subjective'];
     console.log('Loaded Question Types:', questionTypes);
     setQuestionTypes(questionTypes);
   }, []);
 
+  const handleFilterChange = (filterState: {
+    subject?: string[];
+    module?: string[];
+    topic?: string[];
+    questionType?: string[];
+    search?: string;
+  }) => {
+    const sanitizedFilters = sanitizeFilters(filterState);
+    const validationResult = validateFilters(sanitizedFilters);
+    logFilterProcessing('CascadingFilters', filterState, validationResult);
+    setFilterErrors(validationResult.errors);
+    if (validationResult.isValid) {
+      onFilterChange?.(sanitizedFilters);
+    }
+  };
+
   const handleSubjectChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const subjects = typeof value === 'string' ? value.split(',') : value;
-
     setSelectedSubjects(subjects);
-
-    // Notify parent of filter change
-    onFilterChange?.({
+    handleFilterChange({
       subject: subjects.length > 0 ? subjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
       topic: selectedTopics.length > 0 ? selectedTopics : undefined,
-      question_type: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+      questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: searchQuery,
     });
   };
@@ -128,19 +133,14 @@ export const CascadingFilters = ({
   const handleModuleChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const modules = typeof value === 'string' ? value.split(',') : value;
-
-    // Reset topics when modules change
     const validTopics = selectedTopics.filter(topic => topics.includes(topic));
-
     setSelectedModules(modules);
     setSelectedTopics(validTopics);
-
-    // Comprehensive filter notification
-    onFilterChange?.({
+    handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: modules.length > 0 ? modules : undefined,
       topic: validTopics.length > 0 ? validTopics : undefined,
-      question_type: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+      questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: searchQuery,
     });
   };
@@ -148,15 +148,12 @@ export const CascadingFilters = ({
   const handleTopicChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const topics = typeof value === 'string' ? value.split(',') : value;
-
     setSelectedTopics(topics);
-
-    // Notify parent of filter change
-    onFilterChange?.({
+    handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
       topic: topics.length > 0 ? topics : undefined,
-      question_type: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+      questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: searchQuery,
     });
   };
@@ -164,15 +161,12 @@ export const CascadingFilters = ({
   const handleQuestionTypeChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const types = typeof value === 'string' ? value.split(',') : value;
-
     setSelectedQuestionTypes(types);
-
-    // Notify parent of filter change with comprehensive filter state
-    onFilterChange?.({
+    handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
       topic: selectedTopics.length > 0 ? selectedTopics : undefined,
-      question_type: types.length > 0 ? types : undefined,
+      questionType: types.length > 0 ? types : undefined,
       search: searchQuery,
     });
   };
@@ -180,13 +174,11 @@ export const CascadingFilters = ({
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setSearchQuery(value);
-
-    // Notify parent of filter change
-    onFilterChange?.({
+    handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
       topic: selectedTopics.length > 0 ? selectedTopics : undefined,
-      question_type: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+      questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: value,
     });
   };
@@ -204,6 +196,15 @@ export const CascadingFilters = ({
       }}
       data-testid={testId}
     >
+      {Object.entries(filterErrors).map(([key, errors]) => (
+        <Alert 
+          key={key} 
+          severity="warning" 
+          sx={{ mb: 1 }}
+        >
+          {errors.join(', ')}
+        </Alert>
+      ))}
       <Grid container spacing={1} alignItems="center">
         <Grid item xs={12} sm={6} md={2}>
           <FormControl
@@ -239,7 +240,6 @@ export const CascadingFilters = ({
             </Select>
           </FormControl>
         </Grid>
-
         <Grid item xs={12} sm={6} md={2}>
           <FormControl
             fullWidth
@@ -275,7 +275,6 @@ export const CascadingFilters = ({
             </Select>
           </FormControl>
         </Grid>
-
         <Grid item xs={12} sm={6} md={2}>
           <FormControl
             fullWidth
@@ -311,7 +310,6 @@ export const CascadingFilters = ({
             </Select>
           </FormControl>
         </Grid>
-
         <Grid item xs={12} sm={6} md={2}>
           <FormControl
             fullWidth
@@ -346,7 +344,6 @@ export const CascadingFilters = ({
             </Select>
           </FormControl>
         </Grid>
-
         <Grid item xs={12} sm={6} md={2}>
           <TextField
             data-testid="search-filter"

@@ -1,7 +1,5 @@
 'use client';
-
 import { CircularProgress, Box, Typography } from '@mui/material';
-
 export default function ExportLoader() {
   return (
     <Box

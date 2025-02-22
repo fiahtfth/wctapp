@@ -4,27 +4,20 @@ import Database from 'better-sqlite3';
 import { SignJWT } from 'jose';
 import path from 'path';
 import crypto from 'crypto';
-
-// Configure detailed logging
 const LOG_LEVEL = 'debug'; // 'error', 'warn', 'info', 'debug'
-
 function log(level: 'error' | 'warn' | 'info' | 'debug', message: string, data?: any) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
-
   if (data) {
     console[level](logMessage, JSON.stringify(data, null, 2));
   } else {
     console[level](logMessage);
   }
 }
-
-// Secure and consistent JWT secret generation
 function generateJwtSecret(): string {
   // Use a consistent method to generate a secure secret
   return crypto.randomBytes(32).toString('hex');
 }
-
 export async function POST(request: NextRequest) {
   let db;
   try {
@@ -32,23 +25,19 @@ export async function POST(request: NextRequest) {
     const databaseUrl = process.env.DATABASE_URL || '';
     const dbPath = databaseUrl.replace('file:', '');
     const resolvedDbPath = path.resolve(process.cwd(), dbPath || './dev.db');
-
     // Ensure JWT secret is available and consistent
     const jwtSecret = process.env.JWT_SECRET || generateJwtSecret();
-
     log('debug', 'Database Path', { resolvedDbPath });
     log('debug', 'JWT Secret', {
       secretAvailable: !!jwtSecret,
       secretLength: jwtSecret.length,
     });
-
     // Log full request details
     log('debug', 'Received login request', {
       method: request.method,
       url: request.url,
       headers: Object.fromEntries(request.headers),
     });
-
     // Validate request method
     if (request.method !== 'POST') {
       log('error', 'Invalid HTTP method');
@@ -60,11 +49,9 @@ export async function POST(request: NextRequest) {
         { status: 405 }
       );
     }
-
     // Check content type explicitly
     const contentType = request.headers.get('content-type');
     log('debug', 'Content Type', { contentType });
-
     if (!contentType || !contentType.includes('application/json')) {
       log('error', 'Invalid content type', { contentType });
       return NextResponse.json(
@@ -75,7 +62,6 @@ export async function POST(request: NextRequest) {
         { status: 415 }
       );
     }
-
     // Safe JSON parsing with detailed error handling
     let body;
     try {
@@ -96,9 +82,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
     const { email, password } = body;
-
     // Comprehensive input validation
     if (!email || !password) {
       log('error', 'Missing credentials', {
@@ -113,7 +97,6 @@ export async function POST(request: NextRequest) {
         { status: 422 }
       );
     }
-
     // Database connection with error handling
     try {
       db = new Database(resolvedDbPath, { readonly: true });
@@ -133,7 +116,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
     // User lookup with detailed logging
     let user;
     try {
@@ -146,7 +128,6 @@ export async function POST(request: NextRequest) {
             role: 'admin' | 'user';
           }
         | undefined;
-
       log('debug', 'User lookup result', {
         userFound: !!user,
         email: user?.email,
@@ -168,7 +149,6 @@ export async function POST(request: NextRequest) {
     } finally {
       db.close();
     }
-
     if (!user) {
       log('warn', 'User not found', { email });
       return NextResponse.json(
@@ -179,7 +159,6 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-
     // Validate role
     if (!['admin', 'user'].includes(user.role)) {
       log('error', 'Invalid user role', { role: user.role });
@@ -191,7 +170,6 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-
     // Password verification
     let isPasswordValid;
     try {
@@ -213,7 +191,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
     if (!isPasswordValid) {
       log('warn', 'Invalid password', { email });
       return NextResponse.json(
@@ -224,7 +201,6 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-
     // Generate JWT token
     const token = await new SignJWT({
       userId: user.id,
@@ -234,13 +210,11 @@ export async function POST(request: NextRequest) {
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime('24h')
       .sign(new TextEncoder().encode(jwtSecret));
-
     log('debug', 'Login successful', {
       userId: user.id,
       email: user.email,
       role: user.role,
     });
-
     // Return token and user details
     return NextResponse.json(
       {

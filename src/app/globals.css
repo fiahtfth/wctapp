@@ -51,6 +51,9 @@
       'rlig' 1,
       'calt' 1;
   }
+  :root {
+    --primary: 220 253 255; /* Adjust this to match your primary color */
+  }
 }
 
 @layer components {
@@ -132,6 +135,12 @@
   }
   .rounded-lg {
     border-radius: var(--radius);
+  }
+}
+
+@layer utilities {
+  .ring-primary {
+    --tw-ring-color: rgb(var(--primary) / <alpha-value>);
   }
 }
 

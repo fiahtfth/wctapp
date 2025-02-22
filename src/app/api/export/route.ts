@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCartQuestions } from '@/types/question';
 import * as XLSX from 'xlsx';
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { testId } = body;
-
     if (!testId) {
       return NextResponse.json({ error: 'Test ID is required' }, { status: 400 });
     }
-
     // Retrieve cart questions
     const cartQuestions = await getCartQuestions(testId);
-
     // Transform questions for Excel export
     const exportData = cartQuestions.map(q => ({
       Question: q.question_text,
@@ -23,18 +19,15 @@ export async function POST(request: NextRequest) {
       Answer: q.answer,
       Explanation: q.explanation || 'N/A',
     }));
-
     // Create workbook and worksheet
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Test Questions');
-
     // Convert workbook to buffer
     const excelBuffer = XLSX.write(workbook, {
       type: 'buffer',
       bookType: 'xlsx',
     });
-
     // Return Excel file
     return new NextResponse(excelBuffer, {
       status: 200,

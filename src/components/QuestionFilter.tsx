@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import {
   TextField,
@@ -13,7 +12,6 @@ import {
   Button,
   Box,
 } from '@mui/material';
-
 interface QuestionFilterProps {
   onFilterChange: (filters: {
     subject?: string;
@@ -25,20 +23,17 @@ interface QuestionFilterProps {
     search?: string;
   }) => void;
 }
-
 const SUBJECTS = [
   { value: 'Economics', color: '#3f51b5' },
   { value: 'Mathematics', color: '#2196f3' },
   { value: 'Science', color: '#4caf50' },
   { value: 'History', color: '#ff9800' },
 ];
-
 const DIFFICULTY_LEVELS = [
   { value: 'Easy', label: 'Easy' },
   { value: 'Medium', label: 'Medium' },
   { value: 'Hard', label: 'Hard' },
 ];
-
 export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) {
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
@@ -47,7 +42,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
   const [difficulty, setDifficulty] = useState('');
   const [natureOfQuestion, setNatureOfQuestion] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-
   const handleFilterChange = () => {
     onFilterChange({
       subject: subject || undefined,
@@ -64,7 +58,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
       search: searchTerm || undefined,
     });
   };
-
   const handleResetFilters = () => {
     setSubject('');
     setTopic('');
@@ -75,7 +68,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
     setSearchTerm('');
     onFilterChange({});
   };
-
   return (
     <Box sx={{ flexGrow: 1, mb: 2 }}>
       <Grid container spacing={2} alignItems="center">
@@ -99,7 +91,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             </Select>
           </FormControl>
         </Grid>
-
         <Grid item xs={12} sm={6} md={4}>
           <TextField
             fullWidth
@@ -111,7 +102,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             }}
           />
         </Grid>
-
         <Grid item xs={12} sm={6} md={4}>
           <FormControl fullWidth>
             <InputLabel>Difficulty</InputLabel>
@@ -132,7 +122,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             </Select>
           </FormControl>
         </Grid>
-
         <Grid item xs={12} sm={6} md={4}>
           <TextField
             fullWidth
@@ -144,7 +133,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             }}
           />
         </Grid>
-
         <Grid item xs={12} sm={6} md={4}>
           <TextField
             fullWidth
@@ -156,7 +144,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             }}
           />
         </Grid>
-
         <Grid item xs={12} sm={6} md={4}>
           <FormControl fullWidth>
             <InputLabel>Nature of Question</InputLabel>
@@ -176,7 +163,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             </Select>
           </FormControl>
         </Grid>
-
         <Grid item xs={12}>
           <TextField
             fullWidth
@@ -188,7 +174,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             }}
           />
         </Grid>
-
         <Grid item xs={12}>
           <Button variant="outlined" color="secondary" onClick={handleResetFilters}>
             Reset All Filters

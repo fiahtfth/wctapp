@@ -5,57 +5,44 @@
 export interface Question {
   // Unique identifier, optional for new questions
   id?: number;
-
   // Core question content (required)
   Question: string;
   Answer: string;
-
   // Optional explanatory fields
   Explanation?: string | null;
-  Objective?: string | null;
-
   // Taxonomical Classification (required)
   Subject: string;
-  'Module Number': string;
-  'Module Name': string;
-  Topic: string;
-
   // Optional Hierarchical Details
-  'Sub Topic'?: string | null;
-  'Micro Topic'?: string | null;
-
+  ModuleNumber?: string;
+  ModuleName?: string;
+  Topic: string;
+  SubTopic?: string | null;
+  MicroTopic?: string | null;
   // Metadata and Classification
-  'Faculty Approved': boolean;
-  'Difficulty Level'?: 'Easy' | 'Medium' | 'Hard' | null;
-  'Nature of Question'?: 'Conceptual' | 'Analytical' | 'Application' | 'Theoretical' | null;
-
+  FacultyApproved: boolean;
+  DifficultyLevel?: 'easy' | 'medium' | 'hard' | null;
+  NatureOfQuestion?: string | null;
+  Objective?: string;
   // Question Type (required)
-  Question_Type: 'Objective' | 'Subjective' | 'Multiple Choice' | 'Short Answer' | 'Long Answer';
-
+  QuestionType: 'Objective' | 'Subjective';
   // Allows for additional dynamic properties
   [key: string]: string | number | boolean | null | undefined;
 }
 
 /**
  * Type guard to validate Question objects
- * @param q - Unknown object to validate
+ * @param obj - Unknown object to validate
  * @returns Boolean indicating if the object is a valid Question
  */
-export function isQuestion(q: unknown): q is Question {
-  if (q === null || typeof q !== 'object') return false;
-
-  const question = q as Question;
-
-  // Check required fields
+export function isQuestion(obj: any): obj is Question {
   return (
-    typeof question.Question === 'string' &&
-    typeof question.Answer === 'string' &&
-    typeof question.Subject === 'string' &&
-    typeof question['Module Number'] === 'string' &&
-    typeof question['Module Name'] === 'string' &&
-    typeof question.Topic === 'string' &&
-    typeof question['Faculty Approved'] === 'boolean' &&
-    typeof question.Question_Type === 'string'
+    obj &&
+    typeof obj.Question === 'string' &&
+    typeof obj.Answer === 'string' &&
+    typeof obj.Subject === 'string' &&
+    typeof obj.Topic === 'string' &&
+    typeof obj.FacultyApproved === 'boolean' &&
+    ['Objective', 'Subjective'].includes(obj.QuestionType)
   );
 }
 
@@ -68,38 +55,59 @@ export function createDefaultQuestion(): Question {
     Question: '',
     Answer: '',
     Subject: '',
-    'Module Number': '',
-    'Module Name': '',
     Topic: '',
-    'Faculty Approved': false,
-    Question_Type: 'Objective',
+    FacultyApproved: false,
+    QuestionType: 'Objective',
   };
+}
+
+/**
+ * Adds a question to the cart
+ * @param question The question to add to the cart
+ * @returns A promise with the added question's id
+ */
+export async function addQuestion(question: Question): Promise<{ id: number }> {
+  // Validate question before submission
+  if (!isQuestion(question)) {
+    throw new Error('Invalid question format');
+  }
+
+  // Delegate to actual implementation
+  const dbAddQuestion = (await import('@/lib/database/queries')).addQuestion;
+  const result = await dbAddQuestion(question);
+  
+  // Ensure the ID is a number
+  return { id: Number(result.id) };
 }
 
 /**
  * Adds a question to the cart
  * @param questionId The ID of the question to add to the cart
  * @param testId The ID of the test to add the question to
+ * @returns A promise with the added question's id
  */
-export async function addQuestionToCart(questionId: number, testId: string): Promise<boolean> {
-  // Implementation will be provided by the actual cart service
+export async function addQuestionToCart(questionId: number, testId: string): Promise<{ id: number }> {
+  // Placeholder implementation
+  return { id: 0 };
 }
 
 /**
  * Removes a question from the cart
  * @param questionId The ID of the question to remove from the cart
- * @param testId The ID of the test from which to remove the question
+ * @param testId The ID of the test to remove the question from
+ * @returns A promise that resolves when the question is removed
  */
-export async function removeQuestionFromCart(questionId: number, testId: string): Promise<boolean> {
-  // Implementation will be provided by the actual cart service
+export async function removeQuestionFromCart(questionId: number, testId: string): Promise<void> {
+  // Placeholder implementation
 }
 
 /**
- * Retrieves all questions currently in the cart
+ * Retrieves all questions currently in the cart for a specific test
+ * @param {string} testId - The ID of the test to retrieve cart questions for
  * @returns An array of questions in the cart
  */
-export async function getCartQuestions(): Promise<Question[]> {
-  // Implementation will be provided by the actual cart service
+export async function getCartQuestions(testId: string): Promise<Question[]> {
+  // Placeholder implementation
   return [];
 }
 
@@ -113,5 +121,4 @@ export async function getDistinctValues(field: keyof Question): Promise<string[]
   return [];
 }
 
-// Export for use across the application
 export default Question;

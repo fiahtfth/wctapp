@@ -1,13 +1,11 @@
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development'
-});
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Force server to always run on port 3000
+  serverRuntimeConfig: {
+    port: 3000
+  },
+  // Optional: Additional Next.js configuration
   reactStrictMode: true,
 };
 
-module.exports = withPWA(nextConfig);
+module.exports = nextConfig;

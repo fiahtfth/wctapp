@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { removeQuestionFromCart } from '@/types/question';
-
 export async function POST(request: NextRequest) {
   try {
     // Get the request body
     const body = await request.json();
     const { questionId, testId } = body;
-
     if (!questionId || !testId) {
       return NextResponse.json({ error: 'Question ID and Test ID are required' }, { status: 400 });
     }
-
     // Remove question from cart
     const result = await removeQuestionFromCart(questionId, testId);
-
     return NextResponse.json(
       {
         success: result,

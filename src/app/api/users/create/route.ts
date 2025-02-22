@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import Database from 'better-sqlite3';
 import { jwtVerify } from 'jose';
 import path from 'path';
-
 export async function POST(request: NextRequest) {
   let db;
   try {
@@ -12,26 +11,21 @@ export async function POST(request: NextRequest) {
     if (!authHeader) {
       return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
     }
-
     const token = authHeader.split(' ')[1];
     if (!token) {
       return NextResponse.json({ error: 'No token provided' }, { status: 401 });
     }
-
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
-
     let decoded;
     try {
       const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret));
-
       // Validate payload structure
       if (!payload.role || !payload.userId) {
         throw new Error('Invalid token payload');
       }
-
       decoded = payload as {
         userId: number;
         role: string;
@@ -49,28 +43,22 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-
     // Only admins can create users
     if (decoded.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-
     // Parse request body
     const { email, password, role = 'user' } = await request.json();
-
     // Validate input
     if (!email || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-
     // Validate role
     if (role !== 'user' && role !== 'admin') {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
-
     // Resolve database path dynamically
     const dbPath = path.resolve(process.cwd(), 'dev.db');
-
     // Open database connection
     try {
       db = new Database(dbPath);
@@ -84,11 +72,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
     // Hash password
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
-
     try {
       // Prepare insert statement
       const stmt = db.prepare(`
@@ -96,15 +82,12 @@ export async function POST(request: NextRequest) {
                 (email, password, role) 
                 VALUES (?, ?, ?)
             `);
-
       const result = stmt.run(email, passwordHash, role);
-
       // Fetch the newly created user
       const getUserStmt = db.prepare(
         'SELECT id, email, role, created_at, updated_at FROM users WHERE id = ?'
       );
       const newUser = getUserStmt.get(result.lastInsertRowid);
-
       return NextResponse.json(
         {
           message: 'User created successfully',
@@ -119,7 +102,6 @@ export async function POST(request: NextRequest) {
       );
     } catch (insertError) {
       console.error('User creation error:', insertError);
-
       // Check for unique constraint violation
       if (insertError instanceof Error && insertError.message.includes('UNIQUE constraint')) {
         return NextResponse.json(
@@ -130,7 +112,6 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         );
       }
-
       return NextResponse.json(
         {
           error: 'Failed to create user',
