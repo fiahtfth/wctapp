@@ -20,11 +20,13 @@ describe('QuestionCard', () => {
 
   it('renders question text', () => {
     const mockOnQuestionUpdate = jest.fn();
+    const mockOnAddToTest = jest.fn().mockResolvedValue(undefined);
 
     render(
       <QuestionCard 
         question={mockQuestion} 
         onQuestionUpdate={mockOnQuestionUpdate} 
+        onAddToTest={mockOnAddToTest} 
       />
     );
 

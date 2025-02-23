@@ -17,6 +17,7 @@ import { CascadingFilters } from './CascadingFilters';
 import TestCart from './TestCart';
 import { addQuestionToCart } from '@/lib/actions';
 import { QuestionCard } from './QuestionCard';
+import EditQuestionModal from './EditQuestionModal';
 
 interface QuestionListProps {
   filters?: {
@@ -65,6 +66,7 @@ export default function QuestionList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ErrorState | null>(null);
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
+  const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   // Log initial filters for debugging
@@ -248,79 +250,23 @@ export default function QuestionList({
   const handleEdit = (question: Question) => {
     console.log('Editing question:', question);
     setEditingQuestion(question);
+    setEditModalOpen(true);
   };
 
-  const handleSaveEdit = async () => {
-    if (!editingQuestion) return;
-    try {
-      console.group('Question Edit Process in QuestionList');
-      console.log('1. Original Editing Question:', JSON.parse(JSON.stringify(editingQuestion)));
-      // Create a deep copy of the editing question to avoid mutation
-      const questionToSave = JSON.parse(JSON.stringify(editingQuestion));
-      // Validate key fields before sending
-      const requiredFields = ['Question', 'Answer', 'Subject', 'Topic', 'id'];
-      const missingFields = requiredFields.filter(field => !questionToSave[field]);
-      if (missingFields.length > 0) {
-        console.error('Cannot save question. Missing required fields:', missingFields);
-        console.groupEnd();
-        return;
-      }
-      // Validate Difficulty Level
-      const validDifficultyLevels = ['Easy', 'Medium', 'Hard'];
-      if (
-        questionToSave['Difficulty Level'] &&
-        !validDifficultyLevels.includes(questionToSave['Difficulty Level'])
-      ) {
-        console.error('Invalid Difficulty Level. Must be one of:', validDifficultyLevels);
-        console.groupEnd();
-        return;
-      }
-      console.log('2. Preparing to save question:', JSON.parse(JSON.stringify(questionToSave)));
-      // Ensure id is present and is a number
-      if (!questionToSave.id || typeof questionToSave.id !== 'number') {
-        throw new Error('Invalid question ID');
-      }
-      // Prepare the request body with all fields
-      const requestBody = {
-        ...questionToSave,
-        id: Number(questionToSave.id), // Ensure ID is a number
-        // Explicitly map any potential key mismatches
-        Question_Type: questionToSave['Question Type'] || questionToSave['Question_Type'],
-        'Difficulty Level': questionToSave['Difficulty Level'],
-        'Nature of Question': questionToSave['Nature of Question'],
-        'Faculty Approved': questionToSave['Faculty Approved'],
-      };
-      console.log('3. Prepared Request Body:', JSON.parse(JSON.stringify(requestBody)));
-      const response = await fetch('/api/questions/edit', {
+  const handleSaveEdit = async (updatedQuestion: Question) => {
+    // Implement the logic to update the question in the database
+    const response = await fetch(`/api/questions/edit`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
-      });
-      console.log('4. Edit response status:', response.status);
-      console.log('5. Edit response headers:', Object.fromEntries(response.headers));
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('6. Edit error response:', errorData);
-        console.groupEnd();
-        throw new Error(errorData.error || 'Failed to update question');
-      }
-      const updatedQuestion = await response.json();
-      console.log('7. Updated question from server:', JSON.parse(JSON.stringify(updatedQuestion)));
-      // Update local questions list
-      const updatedQuestions = questions.map(q =>
-        q.id === updatedQuestion.id ? updatedQuestion : q
-      );
-      console.log('8. Updated Questions List:', JSON.parse(JSON.stringify(updatedQuestions)));
-      setQuestions(updatedQuestions);
-      // Close edit modal
-      setEditingQuestion(null);
-      console.log('9. Question updated successfully');
-      console.groupEnd();
-    } catch (error) {
-      console.error('Error in handleSaveEdit:', error);
-      console.groupEnd();
+        body: JSON.stringify(updatedQuestion),
+    });
+    if (response.ok) {
+        const newQuestion = await response.json();
+        handleQuestionUpdate(newQuestion);
+    } else {
+        console.error('Failed to update question');
     }
   };
 
@@ -389,24 +335,32 @@ export default function QuestionList({
   if (error) return <ErrorBoundary error={new Error(error.message)} reset={() => setError(null)} />;
 
   return (
-    <Box>
-      <CascadingFilters
-        key={`cascading-filters-${Object.keys(filters).join('-')}`}
-        onFilterChange={filters => {
-          console.log('CascadingFilters filters:', filters);
-          handleFilterChange(filters);
-        }}
+    <>
+      <EditQuestionModal
+        open={isEditModalOpen}
+        question={editingQuestion}
+        onClose={() => setEditModalOpen(false)}
+        onSave={handleSaveEdit}
       />
-      {renderQuestionContent()}
-      <Box display='flex' justifyContent='center' mt={4}>
-        <Pagination
-          count={totalPages}
-          page={currentPage}
-          onChange={(_, page) => onPageChange(page)}
-          color='primary'
+      <Box>
+        <CascadingFilters
+          key={`cascading-filters-${Object.keys(filters).join('-')}`}
+          onFilterChange={filters => {
+            console.log('CascadingFilters filters:', filters);
+            handleFilterChange(filters);
+          }}
         />
+        {renderQuestionContent()}
+        <Box display='flex' justifyContent='center' mt={4}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={(_, page) => onPageChange(page)}
+            color='primary'
+          />
+        </Box>
       </Box>
-    </Box>
+    </>
   );
 }
 

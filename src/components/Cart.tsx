@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Typography,
   Box,
@@ -23,6 +24,7 @@ import {
   FileDownload as ExportIcon,
 } from '@mui/icons-material';
 import { useCartStore } from '@/store/cartStore';
+import { removeFromCart, fetchCartItems } from '@/lib/client-actions';
 import { useRouter } from 'next/navigation';
 import { QuestionCard } from './QuestionCard';
 import * as XLSX from 'xlsx';
@@ -44,6 +46,23 @@ export default function Cart() {
   const [mounted, setMounted] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [testId] = useState(() => {
+    // Use the same test ID from actions.ts
+    if (typeof window !== 'undefined') {
+      const storedTestId = localStorage.getItem('testId');
+      if (storedTestId) {
+        console.log('Using stored testId:', storedTestId);
+        return storedTestId;
+      }
+      const newTestId = uuidv4();
+      console.log('Generated new testId:', newTestId);
+      localStorage.setItem('testId', newTestId);
+      return newTestId;
+    }
+    const fallbackTestId = uuidv4();
+    console.log('Using fallback testId:', fallbackTestId);
+    return fallbackTestId;
+  });
   const [testDetails, setTestDetails] = useState({
     testName: '',
     batch: '',
@@ -61,7 +80,20 @@ export default function Cart() {
     useCartStore.persist.rehydrate();
     // Log cart contents on mount
     console.log('Cart Component Mounted, Current Questions:', questions);
-  }, []);
+
+    // Initialize cart items
+    if (testId) {
+      console.log('Fetching cart items with testId:', testId); // Debug log
+      fetchCartItems(testId).then(result => {
+        console.log('Fetched cart items:', result); // Debug log
+        if (result.questions && Array.isArray(result.questions)) {
+          result.questions.forEach(item => useCartStore.getState().addQuestion(item));
+        }
+      }).catch(error => {
+        console.error('Error fetching cart items:', error);
+      });
+    }
+  }, [testId]);
   useEffect(() => {
     // Check for user in localStorage
     const storedUser = localStorage.getItem('user');
@@ -73,20 +105,32 @@ export default function Cart() {
       }
     }
   }, []);
-  const handleRemoveQuestion = (questionId: string | number) => {
+  const handleRemoveQuestion = async (questionId: string | number) => {
     console.log('Attempting to remove question from cart:', questionId);
     // Find the question being removed (for snackbar)
     const removedQuestionDetails = questions.find(q => q.id === questionId);
-    // Remove the question
-    removeQuestion(String(questionId));
-    // Set snackbar state
-    if (removedQuestionDetails) {
-      setRemovedQuestion(
-        (removedQuestionDetails.text || 'Question').toString()
-      );
-      setSnackbarOpen(true);
+    
+    try {
+      // Remove the question from the store first for immediate UI update
+      removeQuestion(String(questionId));
+      
+      // Then remove from server
+      await removeFromCart(questionId, testId);
+      
+      // Set snackbar state
+      if (removedQuestionDetails) {
+        setRemovedQuestion(
+          (removedQuestionDetails.text || 'Question').toString()
+        );
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error('Error removing question:', error);
+      // If server removal fails, add the question back to the store
+      if (removedQuestionDetails) {
+        useCartStore.getState().addQuestion(removedQuestionDetails);
+      }
     }
-    console.log('Updated cart after removal:', useCartStore.getState().questions);
   };
   const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') {
@@ -98,17 +142,20 @@ export default function Cart() {
     // Prepare export data with ALL available question details
     const exportData = questions.map((question, index) => {
       // Create a structured row with specific fields in desired order
+      console.log('Processing question:', question); // Debug log
       const exportRow = {
         'S.No': index + 1,
         Question: question.Question,
         Answer: question.Answer || '',
         Explanation: question.Explanation || '',
         Subject: question.Subject,
-        'Module Name': question['Module Name'] || '',
+        'Module Name': question.ModuleName || question['Module Name'] || '',
         Topic: question.Topic,
-        'Difficulty Level': question['Difficulty Level'] || '',
-        'Question Type': question.Question_Type || '',
+        'Difficulty Level': question.DifficultyLevel || question['Difficulty Level'] || '',
+        'Question Type': question.QuestionType || question.Question_Type || '',
+        'Nature of Question': question.NatureOfQuestion || question['Nature of Question'] || '',
       };
+      console.log('Export row:', exportRow); // Debug log
       return exportRow;
     });
     // Create workbook and worksheet

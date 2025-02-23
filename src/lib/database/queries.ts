@@ -40,6 +40,29 @@ export const openDatabase = async (): Promise<Database.Database> => {
     // Ensure tables are created if they don't exist
     createQuestionsTable(db);
 
+    // Create cart tables
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS carts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        test_id TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT unique_test_id UNIQUE(test_id)
+      )
+    `).run();
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS cart_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cart_id INTEGER NOT NULL,
+        question_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (cart_id) REFERENCES carts(id),
+        FOREIGN KEY (question_id) REFERENCES questions(id),
+        CONSTRAINT unique_cart_question UNIQUE(cart_id, question_id)
+      )
+    `).run();
+
+    console.log('✅ Database tables created successfully');
     return db;
   } catch (error) {
     console.error('Critical error opening database:', error);
@@ -61,6 +84,7 @@ const createQuestionsTable = (db: Database.Database) => {
         "Sub Topic" TEXT,
         "Difficulty Level" TEXT NOT NULL,
         Question_Type TEXT NOT NULL,
+        "Nature of Question" TEXT,
         CONSTRAINT unique_question UNIQUE(Question)
       )
     `).run();
@@ -320,7 +344,6 @@ export const addQuestion = asyncErrorHandler(async (questionData: Question) => {
     );
 
     return {
-      id: result.lastInsertRowid,
       ...questionData
     };
   } finally {

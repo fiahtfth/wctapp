@@ -54,7 +54,10 @@ export const useCartStore = create<CartStore>()(
       removeQuestion: (questionId) => {
         console.log('Removing question from cart', questionId);
         set((state) => {
-          const newQuestions = state.questions.filter((q) => q.id !== questionId);
+          // Convert both IDs to strings for comparison
+          const newQuestions = state.questions.filter((q) => 
+            String(q.id) !== String(questionId)
+          );
           console.log('Updated cart questions after removal', newQuestions);
           return { questions: newQuestions };
         });

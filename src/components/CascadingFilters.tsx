@@ -66,6 +66,10 @@ export const CascadingFilters = ({
   }, []);
 
   useEffect(() => {
+    console.log('Current Selected Subjects:', selectedSubjects);
+  }, [selectedSubjects]);
+
+  useEffect(() => {
     if (selectedSubjects.length > 0) {
       const uniqueModules = selectedSubjects.flatMap(subject => getModules(subject));
       const deduplicatedModules = [...new Set(uniqueModules)];
@@ -101,6 +105,10 @@ export const CascadingFilters = ({
     setQuestionTypes(questionTypes);
   }, []);
 
+  useEffect(() => {
+    console.log('Current Selected Subjects:', selectedSubjects);
+  }, [selectedSubjects]);
+
   const handleFilterChange = (filterState: {
     subject?: string[];
     module?: string[];
@@ -120,6 +128,7 @@ export const CascadingFilters = ({
   const handleSubjectChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const subjects = typeof value === 'string' ? value.split(',') : value;
+    console.log('Selected Subjects:', subjects);
     setSelectedSubjects(subjects);
     handleFilterChange({
       subject: subjects.length > 0 ? subjects : undefined,
@@ -133,13 +142,14 @@ export const CascadingFilters = ({
   const handleModuleChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const modules = typeof value === 'string' ? value.split(',') : value;
-    const validTopics = selectedTopics.filter(topic => topics.includes(topic));
+    console.log('Selected Modules:', modules); 
     setSelectedModules(modules);
-    setSelectedTopics(validTopics);
+    console.log('Updated Selected Modules:', modules); 
+    setSelectedTopics([]);
     handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: modules.length > 0 ? modules : undefined,
-      topic: validTopics.length > 0 ? validTopics : undefined,
+      topic: undefined,
       questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
       search: searchQuery,
     });
@@ -148,7 +158,9 @@ export const CascadingFilters = ({
   const handleTopicChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const topics = typeof value === 'string' ? value.split(',') : value;
+    console.log('Selected Topics:', topics); 
     setSelectedTopics(topics);
+    console.log('Updated Selected Topics:', topics); 
     handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
@@ -161,7 +173,9 @@ export const CascadingFilters = ({
   const handleQuestionTypeChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const types = typeof value === 'string' ? value.split(',') : value;
+    console.log('Selected Question Types:', types); 
     setSelectedQuestionTypes(types);
+    console.log('Updated Selected Question Types:', types); 
     handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
@@ -173,7 +187,9 @@ export const CascadingFilters = ({
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
+    console.log('Search Query:', value); 
     setSearchQuery(value);
+    console.log('Updated Search Query:', value); 
     handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
@@ -230,10 +246,19 @@ export const CascadingFilters = ({
               label="Subject"
               onChange={handleSubjectChange}
               renderValue={selected => selected.join(', ')}
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 300
+                  }
+                }
+              }}
             >
               {subjects.map(subject => (
                 <MenuItem key={`subject-${subject}`} value={subject}>
-                  <Checkbox checked={selectedSubjects.includes(subject)} />
+                  <Checkbox 
+                    checked={selectedSubjects.includes(subject)} 
+                  />
                   <ListItemText primary={subject} />
                 </MenuItem>
               ))}
@@ -265,10 +290,19 @@ export const CascadingFilters = ({
               label="Module"
               onChange={handleModuleChange}
               renderValue={selected => selected.join(', ')}
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 300
+                  }
+                }
+              }}
             >
               {modules.map(module => (
                 <MenuItem key={`module-${module}`} value={module}>
-                  <Checkbox checked={selectedModules.includes(module)} />
+                  <Checkbox 
+                    checked={selectedModules.includes(module)} 
+                  />
                   <ListItemText primary={module} />
                 </MenuItem>
               ))}
@@ -300,10 +334,19 @@ export const CascadingFilters = ({
               label="Topic"
               onChange={handleTopicChange}
               renderValue={selected => selected.join(', ')}
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 300
+                  }
+                }
+              }}
             >
               {topics.map(topic => (
                 <MenuItem key={`topic-${topic}`} value={topic}>
-                  <Checkbox checked={selectedTopics.includes(topic)} />
+                  <Checkbox 
+                    checked={selectedTopics.includes(topic)} 
+                  />
                   <ListItemText primary={topic} />
                 </MenuItem>
               ))}
@@ -334,10 +377,19 @@ export const CascadingFilters = ({
               label="Question Type"
               onChange={handleQuestionTypeChange}
               renderValue={selected => selected.join(', ')}
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 300
+                  }
+                }
+              }}
             >
               {questionTypes.map(type => (
                 <MenuItem key={`question-type-${type}`} value={type}>
-                  <Checkbox checked={selectedQuestionTypes.includes(type)} />
+                  <Checkbox 
+                    checked={selectedQuestionTypes.includes(type)} 
+                  />
                   <ListItemText primary={type} />
                 </MenuItem>
               ))}

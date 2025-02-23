@@ -3,8 +3,8 @@
  * Ensures type consistency across the entire application
  */
 export interface Question {
-  // Unique identifier, optional for new questions
-  id?: number;
+  // Unique identifier
+  id: number;
   // Core question content (required)
   Question: string;
   Answer: string;
@@ -37,6 +37,7 @@ export interface Question {
 export function isQuestion(obj: any): obj is Question {
   return (
     obj &&
+    typeof obj.id === 'number' &&
     typeof obj.Question === 'string' &&
     typeof obj.Answer === 'string' &&
     typeof obj.Subject === 'string' &&
@@ -52,6 +53,7 @@ export function isQuestion(obj: any): obj is Question {
  */
 export function createDefaultQuestion(): Question {
   return {
+    id: 0,
     Question: '',
     Answer: '',
     Subject: '',
@@ -87,8 +89,9 @@ export async function addQuestion(question: Question): Promise<{ id: number }> {
  * @returns A promise with the added question's id
  */
 export async function addQuestionToCart(questionId: number, testId: string): Promise<{ id: number }> {
-  // Placeholder implementation
-  return { id: 0 };
+  const { addQuestionToCart: dbAddToCart } = await import('@/lib/database/cartQueries');
+  const success = await dbAddToCart(questionId, testId);
+  return { id: success ? Number(questionId) : 0 };
 }
 
 /**
@@ -97,8 +100,9 @@ export async function addQuestionToCart(questionId: number, testId: string): Pro
  * @param testId The ID of the test to remove the question from
  * @returns A promise that resolves when the question is removed
  */
-export async function removeQuestionFromCart(questionId: number, testId: string): Promise<void> {
-  // Placeholder implementation
+export async function removeQuestionFromCart(questionId: number | string, testId: string): Promise<boolean> {
+  const { removeQuestionFromCart: dbRemoveFromCart } = await import('@/lib/database/cartQueries');
+  return dbRemoveFromCart(questionId, testId);
 }
 
 /**
@@ -107,8 +111,8 @@ export async function removeQuestionFromCart(questionId: number, testId: string)
  * @returns An array of questions in the cart
  */
 export async function getCartQuestions(testId: string): Promise<Question[]> {
-  // Placeholder implementation
-  return [];
+  const { getCartQuestions: dbGetCartQuestions } = await import('@/lib/database/cartQueries');
+  return dbGetCartQuestions(testId);
 }
 
 /**
