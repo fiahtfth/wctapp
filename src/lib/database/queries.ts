@@ -9,7 +9,7 @@ import { AppError, asyncErrorHandler } from '@/lib/errorHandler';
 
 // Use configuration for database path
 const DB_PATH = process.env.NODE_ENV === 'test' 
-  ? path.join(process.cwd(), 'test-questions.db')
+  ? path.join(process.cwd(), 'wctapp.db')
   : APP_CONFIG.DATABASE.PATH;
 
 console.log('📂 Database Configuration:', {
@@ -116,13 +116,14 @@ export type Question = ImportedQuestion;
 export interface QuestionsResult {
   questions: Question[];
   total: number;
+  totalQuestions: number;
   page: number;
   pageSize: number;
   totalPages: number;
   error: null | Error;
 }
 
-export const getQuestions = asyncErrorHandler(async (params: {
+export const getQuestions = asyncErrorHandler(async (filters: {
   page?: number | string;
   pageSize?: number | string;
   subject?: string | string[];
@@ -131,13 +132,14 @@ export const getQuestions = asyncErrorHandler(async (params: {
   sub_topic?: string | string[];
   question_type?: string | string[];
   search?: string;
+  difficulty?: string;
 }) => {
-  console.log('🔍 Fetching Questions with Params:', JSON.stringify(params, null, 2));
+  console.log('🔍 Fetching Questions with Params:', JSON.stringify(filters, null, 2));
   console.log('📂 Database Path:', DB_PATH);
   console.log('🗃️ Database Exists:', fs.existsSync(DB_PATH));
 
   // Validate input parameters
-  if (!params) {
+  if (!filters) {
     throw new Error('No parameters provided for question retrieval');
   }
 
@@ -145,8 +147,8 @@ export const getQuestions = asyncErrorHandler(async (params: {
 
   try {
     // Sanitize and validate parameters
-    const page = Math.max(1, Number(params.page || 1));
-    const pageSize = Math.min(Math.max(1, Number(params.pageSize || 10)), 50); // Limit to 50 per page
+    const page = Math.max(1, Number(filters.page || 1));
+    const pageSize = Math.min(Math.max(1, Number(filters.pageSize || 10)), 50); // Limit to 50 per page
     const offset = (page - 1) * pageSize;
 
     console.log('📄 Query pagination:', { page, pageSize, offset });
@@ -154,11 +156,15 @@ export const getQuestions = asyncErrorHandler(async (params: {
     console.log('📄 Pagination Details:', { page, pageSize, offset });
 
     // Prepare base query
-    let baseQuery = `
-      SELECT * FROM questions 
-      WHERE 1=1
+    let query = `
+      SELECT * FROM questions
     `;
-    const queryParams: any[] = [];
+    let hasFilters = false;
+    const params: any[] = [];
+
+    console.log('📊 Query Parameters Before Applying Filters:', params);
+
+    console.log('🔍 Applying Filters:');
 
     // Helper function to add filter conditions
     const addFilter = (column: string, filterValue?: string | string[]) => {
@@ -166,83 +172,119 @@ export const getQuestions = asyncErrorHandler(async (params: {
 
       const values = Array.isArray(filterValue) ? filterValue : [filterValue];
       const placeholders = values.map(() => '?').join(',');
-      
+
       console.log(`🧩 Adding Filter: ${column} IN (${values.join(', ')})`);
-      baseQuery += ` AND ${column} IN (${placeholders})`;
-      queryParams.push(...values);
+      if (!hasFilters) {
+        query += ` WHERE ${column} IN (${placeholders})`;
+        hasFilters = true;
+      } else {
+        query += ` AND ${column} IN (${placeholders})`;
+      }
+      params.push(...values);
     };
 
-    // Apply filters with NULL handling
-    if (params.subject) {
-      baseQuery += ` AND Subject IN (${Array(params.subject.length).fill('?').join(',')})`;      
-      queryParams.push(...(Array.isArray(params.subject) ? params.subject : [params.subject]));
-    }
-    
-    if (params.module) {
-      baseQuery += ` AND "Module Name" IN (${Array(params.module.length).fill('?').join(',')})`;      
-      queryParams.push(...(Array.isArray(params.module) ? params.module : [params.module]));
-    }
-    
-    if (params.topic) {
-      baseQuery += ` AND Topic IN (${Array(params.topic.length).fill('?').join(',')})`;      
-      queryParams.push(...(Array.isArray(params.topic) ? params.topic : [params.topic]));
-    }
-    
-    if (params.sub_topic) {
-      baseQuery += ` AND ("Sub Topic" IN (${Array(params.sub_topic.length).fill('?').join(',')}) OR "Sub Topic" IS NULL)`;
-      queryParams.push(...(Array.isArray(params.sub_topic) ? params.sub_topic : [params.sub_topic]));
-    }
-    
-    if (params.question_type) {
-      baseQuery += ` AND Question_Type IN (${Array(params.question_type.length).fill('?').join(',')})`;      
-      queryParams.push(...(Array.isArray(params.question_type) ? params.question_type : [params.question_type]));
+    // Handle difficulty filter
+    if (filters.difficulty) {
+      addFilter('"Difficulty Level"', filters.difficulty);
     }
 
-    // Log current query state
-    console.log('🔧 Current Query:', baseQuery);
-    console.log('📊 Current Parameters:', queryParams);
+    if (filters.subject) {
+      addFilter('Subject', filters.subject);
+    }
+
+    if (filters.module) {
+      addFilter('"Module Name"', filters.module);
+    }
+
+    if (filters.topic) {
+      addFilter('Topic', filters.topic);
+    }
+
+    if (filters.sub_topic) {
+      addFilter('"Sub Topic"', filters.sub_topic);
+    }
+
+    if (filters.question_type) {
+      addFilter('Question_Type', filters.question_type);
+    }
 
     // Search filter (if applicable)
-    if (params.search) {
-      console.log(`🔍 Search Term: ${params.search}`);
-      baseQuery += ` AND (
+    if (filters.search) {
+      console.log(`🔍 Search Term: ${filters.search}`);
+      if (!hasFilters) {
+        query += ` WHERE (
         Question LIKE ? OR 
         Answer LIKE ? OR 
         Explanation LIKE ? OR 
         Subject LIKE ? OR 
         Topic LIKE ?
       )`;
-      const searchTerm = `%${params.search}%`;
-      queryParams.push(
+      } else {
+        query += ` AND (
+        Question LIKE ? OR 
+        Answer LIKE ? OR 
+        Explanation LIKE ? OR 
+        Subject LIKE ? OR 
+        Topic LIKE ?
+      )`;
+      }
+      const searchTerm = `%${filters.search}%`;
+      params.push(
         searchTerm, searchTerm, searchTerm, 
         searchTerm, searchTerm
       );
+      console.log('🔧 Query After Search Filter:', query);
     }
 
-    console.log('📋 Base Query:', baseQuery);
-    console.log('🔢 Query Parameters:', queryParams);
+    // Add sorting
+    query += ` ORDER BY id ASC`;
 
-    // Count total matching questions
-    const countQuery = `SELECT COUNT(*) as total FROM (${baseQuery}) as subquery`;
-    let countResult;
+    // Get total count before pagination
+    let countQuery = 'SELECT COUNT(*) as total FROM questions';
+    let countParams: any[] = [];
+
+    if (hasFilters) {
+      const whereClauseStart = query.indexOf('WHERE');
+      const orderByStart = query.indexOf('ORDER BY');
+      let filterQuery = orderByStart > -1 
+        ? query.substring(whereClauseStart, orderByStart).trim()
+        : query.substring(whereClauseStart).trim();
+      countQuery += ` ${filterQuery}`;
+      countParams = [...params];
+    }
+
+    let totalCount = 0;
     try {
-      countResult = db.prepare(countQuery).get(...queryParams) as { total: number };
+      const countResult = await db.prepare(countQuery).get(...countParams) as { total: number };
+      totalCount = countResult.total;
+      console.log('📊 Total Count:', totalCount);
     } catch (countError) {
       console.error('❌ Count Query Error:', countError);
-      throw new Error(`Failed to count questions: ${countError instanceof Error ? countError.message : String(countError)}`);
+      throw new Error(`Failed to get total count: ${countError instanceof Error ? countError.message : String(countError)}`);
     }
 
-    const total = countResult.total;
-    console.log('📊 Total Matching Questions:', total);
+    // Add pagination
+    query += ` LIMIT ? OFFSET ?`;
+    params.push(pageSize.toString(), offset.toString());
 
-    // Add pagination to base query
-    baseQuery += ` LIMIT ? OFFSET ?`;
-    queryParams.push(pageSize, offset);
+    console.log('🔧 Final Query:', {
+      query,
+      params: params,
+      pagination: { page, pageSize, offset }
+    });
 
-    // Execute query
-    let rawQuestions;
+    console.log('🔢 Final Query Parameters:', params);
+
+    console.log('🔧 SQL Query:', query);
+    console.log('🔢 Query Parameters:', params);
+
+    let rawQuestions: Question[];
     try {
-      rawQuestions = db.prepare(baseQuery).all(...queryParams);
+      rawQuestions = await db.prepare(query).all(...params) as Question[];
+      console.log('📝 Fetched Questions:', {
+        count: rawQuestions.length,
+        difficulties: rawQuestions.map(q => q['Difficulty Level'])
+      });
     } catch (queryError) {
       console.error('❌ Query Execution Error:', queryError);
       throw new Error(`Failed to fetch questions: ${queryError instanceof Error ? queryError.message : String(queryError)}`);
@@ -268,27 +310,30 @@ export const getQuestions = asyncErrorHandler(async (params: {
         Objective: '', // Default value
         ModuleNumber: '', // Default value
         NatureOfQuestion: null, // Default value
-        MicroTopic: null, // Default value
+        MicroTopic: null, // Default value,
       };
     });
 
-    // Calculate total pages
-    const totalPages = Math.ceil(total / pageSize);
+    // Calculate pagination with bounds checking
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const safePage = Math.min(page, totalPages);
 
     console.log('✅ Questions Retrieval Successful', {
-      totalQuestions: total,
+      totalQuestions: totalCount,
       returnedQuestions: questions.length,
-      page,
+      page: safePage,
       pageSize,
       totalPages
     });
 
     return {
       questions,
-      total,
-      page,
+      total: totalCount,
+      totalQuestions: totalCount,
+      page: safePage,
       pageSize,
-      totalPages
+      totalPages,
+      error: null
     };
   } catch (error) {
     console.error('❌ Unexpected Error in getQuestions:', error);

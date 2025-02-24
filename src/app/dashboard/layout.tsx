@@ -28,7 +28,8 @@ export default function DashboardLayout({
   useEffect(() => {
     const fetchCartCount = async () => {
       try {
-        const cartItems = await getCartItems();
+        const testId = localStorage.getItem('testId') || '';
+        const cartItems = await getCartItems(testId);
         setCartCount(cartItems.length);
       } catch (error) {
         console.error("Failed to fetch cart items", error);

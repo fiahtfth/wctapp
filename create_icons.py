@@ -11,13 +11,14 @@ def create_icon(size, text):
         font = ImageFont.truetype("/Library/Fonts/Arial.ttf", size // 6)
     except IOError:
         font = ImageFont.load_default()
-    
-    # Get text size
-    text_width, text_height = draw.textsize(text, font=font)
-    
+    # Get text bounding box
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
     # Calculate position to center the text
     position = ((size - text_width) / 2, (size - text_height) / 2)
-    
+
     # Draw the text
     draw.text(position, text, fill='navy', font=font)
     

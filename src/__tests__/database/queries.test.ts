@@ -19,7 +19,7 @@ jest.mock('@/config', () => ({
 
 describe('getQuestions Database Queries', () => {
   let testDb: Database.Database;
-  const TEST_DB_PATH = path.resolve(__dirname, '..', '..', '..', 'test-questions.db');
+  const TEST_DB_PATH = path.resolve(process.cwd(), 'wctapp.db');
 
   beforeAll(() => {
     // Ensure test database directory exists
@@ -46,59 +46,16 @@ describe('getQuestions Database Queries', () => {
     }
   });
 
-  beforeEach(() => {
-    // Clear and populate test data before each test
-    testDb.prepare('DELETE FROM questions').run();
-    
-    const insertQuestion = testDb.prepare(`
+  beforeEach(async () => {
+    await testDb.exec(`DELETE FROM questions`);
+    await testDb.exec(`
       INSERT INTO questions 
-      (Question, Answer, Subject, "Module Name", Topic, "Difficulty Level", Question_Type) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+        (Question, Answer, Subject, "Difficulty Level", "Module Name", Topic, "Sub Topic", Question_Type, Explanation)
+      VALUES 
+        ('What is the derivative of x^2?', '2x', 'Mathematics', 'Medium', 'Calculus', 'Differentiation', NULL, 'Objective', NULL),
+        ('What is the capital of France?', 'Paris', 'Geography', 'Easy', 'World Capitals', 'European Capitals', NULL, 'Objective', NULL),
+        ('Explain quantum entanglement', 'Spooky action', 'Physics', 'Difficult', 'Quantum Mechanics', 'Entanglement', NULL, 'Essay', NULL);
     `);
-
-    const insertMany = testDb.transaction((questions) => {
-      for (const q of questions) {
-        insertQuestion.run(
-          q.Question, 
-          q.Answer, 
-          q.Subject, 
-          q['Module Name'], 
-          q.Topic, 
-          q['Difficulty Level'], 
-          q['Question_Type']
-        );
-      }
-    });
-
-    insertMany([
-      {
-        Question: 'What is the capital of France?',
-        Answer: 'Paris',
-        Subject: 'Geography',
-        'Module Name': 'European Capitals',
-        Topic: 'France',
-        'Difficulty Level': 'Easy',
-        'Question_Type': 'Objective'
-      },
-      {
-        Question: 'What is the derivative of x^2?',
-        Answer: '2x',
-        Subject: 'Mathematics',
-        'Module Name': 'Calculus',
-        Topic: 'Differentiation',
-        'Difficulty Level': 'Medium',
-        'Question_Type': 'Objective'
-      },
-      {
-        Question: 'What is photosynthesis?',
-        Answer: 'Process by which plants make food using sunlight',
-        Subject: 'Science',
-        'Module Name': 'Biology',
-        Topic: 'Plant Biology',
-        'Difficulty Level': 'Hard',
-        'Question_Type': 'Subjective'
-      }
-    ]);
   });
 
   test('should retrieve questions with default pagination', async () => {
@@ -125,31 +82,39 @@ describe('getQuestions Database Queries', () => {
   });
 
   test('should filter questions by difficulty level', async () => {
+    // First verify the test data
+    const allQuestions = await testDb.prepare('SELECT "Difficulty Level", Question FROM questions').all();
+    console.log('🔍 All questions and their difficulty levels:', allQuestions);
+
+    // Try direct SQL query
+    const directQuery = await testDb.prepare(`
+      SELECT * FROM questions 
+      WHERE "Difficulty Level" = ?
+      ORDER BY id ASC LIMIT ? OFFSET ?
+    `).all('Difficult', '1', '0');
+    console.log('🔍 Direct query results:', directQuery);
+
+    // Now run the actual test
     const result = await getQuestions({ 
       page: 1, 
-      pageSize: 10,
-      'Difficulty Level': 'Medium' 
+      pageSize: 1,
+      difficulty: 'Difficult'
     });
-
-    console.log('Difficulty Level Filter Result:', JSON.stringify(result, null, 2));
-    console.log('Difficulty Level Questions:', result.questions.map(q => ({
-      question: q.Question,
-      difficulty: q['Difficulty Level']
-    })));
-
-    expect(result.questions.length).toBe(1);
-    expect(result.questions[0].Question).toBe('What is the derivative of x^2?');
+    console.log('🎯 Filter results:', result);
+    
+    expect(result.questions.length).toBe(1); // Should get one question due to pagination
+    expect(result.totalQuestions).toBe(1); // Should have one difficult question in total
   });
 
   test('should filter questions by question type', async () => {
     const result = await getQuestions({ 
       page: 1, 
       pageSize: 10,
-      question_type: 'Subjective' 
+      question_type: 'Essay' 
     });
 
     expect(result.questions.length).toBe(1);
-    expect(result.questions[0].Question).toBe('What is photosynthesis?');
+    expect(result.questions[0].Question).toBe('Explain quantum entanglement');
   });
 
   test('should handle pagination correctly', async () => {
@@ -176,11 +141,11 @@ describe('getQuestions Database Queries', () => {
     const result = await getQuestions({ 
       page: 1, 
       pageSize: 10,
-      search: 'photosynthesis' 
+      search: 'entanglement' 
     });
 
     expect(result.questions.length).toBe(1);
-    expect(result.questions[0].Question).toBe('What is photosynthesis?');
+    expect(result.questions[0].Question).toBe('Explain quantum entanglement');
   });
 
   test('should return empty result for non-matching filters', async () => {

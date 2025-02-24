@@ -4,6 +4,7 @@ async function testQuestionSubmission() {
     // Test case 1: Complete question submission
     try {
         const completeQuestion: Question = {
+            id: 1,
             Question: 'What is the capital of France?',
             Answer: 'Paris',
             Subject: 'Geography',
@@ -24,6 +25,7 @@ async function testQuestionSubmission() {
         console.log('✅ Complete Question Submitted Successfully! ID:', result.id);
         // Test case 2: Minimal required fields
         const minimalQuestion: Question = {
+            id: 2,
             Question: 'What is 2 + 2?',
             Answer: '4',
             Subject: 'Mathematics',

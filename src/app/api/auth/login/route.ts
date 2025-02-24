@@ -4,7 +4,10 @@ import Database from 'better-sqlite3';
 import { SignJWT } from 'jose';
 import path from 'path';
 import crypto from 'crypto';
-const LOG_LEVEL = 'debug'; // 'error', 'warn', 'info', 'debug'
+import * as init from '@/lib/database/init';
+const DB_PATH = init.DB_PATH;
+
+const LOG_LEVEL = 'debug'; // 'error', 'warn', 'info' | 'debug'
 function log(level: 'error' | 'warn' | 'info' | 'debug', message: string, data?: any) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
@@ -21,16 +24,14 @@ function generateJwtSecret(): string {
 export async function POST(request: NextRequest) {
   let db;
   try {
-    // Resolve database path from environment variable
-    const databaseUrl = process.env.DATABASE_URL || '';
-    const dbPath = databaseUrl.replace('file:', '');
-    const resolvedDbPath = path.resolve(process.cwd(), dbPath || './dev.db');
+    const DB_PATH = init.DB_PATH;
     // Ensure JWT secret is available and consistent
     const jwtSecret = process.env.JWT_SECRET || generateJwtSecret();
-    log('debug', 'Database Path', { resolvedDbPath });
+    log('debug', 'Database Path', { DB_PATH, DATABASE_URL: process.env.DATABASE_URL });
     log('debug', 'JWT Secret', {
       secretAvailable: !!jwtSecret,
       secretLength: jwtSecret.length,
+      JWT_SECRET: process.env.JWT_SECRET
     });
     // Log full request details
     log('debug', 'Received login request', {
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
       headers: Object.fromEntries(request.headers),
     });
     // Validate request method
+    log('info', 'Validating request method');
     if (request.method !== 'POST') {
       log('error', 'Invalid HTTP method');
       return NextResponse.json(
@@ -99,13 +101,14 @@ export async function POST(request: NextRequest) {
     }
     // Database connection with error handling
     try {
-      db = new Database(resolvedDbPath, { readonly: true });
+      log('info', 'Connecting to database', { DB_PATH });
+      db = new Database(DB_PATH, { readonly: true });
+      log('info', 'Database connection successful', { DB_PATH });
     } catch (dbError: unknown) {
       const errorMessage = dbError instanceof Error ? dbError.message : String(dbError);
       log('error', 'Database connection failed', {
         errorName: dbError instanceof Error ? dbError.name : 'Unknown Error',
         errorMessage,
-        dbPath: resolvedDbPath,
       });
       return NextResponse.json(
         {
@@ -117,6 +120,7 @@ export async function POST(request: NextRequest) {
       );
     }
     // User lookup with detailed logging
+    log('info', 'Looking up user', { email });
     let user;
     try {
       const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
@@ -132,7 +136,8 @@ export async function POST(request: NextRequest) {
         userFound: !!user,
         email: user?.email,
       });
-    } catch (lookupError: unknown) {
+      log('debug', 'User object', { user });
+    }  catch (lookupError: unknown) {
       const errorMessage = lookupError instanceof Error ? lookupError.message : String(lookupError);
       log('error', 'User lookup error', {
         errorName: lookupError instanceof Error ? lookupError.name : 'Unknown Error',
@@ -192,7 +197,7 @@ export async function POST(request: NextRequest) {
       );
     }
     if (!isPasswordValid) {
-      log('warn', 'Invalid password', { email });
+      log('warn', 'Invalid password', { email, isPasswordValid });
       return NextResponse.json(
         {
           error: 'Authentication Failed',
@@ -240,6 +245,7 @@ export async function POST(request: NextRequest) {
       errorMessage,
       stack: unexpectedError instanceof Error ? unexpectedError.stack : undefined,
     });
+    log('error', 'Returning 500 error', { errorMessage });
     return NextResponse.json(
       {
         error: 'Internal Server Error',
@@ -248,5 +254,9 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+  } finally {
+    if (db) {
+      db.close();
+    }
   }
 }

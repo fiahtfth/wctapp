@@ -32,12 +32,7 @@ export async function addToCart(question: any) {
   }
 }
 
-export async function removeFromCart(questionId: string | number) {
-  const testId = getTestId();
-  if (!testId) {
-    throw new Error('No test ID available');
-  }
-
+export async function removeFromCart(questionId: string | number, testId: string) {
   try {
     const result = await serverRemoveFromCart(questionId, testId);
     if (result.success) {

@@ -70,8 +70,19 @@ export const CascadingFilters = ({
   }, [selectedSubjects]);
 
   useEffect(() => {
+    console.log('Current Selected Modules:', selectedModules);
+  }, [selectedModules]);
+
+  useEffect(() => {
+    console.log('Current Selected Topics:', selectedTopics);
+  }, [selectedTopics]);
+
+  useEffect(() => {
     if (selectedSubjects.length > 0) {
-      const uniqueModules = selectedSubjects.flatMap(subject => getModules(subject));
+      const uniqueModules = selectedSubjects.flatMap(subject => {
+        console.log('Fetching modules for subject:', subject);
+        return getModules(subject);
+      });
       const deduplicatedModules = [...new Set(uniqueModules)];
       setModules(deduplicatedModules);
       const validModules = selectedModules.filter(module => deduplicatedModules.includes(module));
@@ -87,7 +98,10 @@ export const CascadingFilters = ({
   useEffect(() => {
     if (selectedSubjects.length > 0 && selectedModules.length > 0) {
       const uniqueTopics = selectedSubjects.flatMap(subject =>
-        selectedModules.flatMap(module => getTopics(subject, module))
+        selectedModules.flatMap(module => {
+          console.log('Fetching topics for subject:', subject, 'module:', module);
+          return getTopics(subject, module);
+        })
       );
       const deduplicatedTopics = [...new Set(uniqueTopics)];
       setTopics(deduplicatedTopics);
@@ -121,6 +135,7 @@ export const CascadingFilters = ({
     logFilterProcessing('CascadingFilters', filterState, validationResult);
     setFilterErrors(validationResult.errors);
     if (validationResult.isValid) {
+      console.log('CascadingFilters filterState:', filterState);
       onFilterChange?.(sanitizedFilters);
     }
   };
@@ -130,6 +145,7 @@ export const CascadingFilters = ({
     const subjects = typeof value === 'string' ? value.split(',') : value;
     console.log('Selected Subjects:', subjects);
     setSelectedSubjects(subjects);
+    console.log('Updated selectedSubjects:', subjects);
     handleFilterChange({
       subject: subjects.length > 0 ? subjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
@@ -144,7 +160,8 @@ export const CascadingFilters = ({
     const modules = typeof value === 'string' ? value.split(',') : value;
     console.log('Selected Modules:', modules); 
     setSelectedModules(modules);
-    console.log('Updated Selected Modules:', modules); 
+    console.log('Updated Selected Modules:', modules);
+    console.log('Updated selectedModules:', modules);
     setSelectedTopics([]);
     handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
@@ -160,7 +177,8 @@ export const CascadingFilters = ({
     const topics = typeof value === 'string' ? value.split(',') : value;
     console.log('Selected Topics:', topics); 
     setSelectedTopics(topics);
-    console.log('Updated Selected Topics:', topics); 
+    console.log('Updated Selected Topics:', topics);
+    console.log('Updated selectedTopics:', topics);
     handleFilterChange({
       subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,

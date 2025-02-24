@@ -2,8 +2,8 @@
 
 import { headers } from 'next/headers';
 
-function getBaseUrl() {
-  const headersList = headers();
+async function getBaseUrl() {
+  const headersList = await headers();
   const host = headersList.get('host') || '';
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
   return `${protocol}://${host}`;
@@ -15,7 +15,7 @@ export async function removeFromCart(questionId: number | string, testId: string
   }
 
   try {
-    const baseUrl = getBaseUrl();
+    const baseUrl = await getBaseUrl();
     const response = await fetch(`${baseUrl}/api/cart/remove`, {
       method: 'POST',
       headers: {
@@ -43,7 +43,7 @@ export async function addQuestionToCart(questionId: number, testId: string) {
   }
 
   try {
-    const baseUrl = getBaseUrl();
+    const baseUrl = await getBaseUrl();
     const response = await fetch(`${baseUrl}/api/cart`, {
       method: 'POST',
       headers: {
@@ -70,7 +70,7 @@ export async function exportTest(testId: string) {
     throw new Error('Test ID is required');
   }
 
-  const baseUrl = getBaseUrl();
+  const baseUrl = await getBaseUrl();
   const response = await fetch(`${baseUrl}/api/export`, {
     method: 'POST',
     headers: {
@@ -95,7 +95,7 @@ export async function getCartItems(testId: string) {
   }
 
   try {
-    const baseUrl = getBaseUrl();
+    const baseUrl = await getBaseUrl();
     const response = await fetch(`${baseUrl}/api/cart?testId=${testId}`, {
       cache: 'no-store',
     });

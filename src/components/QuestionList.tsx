@@ -293,7 +293,7 @@ export default function QuestionList({
     if (loading) {
       return (
         <Grid container spacing={2}>
-          {[...Array(10)].map((_, index) => (
+          {[...Array(9)].map((_, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Box sx={{ height: '100%' }}>
                 <Skeleton variant="rectangular" height={200} />
@@ -313,7 +313,7 @@ export default function QuestionList({
     }
     return (
       <Grid container spacing={2}>
-        {safeQuestions.map((question, index) => {
+        {safeQuestions.slice(0, 9).map((question, index) => {
           if (!question) return null;
           const uniqueKey = `question-${question.id || 'no-id'}-${index}-${question.Subject || 'no-subject'}-${question.Topic || 'no-topic'}-${question.Question.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '-')}`;
           return (
@@ -344,7 +344,6 @@ export default function QuestionList({
       />
       <Box>
         <CascadingFilters
-          key={`cascading-filters-${Object.keys(filters).join('-')}`}
           onFilterChange={filters => {
             console.log('CascadingFilters filters:', filters);
             handleFilterChange(filters);

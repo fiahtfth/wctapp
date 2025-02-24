@@ -31,8 +31,7 @@ export async function GET(request: Request) {
                             .filter(st => st.name === subtopic)
                             .flatMap(st => st.microtopics || [])
                     )
-            )
-            .map(microtopic => microtopic.name);
+            );
 
         // Remove duplicates
         const uniqueMicrotopics = [...new Set(microtopics)];

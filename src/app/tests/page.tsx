@@ -3,6 +3,7 @@
 import React from 'react';
 import { Container, Typography, Box } from '@mui/material';
 import Cart from '@/components/Cart';
+import DraftTestList from '@/components/DraftTestList';
 
 export default function TestsPage() {
   return (
@@ -15,6 +16,7 @@ export default function TestsPage() {
           Create and manage your tests
         </Typography>
         <Box sx={{ mt: 4 }}>
+          <DraftTestList />
           <Cart />
         </Box>
       </Box>

@@ -41,8 +41,14 @@ export default function Home() {
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10;
   const router = useRouter();
-  // Load cart count on mount
+
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
     const loadCartCount = async () => {
       try {
         const items = await getCartItems(testId);
@@ -51,8 +57,10 @@ export default function Home() {
         console.error("Error loading cart count:", error);
       }
     };
+
     loadCartCount();
-  }, [testId]);
+  }, [router, testId]);
+
   const handleAddToTest = async (questionId: number) => {
     try {
       await addQuestionToCart(questionId, testId);

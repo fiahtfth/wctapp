@@ -6,14 +6,9 @@
       "use": "@vercel/next"
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    }
-  ],
   "env": {
     "NEXT_PUBLIC_SITE_URL": "https://wctapp.vercel.app",
-    "DATABASE_URL": "file:./dev.db"
+    "DATABASE_URL": "file:./dev.db",
+    "JWT_SECRET": "66J5NovcG/rEn1luBGDyKG7DjtfrrRs/TR9VsDg7guM="
   }
 }

@@ -1,5 +1,7 @@
 export interface Subtopic {
     name: string;
+    microtopics?: string[];
+    subtopics?: string[];
 }
 export interface Topic {
     name: string;

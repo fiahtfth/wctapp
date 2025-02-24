@@ -30,18 +30,7 @@ import { QuestionCard } from './QuestionCard';
 import * as XLSX from 'xlsx';
 import { saveDraftCart } from '@/lib/database/queries';
 import { Question } from '@/types/question';
-type CartQuestion = {
-  id: string | number;
-  text?: string;
-  Question: string;
-  Answer?: string;
-  Explanation?: string;
-  Subject: string;
-  'Module Name'?: string;
-  Topic: string;
-  'Difficulty Level'?: string;
-  Question_Type?: string;
-};
+
 export default function Cart() {
   const [mounted, setMounted] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -87,7 +76,10 @@ export default function Cart() {
       fetchCartItems(testId).then(result => {
         console.log('Fetched cart items:', result); // Debug log
         if (result.questions && Array.isArray(result.questions)) {
-          result.questions.forEach(item => useCartStore.getState().addQuestion(item));
+          console.log('Cart items structure:', result.questions);
+          result.questions.forEach((item: Question) => {
+            useCartStore.getState().addQuestion(item);
+          });
         }
       }).catch(error => {
         console.error('Error fetching cart items:', error);
@@ -226,6 +218,10 @@ export default function Cart() {
       setDraftSaveError(null);
       // Optional: Show a success snackbar or toast
       console.log('Draft cart saved successfully with ID:', draftCartId);
+      // Store the testId and testName in local storage
+      localStorage.setItem('testIds', JSON.stringify([testId]));
+      localStorage.setItem(`testName-${testId}`, testDetails.testName);
+
       // Show a success message to the user
       setSnackbarOpen(true);
     } catch (error: unknown) {
@@ -307,13 +303,13 @@ export default function Cart() {
           </Box>
         ) : (
           <Grid container spacing={3} position="relative">
-            {questions.map((question: CartQuestion) => (
+            {(questions as Question[]).map((question) => (
               <Grid item xs={12} sm={6} md={4} key={question.id} position="relative">
-                <QuestionCard 
-                  question={question as Question} 
-                  onQuestionUpdate={() => {}} 
-                  initialInCart={true} 
-                  showCartButton={false} 
+                <QuestionCard
+                  question={question}
+                  onQuestionUpdate={() => {}}
+                  initialInCart={true}
+                  showCartButton={false}
                 />
                 <IconButton
                   onClick={() => handleRemoveQuestion(question.id)}

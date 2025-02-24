@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 
-const DB_PATH = path.join(process.cwd(), 'src', 'lib', 'database', 'questions.db');
+export const DB_PATH = path.join(process.cwd(), 'src', 'lib', 'database', 'questions.db');
 const SCHEMA_PATH = path.join(process.cwd(), 'src', 'lib', 'database', 'schema.sql');
 
 export function createQuestionsTable(db?: Database.Database) {
@@ -214,6 +214,7 @@ export async function initializeDatabase() {
         }
 
         console.log('✅ Database initialization complete');
+        return db;
     } catch (error) {
         console.error('❌ Database Initialization Failed:', error);
         throw error;

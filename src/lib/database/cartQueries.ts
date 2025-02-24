@@ -62,7 +62,7 @@ export const addQuestionToCart = asyncErrorHandler(async (questionId: number | s
       throw new Error('Failed to create or find cart');
     }
 
-    const cartId = cartRow.id;
+    const cartId = (cartRow as { id: number }).id;
     console.log('Using cartId:', cartId);
 
     // Add question to cart
@@ -93,7 +93,7 @@ export const removeQuestionFromCart = asyncErrorHandler(async (questionId: numbe
     if (!cart) return false;
 
     // Remove question from cart
-    const result = db.prepare('DELETE FROM cart_items WHERE cart_id = ? AND question_id = ?').run(cart.id, questionId);
+    const result = db.prepare('DELETE FROM cart_items WHERE cart_id = ? AND question_id = ?').run((cart as { id: number }).id, questionId);
 
     return result.changes > 0;
   } catch (error) {
@@ -119,7 +119,7 @@ export const getCartQuestions = asyncErrorHandler(async (testId: string): Promis
     }
 
     // Get count of items in cart
-    const itemCount = db.prepare('SELECT COUNT(*) as count FROM cart_items WHERE cart_id = ?').get(cart.id);
+    const itemCount = db.prepare('SELECT COUNT(*) as count FROM cart_items WHERE cart_id = ?').get((cart as { id: number }).id);
     console.log('Cart item count:', itemCount);
 
     // Get questions in cart with all necessary fields
@@ -140,7 +140,7 @@ export const getCartQuestions = asyncErrorHandler(async (testId: string): Promis
       JOIN cart_items ci ON ci.question_id = q.id
       WHERE ci.cart_id = ?
       ORDER BY ci.created_at DESC
-    `).all(cart.id);
+    `).all((cart as { id: number }).id);
     
     console.log('Found cart questions:', questions);
 
@@ -148,7 +148,7 @@ export const getCartQuestions = asyncErrorHandler(async (testId: string): Promis
     const questionCount = db.prepare('SELECT COUNT(*) as count FROM questions').get();
     console.log('Total questions in database:', questionCount);
 
-    return questions;
+    return questions as Question[];
   } catch (error) {
     console.error('Error getting cart questions:', error);
     throw error;
