@@ -46,10 +46,13 @@ export async function removeFromCart(questionId: number | string, testId: string
   }
 }
 
-export async function addQuestionToCart(questionId: number, testId: string, token: string) {
-  if (!testId || !questionId) {
-    throw new Error('Both testId and questionId are required');
+export async function addQuestionToCart(questionId: number, testId: string | undefined, token: string) {
+  if (!questionId) {
+    throw new Error('Question ID is required');
   }
+  
+  // If testId is not provided, we'll let the API generate one
+  const finalTestId = testId || '';
 
   try {
     const baseUrl = await getBaseUrl();
@@ -63,7 +66,7 @@ export async function addQuestionToCart(questionId: number, testId: string, toke
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ questionId, testId }), // Don't try to parse userId here
+        body: JSON.stringify({ questionId, testId: finalTestId }), // Don't try to parse userId here
         cache: 'no-store',
       });
 
@@ -81,8 +84,7 @@ export async function addQuestionToCart(questionId: number, testId: string, toke
       throw error;
     }
   } catch (error) {
-    console.error('Error adding question to cart:', error);
-    console.log('Token:', token);
+    console.error('Error in addQuestionToCart:', error);
     throw error;
   }
 }

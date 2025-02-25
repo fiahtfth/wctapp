@@ -3,6 +3,7 @@ import { getQuestions, addQuestion } from '@/lib/database/queries';
 import { Question } from '@/types/question';
 import fs from 'fs';
 import path from 'path';
+import Database from 'better-sqlite3';
 
 // Global error handler for API routes
 function handleApiError(error: unknown): NextResponse {
@@ -29,96 +30,130 @@ function handleApiError(error: unknown): NextResponse {
 
 export async function GET(request: NextRequest) {
   try {
-    console.group('🔍 Question Retrieval Request');
+    // Get query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const subject = searchParams.get('subject');
+    const topic = searchParams.get('topic');
+    const search = searchParams.get('search');
+    
+    console.log('GET /api/questions:', { page, limit, subject, topic, search });
+    
     try {
-      console.log('📋 Raw Query Parameters:', Object.fromEntries(request.nextUrl.searchParams));
-      
-      // Sanitize and parse query parameters
-      const page = parseInt(request.nextUrl.searchParams.get('page') || '1', 10);
-      const pageSize = parseInt(request.nextUrl.searchParams.get('pageSize') || '10', 10);
-      
-      // Extract and log filters with more robust parsing
-      const filters: Record<string, string | string[]> = {};
-      const filterKeys = ['subject', 'module', 'topic', 'sub_topic', 'question_type', 'search'];
-      
-      filterKeys.forEach(key => {
-          const value = request.nextUrl.searchParams.get(key);
-          if (value) {
-              // More robust splitting and trimming
-              const processedValue = value.split(',')
-                  .map(v => v.trim())
-                  .filter(v => v !== '');
-              
-              filters[key] = processedValue.length > 1 ? processedValue : processedValue[0];
-          }
-      });
-      
-      console.log('🧩 Parsed Filters:', filters);
-      console.log('📄 Pagination:', { page, pageSize });
-
-      try {
-          // Retrieve questions with comprehensive error handling
-          const result = await getQuestions({
-              page,
-              pageSize,
-              ...filters
-          });
-
-          console.log('📊 Query Result:', {
-              totalQuestions: result.total,
-              returnedQuestions: result.questions.length,
-              page: result.page,
-              pageSize: result.pageSize
-          });
-
-          // Enhanced logging for questions
-          if (result.questions.length > 0) {
-              console.log('📝 Sample Questions:', result.questions.slice(0, 3).map(q => ({
-                  id: q.id,
-                  subject: q.Subject,
-                  module: q['Module Name'],
-                  topic: q.Topic,
-                  questionType: q.Question_Type
-              })));
-          } else {
-              console.warn('⚠️ No questions found matching the filters');
-          }
-
-          // If no questions found, return a detailed response
-          if (result.questions.length === 0) {
-              return NextResponse.json({
-                  questions: [],
-                  total: 0,
-                  page,
-                  pageSize,
-                  filters,
-                  message: 'No questions found matching the specified filters.',
-                  debugInfo: {
-                      totalQuestions: result.total,
-                      appliedFilters: filters
-                  }
-              }, { status: 404 });
-          }
-
-          return NextResponse.json({
-              questions: result.questions,
-              total: result.total,
-              page,
-              pageSize,
-              filters
-          });
-      } catch (queryError) {
-          console.error('❌ Query Execution Error:', queryError);
-          return handleApiError(queryError);
+      // Try both possible database paths
+      let dbPath = path.join(process.cwd(), 'wct.db');
+      if (!fs.existsSync(dbPath)) {
+        dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
       }
-    } catch (error) {
-      console.error('❌ Full Request Processing Error:', error);
-      return handleApiError(error);
-    } finally {
-      console.groupEnd();
+      
+      console.log('Opening database at:', dbPath);
+      console.log('Database exists:', fs.existsSync(dbPath));
+      
+      if (!fs.existsSync(dbPath)) {
+        console.error('Database file does not exist:', dbPath);
+        return NextResponse.json({ 
+          error: 'Database file does not exist',
+          questions: []
+        }, { status: 500 });
+      }
+      
+      const db = new Database(dbPath);
+      
+      try {
+        // Build query
+        let query = `
+          SELECT 
+            id, 
+            Question, 
+            Answer, 
+            Explanation, 
+            Subject, 
+            "Module Name" as ModuleName, 
+            Topic, 
+            "Sub Topic" as SubTopic, 
+            "Difficulty Level" as DifficultyLevel,
+            Question_Type as QuestionType
+          FROM questions
+          WHERE 1=1
+        `;
+        
+        const queryParams: any[] = [];
+        
+        // Add filters
+        if (subject) {
+          query += ' AND Subject = ?';
+          queryParams.push(subject);
+        }
+        
+        if (topic) {
+          query += ' AND Topic = ?';
+          queryParams.push(topic);
+        }
+        
+        if (search) {
+          query += ' AND (Question LIKE ? OR Answer LIKE ? OR Explanation LIKE ?)';
+          const searchPattern = `%${search}%`;
+          queryParams.push(searchPattern, searchPattern, searchPattern);
+        }
+        
+        console.log('Query:', query);
+        console.log('Query params:', queryParams);
+        
+        // Count total matching questions
+        const countQuery = `SELECT COUNT(*) as total FROM questions WHERE 1=1` + 
+          query.substring(query.indexOf('WHERE 1=1') + 8);
+        
+        console.log('Count query:', countQuery);
+        
+        const totalResult = db.prepare(countQuery).get(...queryParams);
+        const total = totalResult ? (totalResult as any).total : 0;
+        
+        console.log('Total questions:', total);
+        
+        // Add pagination
+        query += ' ORDER BY id DESC LIMIT ? OFFSET ?';
+        queryParams.push(limit, (page - 1) * limit);
+        
+        // Execute query
+        const questions = db.prepare(query).all(...queryParams);
+        
+        console.log('Found questions:', questions.length);
+        
+        db.close();
+        
+        return NextResponse.json({
+          questions,
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }, { status: 200 });
+      } catch (dbError) {
+        console.error('Database error fetching questions:', dbError);
+        try {
+          db.close();
+        } catch (closeError) {
+          console.error('Error closing database:', closeError);
+        }
+        return NextResponse.json({ 
+          error: 'Database error: ' + (dbError instanceof Error ? dbError.message : String(dbError)),
+          questions: []
+        }, { status: 500 });
+      }
+    } catch (dbConnectionError) {
+      console.error('Failed to connect to database:', dbConnectionError);
+      return NextResponse.json({ 
+        error: 'Database connection error: ' + (dbConnectionError instanceof Error ? dbConnectionError.message : String(dbConnectionError)),
+        questions: []
+      }, { status: 500 });
     }
   } catch (error) {
-    return handleApiError(error);
+    console.error('Error in questions API:', error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Failed to fetch questions',
+      questions: []
+    }, { status: 500 });
   }
 }
 

@@ -6,138 +6,95 @@ import {
 } from './server-actions';
 import { useCartStore } from '@/store/cartStore';
 
-export async function addToCart(question: any) {
-  console.log('Adding question to cart:', question);
-  
+export async function addToCart(questionId: number, testId: string) {
+  const token = localStorage.getItem('token');
+  console.log('Token being used for addToCart:', token);
+
+  if (!token) {
+    throw new Error('User is not authenticated');
+  }
+
   try {
-    // Get test ID
-    const testId = getTestId();
-    if (!testId) {
-      console.error('No test ID available');
-      throw new Error('No test ID available');
-    }
+    console.log('Calling serverAddToCart with:', { questionId, testId });
+    const result = await serverAddToCart(questionId, testId, token);
+    console.log('serverAddToCart result:', result);
+    return result;
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    throw error;
+  }
+}
+
+export const addQuestionToTest = async ({ questionId, testId }: { questionId: number, testId?: string }) => {
+  try {
+    console.log('Adding to cart:', { questionId, testId });
     
-    // Get token
     const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('No token available');
-      // Redirect to login
-      alert('You need to log in to add items to your cart.');
-      window.location.href = '/login';
-      return { success: false, error: 'Authentication required' };
+    
+    // If we have a token, use the server action for authenticated users
+    if (token) {
+      try {
+        console.log('Using server action with token');
+        const result = await serverAddToCart(questionId, testId, token);
+        console.log('Server action result:', result);
+        return result;
+      } catch (tokenError) {
+        console.error('Error with token-based add:', tokenError);
+        // If token is invalid, fall back to direct API call
+      }
     }
     
-    // Call server action
-    console.log('Calling serverAddToCart with:', { questionId: question.id, testId });
-    try {
-      const result = await serverAddToCart(question.id, testId, token);
-      
-      // Update local store on success
-      if (result && result.success) {
-        console.log('Adding question to local store:', question);
-        useCartStore.getState().addQuestion(question);
-      }
-      
-      return result;
-    } catch (serverError) {
-      console.error('Server error:', serverError);
-      
-      // Handle authentication errors
-      if (serverError instanceof Error && 
-          (serverError.message.includes('User with ID') || 
-           serverError.message.includes('session has expired') ||
-           serverError.message.includes('Invalid token') ||
-           serverError.message.includes('401') ||
-           serverError.message.includes('authentication'))) {
-        
-        // Clear token and redirect to login
-        localStorage.removeItem('token');
-        alert('Your session has expired. Please log in again.');
-        window.location.href = '/login';
-        return { success: false, error: 'Session expired' };
-      }
-      
-      // For database errors, try to add to local store anyway
-      if (serverError instanceof Error && 
-          (serverError.message.includes('Database error') ||
-           serverError.message.includes('FOREIGN KEY constraint'))) {
-        
-        console.log('Database error, but adding to local store anyway:', question);
-        useCartStore.getState().addQuestion(question);
-        return { success: true, error: 'Added to local cart only' };
-      }
-      
-      // For other errors, show a generic message
-      alert('Failed to add item to cart. Please try again later.');
-      return { success: false, error: serverError instanceof Error ? serverError.message : String(serverError) };
-    }
-  } catch (error) {
-    console.error('Error adding to cart:', error);
+    // Direct API call as fallback
+    console.log('Using direct API call');
+    const response = await fetch('/api/cart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        questionId, 
+        testId 
+      }),
+    });
     
-    // For all other errors, show a generic message
-    alert('Failed to add item to cart. Please try again later.');
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-}
-
-export async function addToCartNew(questionId: number, testId: string) {
-  const token = localStorage.getItem('token');
-  console.log('Token being used for addToCart:', token);
-
-  if (!token) {
-    throw new Error('User is not authenticated');
-  }
-
-  try {
-    console.log('Calling serverAddToCart with:', { questionId, testId });
-    const result = await serverAddToCart(questionId, testId, token);
-    console.log('serverAddToCart result:', result);
-    return result;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to add question to test');
+    }
+    
+    return await response.json();
   } catch (error) {
-    console.error('Error adding to cart:', error);
+    console.error('Error in addQuestionToTest:', error);
     throw error;
   }
-}
+};
 
-export async function addToCartWithLogging(questionId: number, testId: string) {
-  const token = localStorage.getItem('token');
-  console.log('Token being used for addToCart:', token);
-
-  if (!token) {
-    throw new Error('User is not authenticated');
-  }
-
+export const removeQuestionFromTest = async ({ questionId, testId }: { questionId: number, testId: string }) => {
   try {
-    console.log('Calling serverAddToCart with:', { questionId, testId });
-    const result = await serverAddToCart(questionId, testId, token);
-    console.log('serverAddToCart result:', result);
-    return result;
+    console.log('Removing from cart:', { questionId, testId });
+    
+    const response = await fetch('/api/cart/question', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        questionId, 
+        testId 
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to remove question from test');
+    }
+    
+    return await response.json();
   } catch (error) {
-    console.error('Error adding to cart:', error);
+    console.error('Error in removeQuestionFromTest:', error);
     throw error;
   }
-}
-
-export async function addToCartWithTokenLogging(questionId: number, testId: string) {
-  const token = localStorage.getItem('token');
-  console.log('Token being used for addToCart:', token);
-  console.log('Token value:', token);
-
-  if (!token) {
-    throw new Error('User is not authenticated');
-  }
-
-  try {
-    console.log('Calling serverAddToCart with:', { questionId, testId });
-    console.log('Server call details:', { url: 'serverAddToCart', method: 'POST', data: { questionId, testId, token } });
-    const result = await serverAddToCart(questionId, testId, token);
-    console.log('serverAddToCart result:', result);
-    return result;
-  } catch (error) {
-    console.error('Error adding to cart:', error);
-    throw error;
-  }
-}
+};
 
 export async function removeFromCart(questionId: string | number, testId: string) {
   try {

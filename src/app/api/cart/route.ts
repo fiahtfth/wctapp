@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
-import { jwtVerify } from 'jose';
-import { initializeDatabase } from '@/lib/database/init';
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('POST /api/cart: Starting cart operation');
+    // Parse request body
+    const { questionId, testId } = await request.json();
     
-    // Get the request body
-    const body = await request.json();
-    const { questionId, testId } = body;
-
-    // Validate input
+    // Validate required fields
     if (!questionId) {
       return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
     }
@@ -21,73 +17,120 @@ export async function POST(request: NextRequest) {
     // Generate a test ID if not provided
     const finalTestId = testId || uuidv4();
     
+    console.log('Adding question to test:', { questionId, finalTestId });
+    
+    // Try both possible database paths
+    let dbPath = path.join(process.cwd(), 'wct.db');
+    if (!fs.existsSync(dbPath)) {
+      dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
+    }
+    
+    console.log('Opening database at:', dbPath);
+    console.log('Database exists:', fs.existsSync(dbPath));
+    
+    if (!fs.existsSync(dbPath)) {
+      console.error('Database file does not exist:', dbPath);
+      return NextResponse.json({ 
+        error: 'Database file does not exist'
+      }, { status: 500 });
+    }
+    
+    const db = new Database(dbPath);
+    
     try {
-      // Open database connection
-      const db = new Database(path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db'));
-      
-      // Disable foreign key constraints temporarily
+      // Disable foreign key constraints temporarily for flexibility
       db.pragma('foreign_keys = OFF');
       
+      // Start a transaction
+      db.prepare('BEGIN').run();
+      
       try {
-        // Start a transaction
-        db.prepare('BEGIN').run();
+        // Use a fixed user ID for now (this would be replaced with actual user authentication)
+        const userId = 1;
         
-        // Use a fixed user ID for now (this is a temporary fix)
-        const userId = 267; // This is the ID for navneet@nextias.com
+        // Check if the test already exists in carts
+        const testExists = db.prepare('SELECT id FROM carts WHERE test_id = ?').get(finalTestId);
         
-        // Get or create cart
-        db.prepare('INSERT OR IGNORE INTO carts (test_id, user_id) VALUES (?, ?)').run(finalTestId, userId);
+        let cartId;
         
-        const cartRow = db.prepare('SELECT id FROM carts WHERE test_id = ? AND user_id = ?').get(finalTestId, userId);
-        if (!cartRow) {
-          db.prepare('ROLLBACK').run();
-          db.close();
-          return NextResponse.json({ error: 'Failed to create or find cart' }, { status: 500 });
+        if (!testExists) {
+          // Create a new cart entry if test doesn't exist
+          const insertCart = db.prepare('INSERT INTO carts (test_id, user_id) VALUES (?, ?)');
+          insertCart.run(finalTestId, userId);
+          
+          // Get the newly created cart ID
+          const newCart = db.prepare('SELECT id FROM carts WHERE test_id = ?').get(finalTestId);
+          cartId = (newCart as any).id;
+        } else {
+          cartId = (testExists as any).id;
         }
         
-        const cartId = (cartRow as any).id;
+        // Check if the question exists
+        const questionExists = db.prepare('SELECT COUNT(*) as count FROM questions WHERE id = ?').get(questionId);
         
-        // Add question to cart
-        const result = db.prepare('INSERT OR IGNORE INTO cart_items (cart_id, question_id) VALUES (?, ?)').run(cartId, questionId);
+        if (!questionExists || (questionExists as any).count === 0) {
+          db.prepare('ROLLBACK').run();
+          return NextResponse.json({ error: 'Question not found' }, { status: 404 });
+        }
         
-        // Commit transaction
+        // Check if the question is already in the cart
+        const questionInCart = db.prepare('SELECT COUNT(*) as count FROM cart_items WHERE cart_id = ? AND question_id = ?').get(cartId, questionId);
+        
+        if (questionInCart && (questionInCart as any).count > 0) {
+          // If already in cart, we'll consider this a success
+          db.prepare('COMMIT').run();
+          return NextResponse.json({ 
+            message: 'Question already in test',
+            testId: finalTestId
+          }, { status: 200 });
+        }
+        
+        // Add the question to the cart
+        db.prepare('INSERT INTO cart_items (cart_id, question_id) VALUES (?, ?)').run(cartId, questionId);
+        
+        // Commit the transaction
         db.prepare('COMMIT').run();
         
         // Re-enable foreign key constraints
         db.pragma('foreign_keys = ON');
         
-        db.close();
-        
-        return NextResponse.json(
-          {
-            success: true,
-            testId: finalTestId,
-            changes: result.changes
-          },
-          { status: 200 }
-        );
-      } catch (dbError) {
-        console.error('Database error in cart operation:', dbError);
+        return NextResponse.json({ 
+          message: 'Question added to test successfully',
+          testId: finalTestId,
+          questionId
+        }, { status: 200 });
+      } catch (transactionError) {
+        // Rollback on error
+        console.error('Transaction error:', transactionError);
         try {
           db.prepare('ROLLBACK').run();
         } catch (rollbackError) {
-          console.error('Error during rollback:', rollbackError);
+          console.error('Rollback error:', rollbackError);
         }
-        db.close();
-        return NextResponse.json({ error: 'Database error: ' + (dbError instanceof Error ? dbError.message : String(dbError)) }, { status: 500 });
+        throw transactionError;
       }
-    } catch (dbConnectionError) {
-      console.error('Failed to connect to database:', dbConnectionError);
-      return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
+    } catch (dbError) {
+      console.error('Database error adding question to test:', dbError);
+      try {
+        db.close();
+      } catch (closeError) {
+        console.error('Error closing database:', closeError);
+      }
+      return NextResponse.json({ 
+        error: 'Database error: ' + (dbError instanceof Error ? dbError.message : String(dbError))
+      }, { status: 500 });
+    } finally {
+      try {
+        db.close();
+      } catch (closeError) {
+        console.error('Error closing database:', closeError);
+      }
     }
   } catch (error) {
     console.error('Error in cart API:', error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to add question to cart',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Failed to add question to test'
+    }, { status: 500 });
   }
 }
 

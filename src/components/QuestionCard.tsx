@@ -15,7 +15,7 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import { addToCart } from '@/lib/client-actions';
+import { addQuestionToTest } from '@/lib/client-actions';
 import type { Question } from '@/types/question';
 
 
@@ -43,7 +43,7 @@ export function QuestionCard({
     
     setIsLoading(true);
     try {
-      await addToCart(question);
+      await addQuestionToTest({ questionId: question.id });
       setIsInCart(true);
       if (onAddToTest) {
         await onAddToTest(question.id);
