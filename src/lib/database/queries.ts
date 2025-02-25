@@ -40,28 +40,6 @@ export const openDatabase = async (): Promise<Database.Database> => {
     // Ensure tables are created if they don't exist
     createQuestionsTable(db);
 
-    // Create cart tables
-    db.prepare(`
-      CREATE TABLE IF NOT EXISTS carts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        test_id TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT unique_test_id UNIQUE(test_id)
-      )
-    `).run();
-
-    db.prepare(`
-      CREATE TABLE IF NOT EXISTS cart_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        cart_id INTEGER NOT NULL,
-        question_id INTEGER NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (cart_id) REFERENCES carts(id),
-        FOREIGN KEY (question_id) REFERENCES questions(id),
-        CONSTRAINT unique_cart_question UNIQUE(cart_id, question_id)
-      )
-    `).run();
-
     console.log('✅ Database tables created successfully');
     return db;
   } catch (error) {
@@ -135,6 +113,13 @@ export const getQuestions = asyncErrorHandler(async (filters: {
   difficulty?: string;
 }) => {
   console.log('🔍 Fetching Questions with Params:', JSON.stringify(filters, null, 2));
+  console.log('📂 Database Configuration:', {
+    DB_PATH,
+    NODE_ENV: process.env.NODE_ENV,
+    CWD: process.cwd(),
+    exists: fs.existsSync(DB_PATH),
+    stats: fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH) : null
+  });
   console.log('📂 Database Path:', DB_PATH);
   console.log('🗃️ Database Exists:', fs.existsSync(DB_PATH));
 
@@ -201,7 +186,7 @@ export const getQuestions = asyncErrorHandler(async (filters: {
     }
 
     if (filters.sub_topic) {
-      addFilter('"Sub Topic"', filters.sub_topic);
+      addFilter('Sub Topic', filters.sub_topic);
     }
 
     if (filters.question_type) {
@@ -344,7 +329,7 @@ export const getQuestions = asyncErrorHandler(async (filters: {
 });
 
 export async function sanitizeFilterValue(value?: string | string[]): Promise<string | string[] | null> {
-  // If value is undefined or null, return null
+  // If value is undefined or null, return null;
   if (value === undefined || value === null) return null;
 
   // If value is an array, sanitize each element

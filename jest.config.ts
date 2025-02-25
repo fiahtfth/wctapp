@@ -4,7 +4,8 @@ const config: Config.InitialOptions = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: [
-    '<rootDir>/jest.setup.js'
+    '<rootDir>/jest.setup.js',
+    '@testing-library/jest-dom'
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -27,7 +28,7 @@ const config: Config.InitialOptions = {
     },
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@testing-library|next)/)'
+    'node_modules/(?!(@testing-library|next|jose)/)'
   ],
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',

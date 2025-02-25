@@ -63,7 +63,12 @@ export default function Home() {
 
   const handleAddToTest = async (questionId: number) => {
     try {
-      await addQuestionToCart(questionId, testId);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+      await addQuestionToCart(questionId, testId, token);
       setCartCount((prev) => prev + 1);
     } catch (error) {
       console.error("Error adding question to cart:", error);

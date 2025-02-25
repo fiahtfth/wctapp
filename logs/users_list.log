@@ -1,0 +1,851 @@
+[2025-02-24T20:14:15.454Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0NTR9.vC6qOVCPrQ1jiE0uhLn2jCCHfPBqx8PbUoJPPHfIO8I",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:14:15.457Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:14:15.457Z] [ERROR] Database file not found
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/dev.db"
+}
+[2025-02-24T20:14:15.463Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0NTR9.vC6qOVCPrQ1jiE0uhLn2jCCHfPBqx8PbUoJPPHfIO8I",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:14:15.463Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:14:15.463Z] [ERROR] Database file not found
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/dev.db"
+}
+[2025-02-24T20:15:02.277Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0NTR9.vC6qOVCPrQ1jiE0uhLn2jCCHfPBqx8PbUoJPPHfIO8I",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:15:02.280Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:15:02.280Z] [ERROR] Database file not found
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/wctapp/prisma/dev.db"
+}
+[2025-02-24T20:15:15.818Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0NTR9.vC6qOVCPrQ1jiE0uhLn2jCCHfPBqx8PbUoJPPHfIO8I",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:15:15.819Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:15:15.819Z] [ERROR] Database file not found
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/wctapp/prisma/dev.db"
+}
+[2025-02-24T20:16:30.432Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0MTF9.KGYavkZC-Daz4tJcGgQIoknHRNTYBXqfNVzVjATO7hY",
+    "host": "localhost:3000",
+    "user-agent": "curl/8.7.1",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:16:30.435Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:16:30.435Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:16:30.436Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:16:30.436Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:16:30.437Z] [DEBUG] Users retrieval details
+{
+  "userCount": 2,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:16:30.437Z] [DEBUG] Database connection closed
+[2025-02-24T20:16:48.848Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0NTR9.vC6qOVCPrQ1jiE0uhLn2jCCHfPBqx8PbUoJPPHfIO8I",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:16:48.849Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:16:48.849Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:16:48.849Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:16:48.850Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:16:48.850Z] [DEBUG] Users retrieval details
+{
+  "userCount": 2,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:16:48.851Z] [DEBUG] Database connection closed
+[2025-02-24T20:17:59.561Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0MTF9.KGYavkZC-Daz4tJcGgQIoknHRNTYBXqfNVzVjATO7hY",
+    "host": "localhost:3000",
+    "user-agent": "curl/8.7.1",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:17:59.561Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:17:59.562Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:17:59.562Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:17:59.562Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:17:59.562Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:17:59.562Z] [DEBUG] Database connection closed
+[2025-02-24T20:18:13.652Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0NTR9.vC6qOVCPrQ1jiE0uhLn2jCCHfPBqx8PbUoJPPHfIO8I",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:18:13.655Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:18:13.655Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:18:13.655Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:18:13.656Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:18:13.657Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:18:13.657Z] [DEBUG] Database connection closed
+[2025-02-24T20:19:26.321Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0MTF9.KGYavkZC-Daz4tJcGgQIoknHRNTYBXqfNVzVjATO7hY",
+    "host": "localhost:3000",
+    "user-agent": "curl/8.7.1",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:19:26.321Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:19:26.322Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:19:26.322Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:19:26.322Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:19:26.322Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:19:26.322Z] [DEBUG] Database connection closed
+[2025-02-24T20:19:39.979Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ0NTR9.vC6qOVCPrQ1jiE0uhLn2jCCHfPBqx8PbUoJPPHfIO8I",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:19:39.981Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:19:39.981Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:19:39.981Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:19:39.982Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:19:39.982Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:19:39.983Z] [DEBUG] Database connection closed
+[2025-02-24T20:20:40.280Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ4NDB9.VU-ZjDiPd2Y2rhsD13wovQaV3bpVOYLm_eu5dGzsypo",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:20:40.282Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:20:40.282Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:20:40.282Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:20:40.282Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:20:40.283Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:20:40.283Z] [DEBUG] Database connection closed
+[2025-02-24T20:20:40.289Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ4NDB9.VU-ZjDiPd2Y2rhsD13wovQaV3bpVOYLm_eu5dGzsypo",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:20:40.289Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:20:40.289Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:20:40.290Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:20:40.290Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:20:40.290Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:20:40.291Z] [DEBUG] Database connection closed
+[2025-02-24T20:21:29.443Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ4ODl9.1q_iI_efzSOW0Tr23EtUSgNytkGMCKVhQCOJpwKTE5A",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:21:29.444Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:21:29.444Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:21:29.444Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:21:29.444Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:21:29.444Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:21:29.444Z] [DEBUG] Database connection closed
+[2025-02-24T20:21:29.450Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ4ODl9.1q_iI_efzSOW0Tr23EtUSgNytkGMCKVhQCOJpwKTE5A",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:21:29.451Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:21:29.452Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:21:29.452Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:21:29.452Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:21:29.453Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:21:29.453Z] [DEBUG] Database connection closed
+[2025-02-24T20:22:00.164Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ5MjB9.DOGoZ-VLw0QIWYRZR0rnFD7guY_YX14FqVCLnCsSOvE",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:22:00.165Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:22:00.165Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:22:00.165Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:22:00.166Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:22:00.166Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:22:00.166Z] [DEBUG] Database connection closed
+[2025-02-24T20:22:00.173Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTQ5MjB9.DOGoZ-VLw0QIWYRZR0rnFD7guY_YX14FqVCLnCsSOvE",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:22:00.174Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:22:00.175Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:22:00.175Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:22:00.175Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:22:00.175Z] [DEBUG] Users retrieval details
+{
+  "userCount": 3,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:22:00.175Z] [DEBUG] Database connection closed
+[2025-02-24T20:24:34.803Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTUwNzR9.TpAQPIBYT1_0Iws17iBSQrmAqF3cBhlCZK1uNkr-kjE",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:24:34.804Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:24:34.804Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:24:34.804Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:24:34.804Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:24:34.804Z] [DEBUG] Users retrieval details
+{
+  "userCount": 4,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:24:34.804Z] [DEBUG] Database connection closed
+[2025-02-24T20:24:34.810Z] [DEBUG] Incoming user list request
+{
+  "method": "GET",
+  "url": "http://localhost:3000/api/users/list",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AbmV4dGlhcy5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NDA1MTUwNzR9.TpAQPIBYT1_0Iws17iBSQrmAqF3cBhlCZK1uNkr-kjE",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "cookie": "isLatestBranch=true; eventLogs={%221735590372461-411wbv73p%22:{%22id%22:%221735590372461-411wbv73p%22%2C%22timestamp%22:%222024-12-30T20:26:12.461Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:26:12.460Z%22}%2C%22category%22:%22system%22}%2C%221735590487791-6v2gmznq4%22:{%22id%22:%221735590487791-6v2gmznq4%22%2C%22timestamp%22:%222024-12-30T20:28:07.791Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Folder%20imported%20successfully%22%2C%22details%22:{%22folderName%22:%22LMSF%22%2C%22textFileCount%22:28%2C%22binaryFileCount%22:0}%2C%22category%22:%22system%22}%2C%221735590488711-ajzl298gr%22:{%22id%22:%221735590488711-ajzl298gr%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T20:28:08.711Z%22}%2C%22category%22:%22system%22}%2C%221735592476576-ezbdnjj3l%22:{%22id%22:%221735592476576-ezbdnjj3l%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:01:16.576Z%22}%2C%22category%22:%22system%22}%2C%221735593920403-agah2auve%22:{%22id%22:%221735593920403-agah2auve%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-30T21:25:20.403Z%22}%2C%22category%22:%22system%22}%2C%221735629190311-30i0slpdn%22:{%22id%22:%221735629190311-30i0slpdn%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T07:13:10.311Z%22}%2C%22category%22:%22system%22}%2C%221735663965033-f5sid44wo%22:{%22id%22:%221735663965033-f5sid44wo%22%2C%22timestamp%22:%222024-12-31T16:52:45.033Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:52:45.031Z%22}%2C%22category%22:%22system%22}%2C%221735664116365-b2uqvqdgo%22:{%22id%22:%221735664116365-b2uqvqdgo%22%2C%22timestamp%22:%222024-12-31T16:55:16.365Z%22%2C%22level%22:%22info%22%2C%22message%22:%22Application%20initialized%22%2C%22details%22:{%22theme%22:%22light%22%2C%22platform%22:%22MacIntel%22%2C%22userAgent%22:%22Mozilla/5.0%20(Macintosh%3B%20Intel%20Mac%20OS%20X%2010_15_7)%20AppleWebKit/537.36%20(KHTML%2C%20like%20Gecko)%20Chrome/131.0.0.0%20Safari/537.36%22%2C%22timestamp%22:%222024-12-31T16:55:16.364Z%22}%2C%22category%22:%22system%22}}; providers={%22AmazonBedrock%22:{%22enabled%22:true}%2C%22Anthropic%22:{%22enabled%22:true}%2C%22Cohere%22:{%22enabled%22:true}%2C%22Deepseek%22:{%22enabled%22:true}%2C%22Google%22:{%22enabled%22:true}%2C%22Groq%22:{%22enabled%22:true}%2C%22HuggingFace%22:{%22enabled%22:true}%2C%22Hyperbolic%22:{%22enabled%22:true}%2C%22LMStudio%22:{%22enabled%22:true}%2C%22Mistral%22:{%22enabled%22:true}%2C%22Ollama%22:{%22enabled%22:true}%2C%22OpenAILike%22:{%22enabled%22:true}%2C%22OpenAI%22:{%22enabled%22:true}%2C%22OpenRouter%22:{%22enabled%22:true}%2C%22Perplexity%22:{%22enabled%22:true}%2C%22Together%22:{%22enabled%22:true}%2C%22xAI%22:{%22enabled%22:true}}; commitHash=42030e1; apiKeys={%22Google%22:%22AIzaSyDcG0u3p8wBSNZbgKXX-HoppnMRG-EtI7s%22%2C%22Groq%22:%22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%22%2C%22Ollama%22:%22AIzaSyAw_6MOemQpReA2owiXlJ-mdnZWx79t5uM%22%2C%22HuggingFace%22:%22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%22%2C%22xAI%22:%22xai-LNv2gz1HRTYHciI4p5i3x82p8JaYF2zStVnDj9T07dJ1w6LnlVCrCX48FrVgOtuUwIvHDd4IZJYgoW0j%22%2C%22Deepseek%22:%22sk-6e4278fe4df14227bdb913b1afc93c1b%22%2C%22AmazonBedrock%22:%22%22%2C%22Together%22:%22%22}",
+    "host": "localhost:3000",
+    "referer": "http://localhost:3000/users",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "x-forwarded-for": "::1",
+    "x-forwarded-host": "localhost:3000",
+    "x-forwarded-port": "3000",
+    "x-forwarded-proto": "http"
+  }
+}
+[2025-02-24T20:24:34.810Z] [DEBUG] Token verification successful
+{
+  "userId": 1,
+  "role": "admin"
+}
+[2025-02-24T20:24:34.810Z] [DEBUG] Checking if database file exists
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db",
+  "cwd": "/Users/academicdirector/Desktop/WCTECM/wctapp"
+}
+[2025-02-24T20:24:34.810Z] [DEBUG] Database file exists?
+{
+  "dbExists": true
+}
+[2025-02-24T20:24:34.811Z] [DEBUG] Database connection established
+{
+  "dbPath": "/Users/academicdirector/Desktop/WCTECM/wctapp/src/lib/database/wct.db"
+}
+[2025-02-24T20:24:34.811Z] [DEBUG] Users retrieval details
+{
+  "userCount": 4,
+  "usersType": "object",
+  "usersIsArray": true
+}
+[2025-02-24T20:24:34.811Z] [DEBUG] Database connection closed

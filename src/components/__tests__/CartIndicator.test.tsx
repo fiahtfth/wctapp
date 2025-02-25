@@ -1,4 +1,4 @@
-describe('QuestionList Mock', () => {
+describe('CartIndicator', () => {
   it('should pass', () => {
     expect(true).toBe(true);
   });

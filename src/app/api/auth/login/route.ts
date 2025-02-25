@@ -123,12 +123,12 @@ export async function POST(request: NextRequest) {
     log('info', 'Looking up user', { email });
     let user;
     try {
-      const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+      const stmt = db.prepare('SELECT id, email, password_hash, role FROM users WHERE email = ?');
       user = stmt.get(email) as
         | {
             id: number;
             email: string;
-            password: string;
+            password_hash: string;
             role: 'admin' | 'user';
           }
         | undefined;
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     // Password verification
     let isPasswordValid;
     try {
-      isPasswordValid = await bcrypt.compare(password, user.password);
+      isPasswordValid = await bcrypt.compare(password, user.password_hash);
       log('debug', 'Password verification', { isPasswordValid });
     } catch (compareError: unknown) {
       const errorMessage =

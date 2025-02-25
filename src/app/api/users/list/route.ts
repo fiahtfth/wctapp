@@ -100,9 +100,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     // Resolve database path dynamically
-    const dbPath = path.resolve(process.cwd(), 'dev.db');
+    const dbPath = path.resolve(process.cwd(), 'src/lib/database/wct.db');
     // Verify database file exists
-    if (!fs.existsSync(dbPath)) {
+    log('debug', 'Checking if database file exists', { dbPath, cwd: process.cwd() });
+    const dbExists = fs.existsSync(dbPath);
+    log('debug', 'Database file exists?', { dbExists });
+    if (!dbExists) {
       log('error', 'Database file not found', { dbPath });
       return NextResponse.json(
         {
@@ -132,8 +135,11 @@ export async function GET(request: NextRequest) {
       const stmt = db.prepare(`
                 SELECT 
                     id, 
+                    username,
                     email, 
-                    role, 
+                    role,
+                    is_active,
+                    last_login, 
                     created_at,
                     updated_at
                 FROM users 
@@ -163,13 +169,13 @@ export async function GET(request: NextRequest) {
         // Prepare a default admin user insertion statement
         const insertStmt = db.prepare(`
                     INSERT INTO users 
-                    (email, password, role) 
-                    VALUES (?, ?, ?)
+                    (username, email, password_hash, role) 
+                    VALUES (?, ?, ?, ?)
                 `);
         // Use a hashed password for the default admin (in a real scenario, this would be more secure)
         const hashedPassword = '$2a$10$ExampleHashedPasswordForDevelopment';
         try {
-          const result = insertStmt.run('default_admin@example.com', hashedPassword, 'admin');
+          const result = insertStmt.run('default_admin', 'default_admin@example.com', hashedPassword, 'admin');
           log('info', 'Default admin user created', {
             insertedId: result.lastInsertRowid,
           });

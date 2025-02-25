@@ -1,26 +1,35 @@
 'use server';
 
 import { headers } from 'next/headers';
+import { jwtVerify } from 'jose';
 
 async function getBaseUrl() {
   const headersList = await headers();
-  const host = headersList.get('host') || '';
+  const host = (await headersList).get('host') || '';
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
-  return `${protocol}://${host}`;
+  const baseUrl = `${protocol}://${host}`;
+  console.log('Base URL:', baseUrl);
+  return baseUrl;
 }
 
-export async function removeFromCart(questionId: number | string, testId: string) {
+export async function removeFromCart(questionId: number | string, testId: string, token?: string) {
   if (!testId || !questionId) {
     throw new Error('Both testId and questionId are required');
   }
 
   try {
     const baseUrl = await getBaseUrl();
+    const headersList = await headers();
+    const authToken = (await headersList).get('authorization') || '';
+    const fetchHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authToken) {
+      fetchHeaders['Authorization'] = `Bearer ${authToken}`;
+    }
     const response = await fetch(`${baseUrl}/api/cart/remove`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: fetchHeaders as any,
       body: JSON.stringify({ questionId, testId }),
       cache: 'no-store',
     });
@@ -37,30 +46,43 @@ export async function removeFromCart(questionId: number | string, testId: string
   }
 }
 
-export async function addQuestionToCart(questionId: number, testId: string) {
+export async function addQuestionToCart(questionId: number, testId: string, token: string) {
   if (!testId || !questionId) {
     throw new Error('Both testId and questionId are required');
   }
 
   try {
     const baseUrl = await getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/cart`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ questionId, testId }),
-      cache: 'no-store',
-    });
+    
+    // Skip token verification here since it will be done on the server side
+    // Just pass the token directly to the API
+    try {
+      const response = await fetch(`${baseUrl}/api/cart`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ questionId, testId }), // Don't try to parse userId here
+        cache: 'no-store',
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to add question to cart');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add question to cart');
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Error adding question to cart:', error);
+      if (error instanceof Error && error.message.includes('User with ID')) {
+        throw new Error(`Your session has expired. Please log out and log in again.`);
+      }
+      throw error;
     }
-
-    return response.json();
   } catch (error) {
     console.error('Error adding question to cart:', error);
+    console.log('Token:', token);
     throw error;
   }
 }
@@ -87,7 +109,7 @@ export async function exportTest(testId: string) {
   return response.blob();
 }
 
-export async function getCartItems(testId: string) {
+export async function getCartItems(testId: string, token?: string) {
   console.log('server-actions.getCartItems called with testId:', testId);
   if (!testId || testId === 'undefined') {
     console.error('Invalid or missing testId:', testId);
@@ -96,10 +118,14 @@ export async function getCartItems(testId: string) {
 
   try {
     const baseUrl = await getBaseUrl();
+    const headersList = headers();
+    const authToken = (await headersList).get('authorization') || '';
     const response = await fetch(`${baseUrl}/api/cart?testId=${testId}`, {
       cache: 'no-store',
+      headers: {
+        Authorization: authToken ? `Bearer ${authToken}` : '',
+      },
     });
-    
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to fetch cart items');

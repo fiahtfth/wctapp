@@ -48,9 +48,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     // Parse request body
-    const { email, password, role = 'user' } = await request.json();
+    const { username, email, password, role = 'user' } = await request.json();
     // Validate input
-    if (!email || !password) {
+    if (!username || !email || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     // Validate role
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
     // Resolve database path dynamically
-    const dbPath = path.resolve(process.cwd(), 'dev.db');
+    const dbPath = path.resolve(process.cwd(), 'src/lib/database/wct.db');
     // Open database connection
     try {
       db = new Database(dbPath);
@@ -79,13 +79,13 @@ export async function POST(request: NextRequest) {
       // Prepare insert statement
       const stmt = db.prepare(`
                 INSERT INTO users 
-                (email, password, role) 
-                VALUES (?, ?, ?)
+                (username, email, password_hash, role) 
+                VALUES (?, ?, ?, ?)
             `);
-      const result = stmt.run(email, passwordHash, role);
+      const result = stmt.run(username, email, passwordHash, role);
       // Fetch the newly created user
       const getUserStmt = db.prepare(
-        'SELECT id, email, role, created_at, updated_at FROM users WHERE id = ?'
+        'SELECT id, username, email, role, is_active, last_login, created_at, updated_at FROM users WHERE id = ?'
       );
       const newUser = getUserStmt.get(result.lastInsertRowid);
       return NextResponse.json(

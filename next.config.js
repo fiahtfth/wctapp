@@ -6,6 +6,7 @@ const nextConfig = {
   },
   // Optional: Additional Next.js configuration
   reactStrictMode: true,
+  basePath: '',
 };
 
 module.exports = nextConfig;

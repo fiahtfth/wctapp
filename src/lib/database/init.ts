@@ -2,8 +2,9 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
+import initializeUsers from '../../../scripts/init-users';
 
-export const DB_PATH = path.join(process.cwd(), 'src', 'lib', 'database', 'questions.db');
+export const DB_PATH = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
 const SCHEMA_PATH = path.join(process.cwd(), 'src', 'lib', 'database', 'schema.sql');
 
 export function createQuestionsTable(db?: Database.Database) {
@@ -64,6 +65,15 @@ export function createQuestionsTable(db?: Database.Database) {
             }
         });
 
+        console.log('Logging questions after table creation');
+        if (database) {
+            const questions = database.prepare('SELECT * FROM questions').all();
+            console.log('Questions in database after table creation:', questions);
+            fs.appendFileSync('/Users/academicdirector/Desktop/WCTECM/wctapp/database_init.log', JSON.stringify(questions, null, 2));
+        } else {
+            console.warn('Database connection is null');
+        }
+
         // Verify table structure
         try {
             if (database) {
@@ -102,121 +112,202 @@ export function createQuestionsTable(db?: Database.Database) {
     }
 }
 
-export async function initializeDatabase() {
+export function createCartTables(db?: Database.Database) {
+    let database: Database.Database | null = null;
+    
     try {
-        console.log('🚀 Starting Database Initialization');
-        console.log('Database Path:', DB_PATH);
-        console.log('Current Working Directory:', process.cwd());
+        // Use provided database or create a new connection
+        database = db || new Database(DB_PATH);
+        
+        // Enable foreign keys
+        database.pragma('foreign_keys = ON');
+        
+        console.log('🔨 Creating or verifying cart tables');
 
-        // Ensure directory exists with detailed logging
-        const dbDirectory = path.dirname(DB_PATH);
-        if (!fs.existsSync(dbDirectory)) {
-            console.log('📂 Database directory does not exist, creating...');
-            try {
-                fs.mkdirSync(dbDirectory, { recursive: true });
-                console.log('📁 Database directory created successfully');
-            } catch (dirError) {
-                console.error('❌ Failed to create database directory:', dirError);
-                throw new Error(`Failed to create database directory: ${dirError instanceof Error ? dirError.message : String(dirError)}`);
-            }
-        }
+        // Create carts table with DEFERRABLE constraints
+        const createCartsTableSQL = `
+            CREATE TABLE IF NOT EXISTS carts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT unique_test_id_user UNIQUE(test_id, user_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
+            )
+        `;
 
-        // Create or open database with verbose logging
-        let db: Database.Database;
+        // Create cart items table with DEFERRABLE constraints
+        const createCartItemsTableSQL = `
+            CREATE TABLE IF NOT EXISTS cart_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cart_id INTEGER NOT NULL,
+                question_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+                FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+                CONSTRAINT unique_cart_question UNIQUE(cart_id, question_id)
+            )
+        `;
+
         try {
-            db = new Database(DB_PATH, { 
-                verbose: console.log,  // Log all database operations
-                fileMustExist: false 
-            });
-            console.log('💾 Database file opened/created successfully');
-        } catch (dbOpenError) {
-            console.error('❌ Failed to open/create database:', dbOpenError);
-            throw new Error(`Failed to open database: ${dbOpenError instanceof Error ? dbOpenError.message : String(dbOpenError)}`);
+            // Create tables
+            database.prepare(createCartsTableSQL).run();
+            database.prepare(createCartItemsTableSQL).run();
+            console.log('✅ Cart tables created or already exist');
+        } catch (tableCreationError) {
+            console.error('❌ Error creating cart tables:', tableCreationError);
+            throw new Error(`Failed to create cart tables: ${tableCreationError instanceof Error ? tableCreationError.message : String(tableCreationError)}`);
         }
 
-        // Create tables with error handling
-        try {
-            createQuestionsTable(db);
-            console.log('✅ Questions table created or verified');
-        } catch (tableError) {
-            console.error('❌ Failed to create questions table:', tableError);
-            throw new Error(`Failed to create questions table: ${tableError instanceof Error ? tableError.message : String(tableError)}`);
-        }
-
-        // Insert initial data if needed
-        try {
-            const countResult = db.prepare('SELECT COUNT(*) as count FROM questions').get() as { count: number };
-            const questionsCount = countResult.count;
-            console.log(`📊 Total questions in database: ${questionsCount}`);
-
-            if (questionsCount === 0) {
-                console.warn('⚠️ No questions found. Consider adding initial data.');
-                
-                // Optional: Add sample questions
-                const sampleQuestions = [
-                    {
-                        Question: 'What is the capital of France?',
-                        Answer: 'Paris',
-                        Explanation: 'Paris is the capital and largest city of France',
-                        Subject: 'Geography',
-                        'Module Name': 'European Capitals',
-                        Topic: 'France',
-                        'Question_Type': 'Objective',
-                        'Difficulty Level': 'Easy'
-                    },
-                    {
-                        Question: 'What is the derivative of x^2?',
-                        Answer: '2x',
-                        Explanation: 'The derivative of x^2 is 2x using the power rule of differentiation',
-                        Subject: 'Mathematics',
-                        'Module Name': 'Calculus',
-                        Topic: 'Differentiation',
-                        'Question_Type': 'Objective',
-                        'Difficulty Level': 'Medium'
-                    }
-                ];
-
-                const insertQuestionStmt = db.prepare(`
-                    INSERT INTO questions 
-                    (Question, Answer, Explanation, Subject, "Module Name", Topic, "Question_Type", "Difficulty Level") 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `);
-
-                const insertMany = db.transaction((questions) => {
-                    for (const q of questions) {
-                        insertQuestionStmt.run(
-                            q.Question, 
-                            q.Answer, 
-                            q.Explanation, 
-                            q.Subject, 
-                            q['Module Name'], 
-                            q.Topic, 
-                            q['Question_Type'], 
-                            q['Difficulty Level']
-                        );
-                    }
-                });
-
-                insertMany(sampleQuestions);
-                console.log('✨ Sample questions added successfully');
-            }
-        } catch (dataError) {
-            console.error('❌ Failed to handle initial data:', dataError);
-            throw new Error(`Failed to handle initial data: ${dataError instanceof Error ? dataError.message : String(dataError)}`);
-        }
-
-        // Close the database connection
-        try {
-            db.close();
-            console.log('🔒 Database connection closed');
-        } catch (closeError) {
-            console.error('❌ Failed to close database connection:', closeError);
-        }
-
-        console.log('✅ Database initialization complete');
-        return db;
     } catch (error) {
-        console.error('❌ Database Initialization Failed:', error);
+        console.error('❌ Comprehensive Cart Tables Creation Error:', {
+            message: error instanceof Error ? error.message : String(error),
+            fullError: error
+        });
         throw error;
+    } finally {
+        // Close the database if we created a new connection
+        if (db === undefined && database) {
+            try {
+                database.close();
+                console.log('🔒 Temporary database connection closed');
+            } catch (closeError) {
+                console.error('❌ Error closing database:', closeError);
+            }
+        }
+    }
+}
+
+export function createUsersTable(db?: Database.Database) {
+    let database: Database.Database | null = null;
+    
+    try {
+        // Use provided database or create a new connection
+        database = db || new Database(DB_PATH);
+        
+        console.log('🔨 Creating or verifying users table');
+
+        // Create users table
+        const createUsersTableSQL = `
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                email TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK(role IN ('admin', 'user')),
+                is_active INTEGER NOT NULL DEFAULT 1,
+                last_login DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT unique_email UNIQUE(email),
+                CONSTRAINT unique_username UNIQUE(username)
+            )
+        `;
+
+        try {
+            // Create table
+            database.prepare(createUsersTableSQL).run();
+            console.log('✅ Users table created or already exists');
+
+            // Add admin user if not exists
+            const adminUser = database.prepare('SELECT id FROM users WHERE email = ?').get('admin@nextias.com');
+            if (!adminUser) {
+                const saltRounds = 10;
+                const passwordHash = bcrypt.hashSync('admin123', saltRounds);
+                database.prepare(
+                    'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
+                ).run('admin', 'admin@nextias.com', passwordHash, 'admin');
+                console.log('✅ Admin user created');
+            }
+        }  catch (tableCreationError) {
+            console.error('❌ Error creating users table:', tableCreationError);
+            throw new Error(`Failed to create users table: ${tableCreationError instanceof Error ? tableCreationError.message : String(tableCreationError)}`);
+        }
+
+    } catch (error) {
+        console.error('❌ Comprehensive Users Table Creation Error:', {
+            message: error instanceof Error ? error.message : String(error),
+            fullError: error
+        });
+        throw error;
+    } finally {
+        // Close the database if we created a new connection
+        if (db === undefined && database) {
+            try {
+                database.close();
+                console.log('🔒 Temporary database connection closed');
+            } catch (closeError) {
+                console.error('❌ Error closing database:', closeError);
+            }
+        }
+    }
+}
+
+export async function initializeDatabase() {
+    let db: Database.Database | null = null;
+    
+    try {
+        console.log('🚀 Starting database initialization');
+        
+        // Check if database file exists
+        const dbExists = fs.existsSync(DB_PATH);
+        
+        // Create the database directory if it doesn't exist
+        const dbDir = path.dirname(DB_PATH);
+        if (!fs.existsSync(dbDir)) {
+            fs.mkdirSync(dbDir, { recursive: true });
+            console.log(`📁 Created database directory: ${dbDir}`);
+        }
+        
+        // Open the database
+        db = new Database(DB_PATH);
+        
+        // Enable foreign keys
+        db.pragma('foreign_keys = ON');
+        console.log('🔑 Foreign keys enabled');
+        
+        // If database exists but tables need to be recreated due to schema changes
+        // This is a temporary fix for the foreign key constraint issues
+        const recreateTables = process.env.RECREATE_TABLES === 'true';
+        if (recreateTables && dbExists) {
+            console.log('🔄 Recreating tables due to schema changes...');
+            
+            // Drop tables in reverse order of dependencies
+            try {
+                db.prepare('DROP TABLE IF EXISTS cart_items').run();
+                console.log('✅ Dropped cart_items table');
+                
+                db.prepare('DROP TABLE IF EXISTS carts').run();
+                console.log('✅ Dropped carts table');
+            } catch (dropError) {
+                console.error('❌ Error dropping tables:', dropError);
+            }
+        }
+        
+        // Create tables
+        createQuestionsTable(db);
+        createUsersTable(db);
+        createCartTables(db);
+        
+        // Initialize users if needed
+        if (!dbExists || recreateTables) {
+            console.log('👤 Initializing users');
+            await initializeUsers(db);
+        }
+        
+        console.log('✅ Database initialization complete');
+        return true;
+    } catch (error) {
+        console.error('❌ Database initialization error:', error);
+        throw new Error(`Failed to initialize database: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+        if (db) {
+            try {
+                db.close();
+                console.log('🔒 Database connection closed');
+            } catch (closeError) {
+                console.error('❌ Error closing database:', closeError);
+            }
+        }
     }
 }

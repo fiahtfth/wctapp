@@ -17,7 +17,8 @@
     "test:coverage": "jest --coverage",
     "test:filters": "jest src/config/__tests__/filters.test.ts",
     "pwa:build": "next build --no-lint",
-    "pwa:start": "next start"
+    "pwa:start": "next start",
+    "build:db": "tsc scripts/init-db.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.11.4",
@@ -27,12 +28,14 @@
     "@types/better-sqlite3": "^7.6.12",
     "@types/pg": "^8.11.11",
     "@types/uuid": "^10.0.0",
+    "@types/webpack": "^5.28.5",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^11.8.1",
     "drizzle-orm": "^0.39.3",
     "esbuild": "^0.25.0",
     "exceljs": "^4.4.0",
     "jose": "^5.10.0",
+    "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "next": "^15.1.7",
     "next-pwa": "^2.0.2",

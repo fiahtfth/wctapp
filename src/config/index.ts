@@ -3,7 +3,7 @@ import path from 'path';
 // Application-wide configuration
 export const APP_CONFIG = {
     DATABASE: {
-        PATH: process.env.DB_PATH || path.join(process.cwd(), 'src', 'lib', 'database', 'questions.db'),
+        PATH: process.env.DB_PATH || path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db'),
         MAX_CONNECTIONS: parseInt(process.env.DB_MAX_CONNECTIONS || '10'),
     },
     PAGINATION: {

@@ -16,15 +16,16 @@ jest.mock('next/navigation', () => ({
   }))
 }));
 
-jest.mock('@/components/QuestionList', () => {
-  return require('./__mocks__/QuestionList').default;
-});
+jest.mock('@/components/QuestionList', () => ({
+  __esModule: true,
+  default: () => <div data-testid="question-list-mock">QuestionListMock</div>,
+}));
 
 describe('Home Page', () => {
   it('renders without crashing', async () => {
     await act(async () => {
-      const { container } = render(<Home />);
-      expect(container).toBeTruthy();
+      const { getByTestId } = render(<Home />);
+      expect(getByTestId('question-list-mock')).toBeInTheDocument();
     });
   });
 });

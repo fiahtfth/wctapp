@@ -88,9 +88,9 @@ export async function addQuestion(question: Question): Promise<{ id: number }> {
  * @param testId The ID of the test to add the question to
  * @returns A promise with the added question's id
  */
-export async function addQuestionToCart(questionId: number, testId: string): Promise<{ id: number }> {
+export async function addQuestionToCart(questionId: number, testId: string, userId: number): Promise<{ id: number }> {
   const { addQuestionToCart: dbAddToCart } = await import('@/lib/database/cartQueries');
-  const success = await dbAddToCart(questionId, testId);
+  const success = await dbAddToCart(questionId, testId, userId);
   return { id: success ? Number(questionId) : 0 };
 }
 
@@ -100,9 +100,9 @@ export async function addQuestionToCart(questionId: number, testId: string): Pro
  * @param testId The ID of the test to remove the question from
  * @returns A promise that resolves when the question is removed
  */
-export async function removeQuestionFromCart(questionId: number | string, testId: string): Promise<boolean> {
+export async function removeQuestionFromCart(questionId: number | string, testId: string, userId: number): Promise<boolean> {
   const { removeQuestionFromCart: dbRemoveFromCart } = await import('@/lib/database/cartQueries');
-  return dbRemoveFromCart(questionId, testId);
+  return dbRemoveFromCart(questionId, testId, userId);
 }
 
 /**
@@ -110,9 +110,9 @@ export async function removeQuestionFromCart(questionId: number | string, testId
  * @param {string} testId - The ID of the test to retrieve cart questions for
  * @returns An array of questions in the cart
  */
-export async function getCartQuestions(testId: string): Promise<Question[]> {
+export async function getCartQuestions(testId: string, userId: number): Promise<Question[]> {
   const { getCartQuestions: dbGetCartQuestions } = await import('@/lib/database/cartQueries');
-  return dbGetCartQuestions(testId);
+  return dbGetCartQuestions(testId, userId);
 }
 
 /**

@@ -72,17 +72,24 @@ export default function Cart() {
 
     // Initialize cart items
     if (testId) {
-      console.log('Fetching cart items with testId:', testId); // Debug log
+      console.log('Fetching cart items with testId:', testId);
+      
+      // Store current questions before fetching
+      const currentQuestions = [...questions];
+      
       fetchCartItems(testId).then(result => {
-        console.log('Fetched cart items:', result); // Debug log
-        if (result.questions && Array.isArray(result.questions)) {
-          console.log('Cart items structure:', result.questions);
-          result.questions.forEach((item: Question) => {
-            useCartStore.getState().addQuestion(item);
-          });
-        }
+        console.log('Fetched cart items:', result);
+        
+        // If server returned items, they're already added to the store by fetchCartItems
+        // If server returned empty but we had local items, fetchCartItems will keep the local items
+        
+        // Just log the current state after fetching
+        console.log('Cart store after fetching:', useCartStore.getState().questions);
       }).catch(error => {
         console.error('Error fetching cart items:', error);
+        
+        // On error, keep the current questions
+        console.log('Keeping current questions due to fetch error');
       });
     }
   }, [testId]);

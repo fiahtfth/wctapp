@@ -48,13 +48,18 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     // Parse request body
-    let { id, email, role } = await request.json();
+    let { id, username, email, password, role, is_active } = await request.json();
     // Validate input
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
+    
+    // Validate role if provided
+    if (role !== undefined && role !== 'user' && role !== 'admin') {
+      return NextResponse.json({ error: 'Invalid role. Must be either "user" or "admin".' }, { status: 400 });
+    }
     // Resolve database path dynamically
-    const dbPath = path.resolve(process.cwd(), 'dev.db');
+    const dbPath = path.resolve(process.cwd(), 'src/lib/database/wct.db');
     // Open database connection
     try {
       db = new Database(dbPath);
@@ -71,13 +76,30 @@ export async function PUT(request: NextRequest) {
     // Prepare update statement
     const updateFields = [];
     const params = [];
+    
+    if (username) {
+      updateFields.push('username = ?');
+      params.push(username);
+    }
+    
+    if (password) {
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+      updateFields.push('password_hash = ?');
+      params.push(passwordHash);
+    }
     if (email) {
       updateFields.push('email = ?');
       params.push(email);
     }
-    if (role) {
+    if (role !== undefined) {
       updateFields.push('role = ?');
       params.push(role);
+    }
+    
+    if (is_active !== undefined) {
+      updateFields.push('is_active = ?');
+      params.push(is_active ? 1 : 0);
     }
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
     if (updateFields.length === 1) {
@@ -95,8 +117,18 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'User not found or no changes made' }, { status: 404 });
       }
       // Fetch updated user details
+      // Check if user exists and is active
+      const checkUserStmt = db.prepare('SELECT is_active FROM users WHERE id = ?');
+      const userStatus = checkUserStmt.get(id);
+      if (!userStatus) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      if (!userStatus.is_active && is_active !== true) {
+        return NextResponse.json({ error: 'Cannot update inactive user' }, { status: 400 });
+      }
+
       const getUserStmt = db.prepare(
-        'SELECT id, email, role, created_at, updated_at FROM users WHERE id = ?'
+        'SELECT id, username, email, role, is_active, last_login, created_at, updated_at FROM users WHERE id = ?'
       );
       const updatedUser = getUserStmt.get(id);
       return NextResponse.json({
