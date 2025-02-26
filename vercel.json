@@ -18,6 +18,21 @@
   "installCommand": "npm install",
   "routes": [
     {
+      "src": "/manifest.json",
+      "dest": "/manifest.json",
+      "headers": {
+        "Cache-Control": "public, max-age=3600",
+        "Access-Control-Allow-Origin": "*"
+      }
+    },
+    {
+      "src": "/icons/(.*)",
+      "dest": "/icons/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=86400"
+      }
+    },
+    {
       "src": "/(.*)",
       "dest": "/$1"
     }
