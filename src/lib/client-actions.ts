@@ -40,29 +40,28 @@ export const addQuestionToTest = async ({ questionId, testId }: { questionId: nu
         return result;
       } catch (tokenError) {
         console.error('Error with token-based add:', tokenError);
-        // If token is invalid, fall back to direct API call
+        // Fall through to direct API call
       }
     }
     
     // Direct API call as fallback
     console.log('Using direct API call');
-    const response = await fetch('/api/cart', {
+    const response = await fetch('/api/cart/question', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
-      body: JSON.stringify({ 
-        questionId, 
-        testId 
-      }),
+      body: JSON.stringify({ questionId, testId }),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to add question to test');
+      console.error('Error adding question to cart:', errorData);
+      throw new Error(errorData.error || 'Failed to add question to cart');
     }
-    
-    return await response.json();
+
+    return response.json();
   } catch (error) {
     console.error('Error in addQuestionToTest:', error);
     throw error;

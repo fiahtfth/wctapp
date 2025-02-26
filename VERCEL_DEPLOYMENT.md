@@ -33,6 +33,12 @@ The application uses SQLite, which requires special handling in Vercel's serverl
    NODE_ENV=production
    ```
 
+   **Important**: For the `JWT_SECRET`, generate a strong random string. You can use this command to generate a secure secret:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   The JWT_SECRET must be the same value in all environments to ensure tokens remain valid.
+
 5. **Deploy**:
    - Click "Deploy" and wait for the build to complete
 
@@ -49,7 +55,13 @@ If you encounter database-related issues:
 
 3. **File System Limitations**: Remember that Vercel's `/tmp` directory is the only writable location, and it's ephemeral (temporary).
 
-4. **Debugging**: Add more console.log statements to the database access code to help identify where issues might be occurring.
+4. **Authentication Issues**: If you encounter problems with authentication or "add to cart" functionality:
+   - Ensure the `JWT_SECRET` environment variable is properly set in Vercel
+   - Check that the token is being correctly passed in the Authorization header
+   - Verify that the client is storing and retrieving the token correctly
+   - Look for any CORS issues that might be preventing the token from being sent
+
+5. **Debugging**: Add more console.log statements to the database access code to help identify where issues might be occurring.
 
 ## Important Notes
 

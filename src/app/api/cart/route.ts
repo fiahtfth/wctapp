@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { jwtVerify } from 'jose';
 
 // Helper function to get database path with proper permissions
 function getDatabasePath() {
@@ -49,6 +50,41 @@ function getDatabasePath() {
   return dbPath;
 }
 
+// Helper function to get user ID from token
+async function getUserIdFromToken(request: NextRequest): Promise<number> {
+  try {
+    // Get the JWT token from the Authorization header
+    const authHeader = request.headers.get('authorization') || '';
+    const token = authHeader.replace('Bearer ', '');
+    
+    if (!token) {
+      console.log('No token provided, using default user ID 0');
+      return 0; // Default user ID if no token
+    }
+    
+    // Get the JWT secret
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET not found in environment variables');
+      return 0; // Default user ID if no JWT secret
+    }
+    
+    try {
+      // Verify the token
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret));
+      const userId = payload.userId as number;
+      console.log('✅ User authenticated:', userId);
+      return userId;
+    } catch (error) {
+      console.error('❌ Token verification failed:', error);
+      return 0; // Default user ID if token verification fails
+    }
+  } catch (error) {
+    console.error('❌ Error getting user ID from token:', error);
+    return 0; // Default user ID if any error occurs
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
@@ -63,6 +99,10 @@ export async function POST(request: NextRequest) {
     const finalTestId = testId || uuidv4();
     
     console.log('Adding question to test:', { questionId, finalTestId });
+    
+    // Get user ID from token (if available)
+    const userId = await getUserIdFromToken(request);
+    console.log('User ID for cart operation:', userId);
     
     // Get database path with proper permissions
     const dbPath = getDatabasePath();
@@ -88,9 +128,6 @@ export async function POST(request: NextRequest) {
       db.prepare('BEGIN').run();
       
       try {
-        // Use a fixed user ID for now (this would be replaced with actual user authentication)
-        const userId = 1;
-        
         // Check if the test already exists in carts
         const testExists = db.prepare('SELECT id FROM carts WHERE test_id = ?').get(finalTestId);
         
@@ -189,6 +226,10 @@ export async function GET(request: NextRequest) {
     
     console.log('Getting cart for test:', testId);
     
+    // Get user ID from token (if available)
+    const userId = await getUserIdFromToken(request);
+    console.log('User ID for cart operation:', userId);
+    
     // Get database path with proper permissions
     const dbPath = getDatabasePath();
     
@@ -210,9 +251,6 @@ export async function GET(request: NextRequest) {
       db.pragma('foreign_keys = OFF');
       
       try {
-        // Use a fixed user ID for now (this is a temporary fix)
-        const userId = 267; // This is the ID for navneet@nextias.com
-        
         // First check if cart exists
         const cart = db.prepare('SELECT id FROM carts WHERE test_id = ? AND user_id = ?').get(testId, userId);
         console.log('Cart lookup result:', cart);

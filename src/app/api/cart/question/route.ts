@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { jwtVerify } from 'jose';
+import { v4 as uuidv4 } from 'uuid';
 
 // Helper function to get database path with proper permissions
 function getDatabasePath() {
@@ -46,6 +48,41 @@ function getDatabasePath() {
   }
   
   return dbPath;
+}
+
+// Helper function to get user ID from token
+async function getUserIdFromToken(request: NextRequest): Promise<number> {
+  try {
+    // Get the JWT token from the Authorization header
+    const authHeader = request.headers.get('authorization') || '';
+    const token = authHeader.replace('Bearer ', '');
+    
+    if (!token) {
+      console.log('No token provided, using default user ID 0');
+      return 0; // Default user ID if no token
+    }
+    
+    // Get the JWT secret
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET not found in environment variables');
+      return 0; // Default user ID if no JWT secret
+    }
+    
+    try {
+      // Verify the token
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret));
+      const userId = payload.userId as number;
+      console.log('✅ User authenticated:', userId);
+      return userId;
+    } catch (error) {
+      console.error('❌ Token verification failed:', error);
+      return 0; // Default user ID if token verification fails
+    }
+  } catch (error) {
+    console.error('❌ Error getting user ID from token:', error);
+    return 0; // Default user ID if any error occurs
+  }
 }
 
 export async function DELETE(request: NextRequest) {
@@ -158,23 +195,47 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body = await request.json();
-    const { testId, questionId, userId = 0 } = body;
+    let { testId, questionId } = body;
     
-    console.log('POST /api/cart/question:', { testId, questionId, userId });
+    console.log('POST /api/cart/question:', { testId, questionId });
     
-    if (!testId || !questionId) {
+    if (!questionId) {
       return NextResponse.json({ 
-        error: 'Missing required parameters', 
+        error: 'Question ID is required', 
         success: false 
       }, { status: 400 });
     }
+    
+    // Generate a test ID if not provided
+    if (!testId) {
+      testId = uuidv4();
+      console.log('Generated new test ID:', testId);
+    }
+    
+    // Get user ID from token
+    const userId = await getUserIdFromToken(request);
+    console.log('User ID for cart operation:', userId);
     
     // Get database path with proper permissions
     const dbPath = getDatabasePath();
     
     console.log('Opening database at:', dbPath);
     console.log('Database exists:', fs.existsSync(dbPath));
-    console.log('Database writable:', fs.accessSync(dbPath, fs.constants.W_OK));
+    
+    try {
+      console.log('Checking if database is writable');
+      fs.accessSync(dbPath, fs.constants.W_OK);
+      console.log('Database is writable');
+    } catch (error) {
+      console.error('Database is not writable:', error);
+      // Try to make it writable
+      try {
+        fs.chmodSync(dbPath, 0o666);
+        console.log('Set database permissions to writable');
+      } catch (chmodError) {
+        console.error('Failed to set database permissions:', chmodError);
+      }
+    }
     
     if (!fs.existsSync(dbPath)) {
       console.error('Database file does not exist:', dbPath);
@@ -196,7 +257,7 @@ export async function POST(request: NextRequest) {
         db.prepare('BEGIN').run();
         
         // First check if cart exists, if not create it
-        let cart = db.prepare('SELECT id FROM carts WHERE test_id = ?').get(testId);
+        let cart = db.prepare('SELECT id FROM carts WHERE test_id = ? AND user_id = ?').get(testId, userId);
         let cartId;
         
         if (!cart) {
