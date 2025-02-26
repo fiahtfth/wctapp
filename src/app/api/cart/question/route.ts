@@ -194,7 +194,19 @@ export async function DELETE(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+      console.log('Received request body:', body);
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return NextResponse.json({ 
+        error: 'Invalid JSON in request body', 
+        success: false,
+        details: parseError instanceof Error ? parseError.message : String(parseError)
+      }, { status: 400 });
+    }
+    
     let { testId, questionId } = body;
     
     console.log('POST /api/cart/question:', { testId, questionId });
@@ -234,6 +246,11 @@ export async function POST(request: NextRequest) {
         console.log('Set database permissions to writable');
       } catch (chmodError) {
         console.error('Failed to set database permissions:', chmodError);
+        return NextResponse.json({ 
+          error: 'Database permissions error', 
+          success: false,
+          details: chmodError instanceof Error ? chmodError.message : String(chmodError)
+        }, { status: 500 });
       }
     }
     
@@ -245,88 +262,116 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
     
-    // Explicitly set readonly: false to ensure write access
-    const db = new Database(dbPath, { readonly: false });
+    // Open database connection
+    let db;
+    try {
+      db = new Database(dbPath);
+      console.log('Database opened successfully');
+    } catch (dbError) {
+      console.error('Error opening database:', dbError);
+      return NextResponse.json({ 
+        error: 'Database connection error', 
+        success: false,
+        details: dbError instanceof Error ? dbError.message : String(dbError)
+      }, { status: 500 });
+    }
     
     try {
-      // Disable foreign key constraints temporarily
-      db.pragma('foreign_keys = OFF');
+      // Begin transaction
+      db.prepare('BEGIN TRANSACTION').run();
+      console.log('Transaction started');
       
+      // Check if cart exists for the test ID
+      const existingCart = db.prepare('SELECT id FROM carts WHERE test_id = ? AND user_id = ?').get(testId, userId);
+      console.log('Existing cart:', existingCart);
+      
+      let cartId;
+      
+      if (existingCart) {
+        cartId = existingCart.id;
+        console.log('Using existing cart ID:', cartId);
+      } else {
+        // Create a new cart
+        const insertCart = db.prepare('INSERT INTO carts (test_id, user_id, created_at) VALUES (?, ?, datetime("now"))');
+        const cartResult = insertCart.run(testId, userId);
+        cartId = cartResult.lastInsertRowid;
+        console.log('Created new cart with ID:', cartId);
+      }
+      
+      // Check if question is already in the cart
+      const existingItem = db.prepare('SELECT id FROM cart_items WHERE cart_id = ? AND question_id = ?').get(cartId, questionId);
+      console.log('Existing item in cart:', existingItem);
+      
+      if (existingItem) {
+        // Question already in cart, commit transaction and return success
+        db.prepare('COMMIT').run();
+        console.log('Question already in cart, transaction committed');
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Question already in cart',
+          testId,
+          cartId
+        });
+      }
+      
+      // Add question to cart
       try {
-        // Start transaction
-        db.prepare('BEGIN').run();
-        
-        // First check if cart exists, if not create it
-        let cart = db.prepare('SELECT id FROM carts WHERE test_id = ? AND user_id = ?').get(testId, userId);
-        let cartId;
-        
-        if (!cart) {
-          // Create a new cart
-          const result = db.prepare('INSERT INTO carts (test_id, user_id, created_at) VALUES (?, ?, datetime("now"))').run(testId, userId);
-          cartId = result.lastInsertRowid;
-          console.log('Created new cart with ID:', cartId);
-        } else {
-          cartId = (cart as any).id;
-          console.log('Using existing cart with ID:', cartId);
-        }
-        
-        // Check if question already exists in cart
-        const existingItem = db.prepare('SELECT id FROM cart_items WHERE cart_id = ? AND question_id = ?').get(cartId, questionId);
-        
-        if (existingItem) {
-          db.prepare('COMMIT').run();
-          return NextResponse.json({ 
-            message: 'Question already in test', 
-            success: true,
-            cartId,
-            questionId
-          }, { status: 200 });
-        }
-        
-        // Add the question to cart_items
-        const result = db.prepare('INSERT INTO cart_items (cart_id, question_id, created_at) VALUES (?, ?, datetime("now"))').run(cartId, questionId);
+        const insertItem = db.prepare('INSERT INTO cart_items (cart_id, question_id, created_at) VALUES (?, ?, datetime("now"))');
+        const itemResult = insertItem.run(cartId, questionId);
+        console.log('Item added to cart:', itemResult);
         
         // Commit transaction
         db.prepare('COMMIT').run();
-        
-        // Re-enable foreign key constraints
-        db.pragma('foreign_keys = ON');
+        console.log('Transaction committed');
         
         return NextResponse.json({ 
-          message: 'Question added to test successfully', 
-          success: true,
-          cartId,
-          questionId,
-          itemId: result.lastInsertRowid
-        }, { status: 200 });
-      } catch (transactionError) {
-        // Rollback on error
-        console.error('Transaction error:', transactionError);
-        try {
-          db.prepare('ROLLBACK').run();
-        } catch (rollbackError) {
-          console.error('Rollback error:', rollbackError);
-        }
-        throw transactionError;
+          success: true, 
+          message: 'Question added to cart',
+          testId,
+          cartId
+        });
+      } catch (insertError) {
+        // Rollback transaction on error
+        db.prepare('ROLLBACK').run();
+        console.error('Error adding item to cart, transaction rolled back:', insertError);
+        return NextResponse.json({ 
+          error: 'Failed to add question to cart', 
+          success: false,
+          details: insertError instanceof Error ? insertError.message : String(insertError)
+        }, { status: 500 });
       }
-    } catch (dbError) {
-      console.error('Database error adding question to test:', dbError);
+    } catch (txError) {
+      // Attempt to rollback transaction on error
+      try {
+        db.prepare('ROLLBACK').run();
+        console.log('Transaction rolled back due to error');
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError);
+      }
+      
+      console.error('Transaction error:', txError);
       return NextResponse.json({ 
-        error: 'Database error: ' + (dbError instanceof Error ? dbError.message : String(dbError)),
-        success: false
+        error: 'Transaction error', 
+        success: false,
+        details: txError instanceof Error ? txError.message : String(txError)
       }, { status: 500 });
     } finally {
-      try {
-        db.close();
-      } catch (closeError) {
-        console.error('Error closing database:', closeError);
+      // Close database connection
+      if (db) {
+        try {
+          db.close();
+          console.log('Database connection closed');
+        } catch (closeError) {
+          console.error('Error closing database:', closeError);
+        }
       }
     }
   } catch (error) {
-    console.error('Error in cart/question API:', error);
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Failed to add question to test',
-      success: false
+    console.error('Unhandled error in POST /api/cart/question:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      success: false,
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }

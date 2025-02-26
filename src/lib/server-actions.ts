@@ -4,12 +4,26 @@ import { headers } from 'next/headers';
 import { jwtVerify } from 'jose';
 
 async function getBaseUrl() {
-  const headersList = await headers();
-  const host = (await headersList).get('host') || '';
-  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
-  const baseUrl = `${protocol}://${host}`;
-  console.log('Base URL:', baseUrl);
-  return baseUrl;
+  // In Vercel, we should use the VERCEL_URL environment variable
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  
+  // For local development or when VERCEL_URL is not available
+  try {
+    const headersList = await headers();
+    const host = (await headersList).get('host') || '';
+    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
+    console.log('Base URL from headers:', baseUrl);
+    return baseUrl;
+  } catch (error) {
+    console.error('Error getting base URL from headers:', error);
+    // Fallback to a hardcoded URL if all else fails
+    const fallbackUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://wctapp-plt7kys8p-fiahtfth-gmailcoms-projects.vercel.app';
+    console.log('Using fallback URL:', fallbackUrl);
+    return fallbackUrl;
+  }
 }
 
 export async function removeFromCart(questionId: number | string, testId: string, token?: string) {

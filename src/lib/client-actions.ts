@@ -46,7 +46,12 @@ export const addQuestionToTest = async ({ questionId, testId }: { questionId: nu
     
     // Direct API call as fallback
     console.log('Using direct API call');
-    const response = await fetch('/api/cart/question', {
+    
+    // Make sure we're using the correct API endpoint
+    const apiUrl = '/api/cart/question';
+    console.log('API URL for direct call:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -56,9 +61,9 @@ export const addQuestionToTest = async ({ questionId, testId }: { questionId: nu
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
       console.error('Error adding question to cart:', errorData);
-      throw new Error(errorData.error || 'Failed to add question to cart');
+      throw new Error(errorData.error || `Failed to add question to cart: ${response.status} ${response.statusText}`);
     }
 
     return response.json();
