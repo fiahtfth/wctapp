@@ -292,7 +292,7 @@ export async function initializeDatabase() {
         // Initialize users if needed
         if (!dbExists || recreateTables) {
             console.log('👤 Initializing users');
-            await initializeUsers(db);
+            await initializeUsers();
         }
         
         console.log('✅ Database initialization complete');

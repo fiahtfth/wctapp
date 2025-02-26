@@ -4,6 +4,51 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
+// Helper function to get database path with proper permissions
+function getDatabasePath() {
+  // For local development
+  let dbPath = path.join(process.cwd(), 'wct.db');
+  if (!fs.existsSync(dbPath)) {
+    dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
+  }
+  
+  // For Vercel environment
+  if (process.env.VERCEL === '1') {
+    // In Vercel, we need to use /tmp directory which is writable
+    const tmpDbPath = '/tmp/wct.db';
+    
+    // If the database doesn't exist in /tmp, copy it from the source
+    if (!fs.existsSync(tmpDbPath) && fs.existsSync(dbPath)) {
+      try {
+        fs.copyFileSync(dbPath, tmpDbPath);
+        console.log('✅ Database copied to /tmp for write access');
+      } catch (error) {
+        console.error('❌ Failed to copy database to /tmp:', error);
+      }
+    }
+    
+    if (fs.existsSync(tmpDbPath)) {
+      // Make sure the file is writable
+      try {
+        fs.accessSync(tmpDbPath, fs.constants.W_OK);
+        console.log('✅ Database is writable');
+      } catch (error) {
+        console.log('⚠️ Database is not writable, attempting to set permissions');
+        try {
+          // Try to make it writable
+          fs.chmodSync(tmpDbPath, 0o666);
+        } catch (chmodError) {
+          console.error('❌ Failed to set database permissions:', chmodError);
+        }
+      }
+      
+      return tmpDbPath;
+    }
+  }
+  
+  return dbPath;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
@@ -19,11 +64,8 @@ export async function POST(request: NextRequest) {
     
     console.log('Adding question to test:', { questionId, finalTestId });
     
-    // Try both possible database paths
-    let dbPath = path.join(process.cwd(), 'wct.db');
-    if (!fs.existsSync(dbPath)) {
-      dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
-    }
+    // Get database path with proper permissions
+    const dbPath = getDatabasePath();
     
     console.log('Opening database at:', dbPath);
     console.log('Database exists:', fs.existsSync(dbPath));
@@ -35,7 +77,8 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
     
-    const db = new Database(dbPath);
+    // Explicitly set readonly: false to ensure write access
+    const db = new Database(dbPath, { readonly: false });
     
     try {
       // Disable foreign key constraints temporarily for flexibility
@@ -136,22 +179,33 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('GET /api/cart: Starting cart fetch operation');
-
-    // Extract test ID from query parameters
-    const searchParams = request.nextUrl.searchParams;
+    // Get test ID from URL
+    const { searchParams } = new URL(request.url);
     const testId = searchParams.get('testId');
-    console.log('Received cart request with testId:', testId);
     
     if (!testId) {
-      console.error('GET /api/cart: No test ID provided');
-      return NextResponse.json({ error: 'Test ID is required', questions: [] }, { status: 400 });
+      return NextResponse.json({ error: 'Test ID is required' }, { status: 400 });
     }
     
+    console.log('Getting cart for test:', testId);
+    
+    // Get database path with proper permissions
+    const dbPath = getDatabasePath();
+    
+    console.log('Opening database at:', dbPath);
+    console.log('Database exists:', fs.existsSync(dbPath));
+    
+    if (!fs.existsSync(dbPath)) {
+      console.error('Database file does not exist:', dbPath);
+      return NextResponse.json({ 
+        error: 'Database file does not exist'
+      }, { status: 500 });
+    }
+    
+    // Explicitly set readonly: false to ensure write access
+    const db = new Database(dbPath, { readonly: false });
+    
     try {
-      // Open database connection
-      const db = new Database(path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db'));
-      
       // Disable foreign key constraints temporarily
       db.pragma('foreign_keys = OFF');
       

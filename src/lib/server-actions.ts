@@ -60,22 +60,39 @@ export async function addQuestionToCart(questionId: number, testId: string | und
     // Skip token verification here since it will be done on the server side
     // Just pass the token directly to the API
     try {
-      const response = await fetch(`${baseUrl}/api/cart`, {
+      // First try the cart/question endpoint which is more robust
+      const response = await fetch(`${baseUrl}/api/cart/question`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ questionId, testId: finalTestId }), // Don't try to parse userId here
+        body: JSON.stringify({ questionId, testId: finalTestId }),
         cache: 'no-store',
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (response.ok) {
+        return response.json();
+      }
+
+      // If the first endpoint fails, try the fallback endpoint
+      console.log('Falling back to legacy cart endpoint');
+      const fallbackResponse = await fetch(`${baseUrl}/api/cart`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ questionId, testId: finalTestId }),
+        cache: 'no-store',
+      });
+
+      if (!fallbackResponse.ok) {
+        const errorData = await fallbackResponse.json();
         throw new Error(errorData.error || 'Failed to add question to cart');
       }
 
-      return response.json();
+      return fallbackResponse.json();
     } catch (error) {
       console.error('Error adding question to cart:', error);
       if (error instanceof Error && error.message.includes('User with ID')) {

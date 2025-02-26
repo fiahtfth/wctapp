@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Container,
@@ -30,7 +30,7 @@ import {
 import { addToCart } from '@/lib/client-actions';
 import { Question } from '@/types/question';
 
-export default function QuestionsPage() {
+function QuestionsContent() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -338,5 +338,13 @@ export default function QuestionsPage() {
         </Alert>
       </Snackbar>
     </Container>
+  );
+}
+
+export default function QuestionsPage() {
+  return (
+    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>}>
+      <QuestionsContent />
+    </Suspense>
   );
 }

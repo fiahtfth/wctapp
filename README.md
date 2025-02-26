@@ -51,18 +51,46 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Production Deployment
 
-### Vercel Deployment
+### Quick Deployment
+
+For a simplified deployment process, use the provided deploy script:
+
+```bash
+npm run deploy
+```
+
+This script will:
+1. Install dependencies
+2. Run linting
+3. Build the application
+4. Initialize the database if needed
+5. Deploy to Vercel production environment
+
+### Manual Vercel Deployment
 
 1. Install Vercel CLI: `npm i -g vercel`
 2. Login to Vercel: `vercel login`
 3. Deploy to Vercel: `vercel`
+4. For production deployment: `vercel --prod`
 
 ### Environment Variables
 
 Set the following environment variables in Vercel:
 
-- `DATABASE_URL`: SQLite database connection string
-- `NEXT_PUBLIC_SITE_URL`: Your production site URL
+- `DATABASE_URL`: `file:./wct.db` (SQLite database connection string)
+- `DATABASE_PATH`: `./wct.db` (Path to the SQLite database file)
+- `JWT_SECRET`: Secret key for JWT token generation
+- `NEXT_PUBLIC_SITE_URL`: Your production site URL (e.g., `https://wctapp.vercel.app`)
+- `NODE_ENV`: `production` for production environment
+
+### Database Deployment
+
+The application uses SQLite for data storage. For Vercel deployment:
+
+1. The database file (`wct.db`) will be copied to a temporary location during build
+2. API routes will access this database file
+3. Note that changes to the database in production will not persist between deployments
+4. For production, consider using a persistent database service
 
 ## Progressive Web App (PWA)
 

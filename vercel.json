@@ -8,7 +8,18 @@
   ],
   "env": {
     "NEXT_PUBLIC_SITE_URL": "https://wctapp.vercel.app",
-    "DATABASE_URL": "file:./dev.db",
-    "JWT_SECRET": "66J5NovcG/rEn1luBGDyKG7DjtfrrRs/TR9VsDg7guM="
-  }
+    "DATABASE_URL": "file:/tmp/wct.db",
+    "DATABASE_PATH": "/tmp/wct.db",
+    "JWT_SECRET": "66J5NovcG/rEn1luBGDyKG7DjtfrrRs/TR9VsDg7guM=",
+    "NODE_ENV": "production"
+  },
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCartQuestions } from '@/types/question';
 import * as XLSX from 'xlsx';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -8,8 +9,8 @@ export async function POST(request: NextRequest) {
     if (!testId) {
       return NextResponse.json({ error: 'Test ID is required' }, { status: 400 });
     }
-    // Retrieve cart questions
-    const cartQuestions = await getCartQuestions(testId);
+    // Retrieve cart questions - pass 0 as default userId if not available
+    const cartQuestions = await getCartQuestions(testId, 0);
     // Transform questions for Excel export
     const exportData = cartQuestions.map(q => ({
       Question: q.question_text,

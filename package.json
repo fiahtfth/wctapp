@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "clean": "rm -rf .next",
-    "build": "next build",
+    "build": "node vercel-build.js && next build",
     "start": "next start",
     "lint": "next lint",
     "test:question-submission": "ts-node test-question-submission.ts",
@@ -18,7 +18,8 @@
     "test:filters": "jest src/config/__tests__/filters.test.ts",
     "pwa:build": "next build --no-lint",
     "pwa:start": "next start",
-    "build:db": "tsc scripts/init-db.ts"
+    "build:db": "tsc scripts/init-db.ts",
+    "deploy": "./deploy.sh"
   },
   "dependencies": {
     "@emotion/react": "^11.11.4",
