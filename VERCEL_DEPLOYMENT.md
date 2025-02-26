@@ -68,3 +68,36 @@ If you encounter database-related issues:
 - The database in `/tmp` is ephemeral and will be recreated on each cold start
 - For production use with frequent writes, consider using a proper database service instead of SQLite
 - The vercel.json file contains important configuration for the database paths
+
+## Static Assets and Manifest
+
+When deploying to Vercel, ensure that static assets like `manifest.json` and icon files are properly accessible. The vercel.json file includes specific route configurations to ensure these files are served correctly:
+
+```json
+"routes": [
+  {
+    "src": "/manifest.json",
+    "dest": "/manifest.json",
+    "headers": {
+      "Cache-Control": "public, max-age=3600",
+      "Access-Control-Allow-Origin": "*"
+    }
+  },
+  {
+    "src": "/icons/(.*)",
+    "dest": "/icons/$1",
+    "headers": {
+      "Cache-Control": "public, max-age=86400"
+    }
+  },
+  {
+    "src": "/(.*)",
+    "dest": "/$1"
+  }
+]
+```
+
+This configuration ensures that:
+1. The manifest.json file is publicly accessible
+2. Icon files are properly cached
+3. CORS headers are set correctly for the manifest file
