@@ -101,3 +101,53 @@ This configuration ensures that:
 1. The manifest.json file is publicly accessible
 2. Icon files are properly cached
 3. CORS headers are set correctly for the manifest file
+
+## Common Issues and Solutions
+
+### 1. Database Write Access
+
+The SQLite database needs to be in a writable location in the Vercel environment. The `/tmp` directory is used for this purpose:
+
+```
+DATABASE_URL=file:/tmp/wct.db
+DATABASE_PATH=/tmp/wct.db
+```
+
+### 2. SQL Syntax for Timestamps
+
+When working with timestamps in SQLite queries, use `CURRENT_TIMESTAMP` instead of `datetime("now")` for better compatibility:
+
+```sql
+-- Correct way to insert current timestamp
+INSERT INTO table_name (created_at) VALUES (CURRENT_TIMESTAMP)
+
+-- Avoid using this format in Vercel environment
+-- INSERT INTO table_name (created_at) VALUES (datetime("now"))
+```
+
+### 3. Static Assets Access
+
+To ensure static assets like manifest.json and icon files are accessible without authentication, a middleware is implemented:
+
+```typescript
+// src/middleware.ts
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Allow access to manifest.json and icon files without authentication
+  if (pathname === '/manifest.json' || pathname.startsWith('/icons/')) {
+    return NextResponse.next();
+  }
+
+  // Continue with the request
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+};
+```
+
+This ensures that PWA assets are properly accessible even when authentication is required for other routes.
