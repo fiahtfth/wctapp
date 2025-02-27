@@ -151,3 +151,76 @@ export const config = {
 ```
 
 This ensures that PWA assets are properly accessible even when authentication is required for other routes.
+
+## Alternative Solutions for Common Issues
+
+### 1. Serving Manifest.json Through an API Route
+
+If you encounter issues with manifest.json access, you can create a dedicated API route to serve it:
+
+```typescript
+// src/app/api/manifest/route.ts
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+export async function GET() {
+  try {
+    // Path to the manifest.json file in the public directory
+    const manifestPath = path.join(process.cwd(), 'public', 'manifest.json');
+    
+    // Read the manifest file
+    const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
+    const manifestJson = JSON.parse(manifestContent);
+    
+    // Return the manifest with appropriate headers
+    return NextResponse.json(manifestJson, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    console.error('Error serving manifest.json:', error);
+    return NextResponse.json(
+      { error: 'Failed to serve manifest.json' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+Then add a rewrite rule in next.config.js:
+
+```javascript
+// next.config.js
+const nextConfig = {
+  // ... other config
+  async rewrites() {
+    return [
+      {
+        source: '/manifest.json',
+        destination: '/api/manifest',
+      },
+    ];
+  },
+};
+```
+
+### 2. Using JavaScript Dates Instead of SQL Timestamps
+
+To avoid issues with SQLite timestamp functions in Vercel, use JavaScript Date objects:
+
+```typescript
+// Instead of this:
+const insertCart = db.prepare('INSERT INTO table (created_at) VALUES (CURRENT_TIMESTAMP)');
+insertCart.run();
+
+// Use this approach:
+const now = new Date().toISOString();
+const insertCart = db.prepare('INSERT INTO table (created_at) VALUES (?)');
+insertCart.run(now);
+```
+
+This approach is more reliable across different SQLite implementations and environments.
