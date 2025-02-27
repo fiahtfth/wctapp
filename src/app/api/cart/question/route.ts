@@ -291,9 +291,10 @@ export async function POST(request: NextRequest) {
         cartId = existingCart.id;
         console.log('Using existing cart ID:', cartId);
       } else {
-        // Create a new cart
-        const insertCart = db.prepare('INSERT INTO carts (test_id, user_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)');
-        const cartResult = insertCart.run(testId, userId);
+        // Create a new cart with a simpler timestamp approach
+        const now = new Date().toISOString();
+        const insertCart = db.prepare('INSERT INTO carts (test_id, user_id, created_at) VALUES (?, ?, ?)');
+        const cartResult = insertCart.run(testId, userId, now);
         cartId = cartResult.lastInsertRowid;
         console.log('Created new cart with ID:', cartId);
       }
@@ -316,8 +317,9 @@ export async function POST(request: NextRequest) {
       
       // Add question to cart
       try {
-        const insertItem = db.prepare('INSERT INTO cart_items (cart_id, question_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)');
-        const itemResult = insertItem.run(cartId, questionId);
+        const now = new Date().toISOString();
+        const insertItem = db.prepare('INSERT INTO cart_items (cart_id, question_id, created_at) VALUES (?, ?, ?)');
+        const itemResult = insertItem.run(cartId, questionId, now);
         console.log('Item added to cart:', itemResult);
         
         // Commit transaction

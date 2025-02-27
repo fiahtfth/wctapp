@@ -18,6 +18,15 @@ const nextConfig = {
     // your project has type errors
     ignoreBuildErrors: true,
   },
+  // Redirect manifest.json to our API route
+  async rewrites() {
+    return [
+      {
+        source: '/manifest.json',
+        destination: '/api/manifest',
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
