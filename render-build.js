@@ -248,6 +248,18 @@ export default function Custom404() {
   }
 }
 
+// Function to set up App Router only configuration
+function setupAppOnly() {
+  console.log('🔧 Setting up App Router only configuration...');
+  try {
+    require('./create-nextjs-app-only');
+    console.log('✅ App Router only configuration set up successfully');
+  } catch (error) {
+    console.error('❌ Error setting up App Router only configuration:', error);
+    throw error;
+  }
+}
+
 // Function to remove the Pages Router
 function removePagesRouter() {
   console.log('🔧 Removing Pages Router to resolve conflicts...');
@@ -283,8 +295,8 @@ function renderBuild() {
       runPostgresqlMigration();
     }
     
-    // Remove Pages Router to avoid conflicts
-    removePagesRouter();
+    // Set up App Router only configuration
+    setupAppOnly();
     
     // Fix HTML import issues
     fixHtmlImports();
