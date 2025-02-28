@@ -6,6 +6,7 @@
     "dev": "next dev",
     "clean": "rm -rf .next",
     "build": "node vercel-build.js && next build",
+    "build:render": "node render-build.js && next build",
     "start": "next start",
     "lint": "next lint",
     "test:question-submission": "ts-node test-question-submission.ts",

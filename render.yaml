@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: wctapp
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build:render
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/wct.db
+      - key: DATABASE_URL
+        value: file:/opt/render/project/src/wct.db
+      - key: JWT_SECRET
+        fromGroup: wctapp-secrets
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://wctapp.onrender.com
+      - key: RENDER
+        value: true

@@ -5,6 +5,19 @@ import path from 'path';
 
 // Helper function to get database path
 function getDatabasePath() {
+  // For Render environment
+  if (isRenderEnvironment()) {
+    console.log('Running in Render environment');
+    return process.env.DATABASE_PATH || '/opt/render/project/src/wct.db';
+  }
+  
+  // For Vercel environment
+  if (isVercelEnvironment()) {
+    console.log('Running in Vercel environment');
+    return process.env.DATABASE_PATH || '/tmp/wct.db';
+  }
+  
+  // For local development
   const dbPath = path.resolve(process.cwd(), 'src/lib/database/wct.db');
   return dbPath;
 }
@@ -12,6 +25,11 @@ function getDatabasePath() {
 // Function to check if we're in Vercel environment
 function isVercelEnvironment(): boolean {
   return process.env.VERCEL === '1' || !!process.env.VERCEL;
+}
+
+// Function to check if we're in Render environment
+function isRenderEnvironment(): boolean {
+  return process.env.RENDER === 'true' || !!process.env.RENDER;
 }
 
 // Function to enable debug logging
@@ -32,7 +50,7 @@ export async function GET(
   }
   
   console.log('Getting question with ID:', questionId);
-  debugLog('Environment:', process.env.NODE_ENV, 'Vercel:', isVercelEnvironment());
+  debugLog('Environment:', process.env.NODE_ENV, 'Vercel:', isVercelEnvironment(), 'Render:', isRenderEnvironment());
   
   // If we're in Vercel environment, use a simplified approach
   if (isVercelEnvironment()) {

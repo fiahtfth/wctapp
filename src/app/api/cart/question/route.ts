@@ -80,30 +80,36 @@ async function getUserIdFromToken(request: NextRequest) {
 
 // Function to get the database path based on environment
 export function getDatabasePath() {
-  // First check for environment variable
-  if (process.env.DATABASE_PATH) {
-    console.log('Using DATABASE_PATH from environment:', process.env.DATABASE_PATH);
-    return process.env.DATABASE_PATH;
+  // Function to check if we're in Render environment
+  function isRenderEnvironment(): boolean {
+    return process.env.RENDER === 'true' || !!process.env.RENDER;
+  }
+
+  // Function to check if we're in Vercel environment
+  function isVercelEnvironment(): boolean {
+    return process.env.VERCEL === '1' || !!process.env.VERCEL;
+  }
+
+  // For Render environment
+  if (isRenderEnvironment()) {
+    console.log('Running in Render environment');
+    return process.env.DATABASE_PATH || '/opt/render/project/src/wct.db';
   }
   
-  // For Vercel deployment, use /tmp directory
-  if (process.env.VERCEL) {
-    const tmpPath = '/tmp/wct.db';
-    console.log('Vercel environment detected, using path:', tmpPath);
-    return tmpPath;
+  // For Vercel environment
+  if (isVercelEnvironment()) {
+    console.log('Running in Vercel environment');
+    return process.env.DATABASE_PATH || '/tmp/wct.db';
   }
   
   // For local development
-  const rootDbPath = path.join(process.cwd(), 'wct.db');
-  if (fs.existsSync(rootDbPath)) {
-    console.log('Using database at project root:', rootDbPath);
-    return rootDbPath;
+  console.log('Running in local environment');
+  let dbPath = path.join(process.cwd(), 'wct.db');
+  if (!fs.existsSync(dbPath)) {
+    dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
   }
   
-  // Fallback to the lib/database location
-  const libDbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
-  console.log('Using database in lib/database:', libDbPath);
-  return libDbPath;
+  return dbPath;
 }
 
 // Function to ensure database exists and is initialized
@@ -282,11 +288,6 @@ async function createTestUserIfNeeded(db: Database): Promise<number> {
     console.error('Error creating test user:', error);
     return 1; // Fallback to ID 1
   }
-}
-
-// Function to check if we're in Vercel environment
-function isVercelEnvironment(): boolean {
-  return process.env.VERCEL === '1' || !!process.env.VERCEL;
 }
 
 // Function to enable debug logging
@@ -590,4 +591,9 @@ export async function POST(request: NextRequest) {
       details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
+}
+
+// Function to check if we're in Vercel environment
+function isVercelEnvironment(): boolean {
+  return process.env.VERCEL === '1' || !!process.env.VERCEL;
 }

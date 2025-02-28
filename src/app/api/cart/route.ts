@@ -8,6 +8,12 @@ import { jwtVerify } from 'jose';
 
 // Helper function to get database path with proper permissions
 function getDatabasePath() {
+  // For Render environment
+  if (isRenderEnvironment()) {
+    console.log('Running in Render environment');
+    return process.env.DATABASE_PATH || '/opt/render/project/src/wct.db';
+  }
+  
   // For local development
   let dbPath = path.join(process.cwd(), 'wct.db');
   if (!fs.existsSync(dbPath)) {
@@ -89,6 +95,11 @@ async function getUserIdFromToken(request: NextRequest): Promise<number> {
 // Function to check if we're in Vercel environment
 function isVercelEnvironment(): boolean {
   return process.env.VERCEL === '1' || !!process.env.VERCEL;
+}
+
+// Function to check if we're in Render environment
+function isRenderEnvironment(): boolean {
+  return process.env.RENDER === 'true' || !!process.env.RENDER;
 }
 
 // Function to enable debug logging
