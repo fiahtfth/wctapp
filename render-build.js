@@ -248,31 +248,40 @@ export default function Custom404() {
   }
 }
 
+// Function to run the HTML import fix script
+function fixHtmlImports() {
+  console.log('🔧 Running HTML import fix script...');
+  try {
+    require('./fix-html-import');
+    console.log('✅ HTML import fixes applied');
+  } catch (error) {
+    console.error('❌ Error running HTML import fix script:', error);
+  }
+}
+
 // Main build function
 function renderBuild() {
+  console.log('🚀 Starting Render build process...');
+  
   try {
-    console.log('🔄 Running Render build script...');
+    // Ensure SQLite database is set up
+    ensureSQLiteDatabase();
+    
+    // Run PostgreSQL migration if needed
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres')) {
+      runPostgresqlMigration();
+    }
+    
+    // Fix HTML import issues
+    fixHtmlImports();
     
     // Check and fix common build issues
     checkAndFixBuildIssues();
     
-    // Detect database type
-    const dbType = process.env.DB_TYPE || 'sqlite';
-    console.log(`Database type: ${dbType}`);
-    
-    if (dbType === 'sqlite') {
-      // Setup SQLite database
-      ensureSQLiteDatabase();
-    } else if (dbType === 'postgres') {
-      // Run PostgreSQL migration
-      runPostgresqlMigration();
-    }
-    
-    console.log('🏗️ Proceeding with Next.js build...');
+    console.log('✅ Render build setup complete');
   } catch (error) {
-    console.error('❌ Render build script failed:', error);
-    // Don't exit with error code to allow the build to continue
-    console.log('Continuing with Next.js build despite errors...');
+    console.error('❌ Render build setup failed:', error);
+    process.exit(1);
   }
 }
 
