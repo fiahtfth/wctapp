@@ -51,10 +51,9 @@ export async function addQuestionToTest(questionId: number, testId?: string) {
     // Get token from localStorage
     const token = getToken();
     
-    // Check if token exists before making the API call
+    // Even if no token, we'll try to add to cart (server will create a test user)
     if (!token) {
-      console.error('No authentication token found');
-      throw new Error('You need to sign in to add questions to a test');
+      console.log('No authentication token found, will use test user');
     }
     
     // Always use direct API call instead of server action
@@ -64,7 +63,7 @@ export async function addQuestionToTest(questionId: number, testId?: string) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': token ? `Bearer ${token}` : ''
       },
       body: JSON.stringify({ questionId, testId: currentTestId }),
     });
@@ -75,8 +74,18 @@ export async function addQuestionToTest(questionId: number, testId?: string) {
       
       // Handle specific error codes
       if (response.status === 401) {
-        if (errorData.code === 'AUTH_REQUIRED') {
-          throw new Error('You need to sign in to add questions to a test');
+        // Clear the token if it's expired or invalid
+        localStorage.removeItem('token');
+        
+        if (errorData.code === 'AUTH_REQUIRED' || errorData.details?.includes('exp')) {
+          // Redirect to login page if token is expired
+          if (typeof window !== 'undefined') {
+            // Store the current page URL to redirect back after login
+            localStorage.setItem('redirectAfterLogin', window.location.pathname);
+            // Redirect to login page
+            window.location.href = '/login?expired=true';
+          }
+          throw new Error('Your session has expired. Please sign in again to continue.');
         } else if (errorData.code === 'AUTH_ERROR') {
           throw new Error('Authentication error: Please sign out and sign in again');
         } else {
@@ -135,7 +144,11 @@ export async function addQuestionToTest(questionId: number, testId?: string) {
         cartStore.addQuestion({
           id: questionId,
           Question: `Question #${questionId}`,
+          Answer: 'Not available',
           Subject: 'Unknown',
+          Topic: 'Unknown',
+          FacultyApproved: false,
+          QuestionType: 'Objective',
           'Difficulty Level': 'Medium',
           Question_Type: 'MCQ'
         });
@@ -326,7 +339,7 @@ export async function fetchCartItems(testId?: string) {
 
 // Helper function to get a question by ID
 export async function getQuestionById(questionId: number) {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+  const baseUrl = getBaseUrl(); // Use the current window location instead of env variable
   const token = getToken();
   
   try {

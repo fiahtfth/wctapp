@@ -46,7 +46,14 @@ export async function GET(
   const questionId = params.id;
   
   if (!questionId) {
-    return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Question ID is required' }, { 
+      status: 400,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   }
   
   console.log('Getting question with ID:', questionId);
@@ -74,7 +81,14 @@ export async function GET(
     return NextResponse.json({ 
       question: mockQuestion,
       vercelMode: true
-    }, { status: 200 });
+    }, { 
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   }
   
   console.log('Getting question with ID:', questionId);
@@ -86,7 +100,14 @@ export async function GET(
     console.error('Database file does not exist:', dbPath);
     return NextResponse.json({ 
       error: 'Database file does not exist'
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   }
   
   let db = null;
@@ -113,19 +134,53 @@ export async function GET(
     `).get(questionId);
     
     if (!question) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Question not found' }, { 
+        status: 404,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
     }
     
-    return NextResponse.json({ question }, { status: 200 });
+    return NextResponse.json({ question }, { 
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   } catch (error) {
     console.error('Error fetching question:', error);
     return NextResponse.json({ 
       error: 'Error fetching question',
       details: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   } finally {
     if (db) {
       db.close();
     }
   }
+}
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400' // 24 hours
+    }
+  });
 }

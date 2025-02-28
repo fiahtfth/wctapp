@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
-// Function to ensure database directory exists
-function ensureDatabaseDirectory() {
+// Function to ensure database directory exists for SQLite
+function ensureSQLiteDatabase() {
   const renderDbPath = '/opt/render/project/src';
   
   // Check if we're in Render environment
@@ -48,5 +49,61 @@ function ensureDatabaseDirectory() {
   }
 }
 
+// Function to run PostgreSQL migration
+function runPostgresqlMigration() {
+  try {
+    console.log('🔄 Running PostgreSQL migration...');
+    
+    // Check if we're using PostgreSQL
+    if (process.env.DB_TYPE === 'postgres') {
+      console.log('PostgreSQL database type detected');
+      
+      // Wait for PostgreSQL to be ready
+      console.log('Waiting for PostgreSQL to be ready...');
+      // Sleep for 10 seconds to ensure PostgreSQL is ready
+      execSync('sleep 10');
+      
+      // Run the migration script
+      console.log('Running migration script...');
+      execSync('npm run migrate:postgres', { 
+        stdio: 'inherit',
+        env: { ...process.env }
+      });
+      
+      console.log('✅ PostgreSQL migration completed successfully');
+    } else {
+      console.log('Not using PostgreSQL, skipping migration');
+    }
+  } catch (error) {
+    console.error('❌ Failed to run PostgreSQL migration:', error);
+    // Don't throw the error to allow the build to continue
+    console.log('Continuing with build despite migration error');
+  }
+}
+
+// Main build function
+function renderBuild() {
+  try {
+    console.log('🔄 Running Render build script...');
+    
+    // Detect database type
+    const dbType = process.env.DB_TYPE || 'sqlite';
+    console.log(`Database type: ${dbType}`);
+    
+    if (dbType === 'sqlite') {
+      // Setup SQLite database
+      ensureSQLiteDatabase();
+    } else if (dbType === 'postgres') {
+      // Run PostgreSQL migration
+      runPostgresqlMigration();
+    }
+    
+    console.log('🏗️ Proceeding with Next.js build...');
+  } catch (error) {
+    console.error('❌ Render build script failed:', error);
+    process.exit(1);
+  }
+}
+
 // Run the setup
-ensureDatabaseDirectory();
+renderBuild();

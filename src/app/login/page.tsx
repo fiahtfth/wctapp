@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -59,7 +59,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const router = useRouter();
+
+  // Check for expired token query parameter
+  useEffect(() => {
+    // Check URL for expired=true parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const expired = urlParams.get('expired');
+    if (expired === 'true') {
+      setInfoMessage('Your session has expired. Please sign in again to continue.');
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -88,11 +100,21 @@ export default function LoginPage() {
           role: data.user.role,
         })
       );
-      // Redirect based on user role
-      if (data.user.role === 'admin') {
-        router.push('/users');
+      
+      // Check if there's a redirect URL stored in localStorage
+      const redirectUrl = localStorage.getItem('redirectAfterLogin');
+      if (redirectUrl) {
+        // Clear the stored redirect URL
+        localStorage.removeItem('redirectAfterLogin');
+        // Redirect to the stored URL
+        router.push(redirectUrl);
       } else {
-        router.push('/dashboard');
+        // Default redirect based on user role
+        if (data.user.role === 'admin') {
+          router.push('/users');
+        } else {
+          router.push('/dashboard');
+        }
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -175,6 +197,11 @@ export default function LoginPage() {
                 Sign in to continue
               </Typography>
             </Box>
+            {infoMessage && (
+              <Typography color="info" variant="body2" sx={{ mt: 1, textAlign: 'center', mb: 2 }}>
+                {infoMessage}
+              </Typography>
+            )}
             <form onSubmit={handleLogin}>
               <TextField
                 variant="outlined"

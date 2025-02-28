@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
     })
       .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('24h')
+      .setExpirationTime('7d')
       .sign(new TextEncoder().encode(jwtSecret));
     log('debug', 'Login successful', {
       userId: user.id,

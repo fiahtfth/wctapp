@@ -18,10 +18,15 @@
     "test:coverage": "jest --coverage",
     "test:filters": "jest src/config/__tests__/filters.test.ts",
     "test:cart": "ts-node src/scripts/test-cart.ts",
+    "test:cart:postgres": "ts-node src/scripts/test-cart-postgres.ts",
     "pwa:build": "next build --no-lint",
     "pwa:start": "next start",
     "build:db": "tsc scripts/init-db.ts",
-    "deploy": "./deploy.sh"
+    "deploy": "./deploy.sh",
+    "deploy:render": "./deploy-to-render.sh",
+    "migrate:postgres": "ts-node src/lib/database/migrations/run-migration.ts",
+    "start:postgres": "./run-with-postgres.sh",
+    "start:sqlite": "./run-with-sqlite.sh"
   },
   "dependencies": {
     "@emotion/react": "^11.11.4",
@@ -43,6 +48,7 @@
     "next": "^15.1.7",
     "next-pwa": "^2.0.2",
     "pg": "^8.13.3",
+    "pg-copy-streams": "^6.0.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "uuid": "^11.1.0",

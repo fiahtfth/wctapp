@@ -18,3 +18,25 @@ services:
         value: https://wctapp.onrender.com
       - key: RENDER
         value: true
+      - key: DB_TYPE
+        value: postgres
+      - key: POSTGRES_USER
+        fromGroup: wctapp-secrets
+      - key: POSTGRES_PASSWORD
+        fromGroup: wctapp-secrets
+      - key: POSTGRES_HOST
+        fromGroup: wctapp-secrets
+      - key: POSTGRES_DB
+        fromGroup: wctapp-secrets
+      - key: POSTGRES_PORT
+        value: "5432"
+
+  - type: postgres
+    name: wctdb
+    plan: free
+    ipAllowList: []
+    envVars:
+      - key: POSTGRES_USER
+        fromGroup: wctapp-secrets
+      - key: POSTGRES_PASSWORD
+        fromGroup: wctapp-secrets
