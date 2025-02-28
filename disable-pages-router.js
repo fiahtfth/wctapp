@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
-// Function to disable the Pages Router
-function disablePagesRouter() {
-  console.log('🔧 Disabling Pages Router to resolve conflicts...');
+// Function to completely remove the Pages Router
+function removePagesRouter() {
+  console.log('🔧 Completely removing Pages Router to resolve conflicts...');
   
   try {
     const pagesDir = path.join(process.cwd(), 'src', 'pages');
@@ -11,7 +12,7 @@ function disablePagesRouter() {
     
     // Check if pages directory exists
     if (fs.existsSync(pagesDir)) {
-      console.log('Found pages directory - creating backup and disabling...');
+      console.log('Found pages directory - creating backup and removing...');
       
       // Create backup directory if it doesn't exist
       if (!fs.existsSync(backupDir)) {
@@ -56,45 +57,31 @@ function disablePagesRouter() {
         console.log(`Removed ${file} from pages directory`);
       });
       
-      // Create an empty _app.tsx file to satisfy Next.js
-      const appContent = `import type { AppProps } from 'next/app';
-
-export default function App({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />;
-}
-`;
-      fs.writeFileSync(path.join(pagesDir, '_app.tsx'), appContent);
-      console.log('Created minimal _app.tsx');
+      // Use a more robust method to remove the directory
+      try {
+        // First try to remove it with fs.rmdirSync
+        fs.rmdirSync(pagesDir);
+      } catch (err) {
+        if (err.code === 'ENOTEMPTY') {
+          // If directory is not empty, use a shell command to force remove it
+          console.log('Directory not empty, using force remove...');
+          if (process.platform === 'win32') {
+            execSync(`rmdir /s /q "${pagesDir}"`);
+          } else {
+            execSync(`rm -rf "${pagesDir}"`);
+          }
+        } else {
+          throw err;
+        }
+      }
       
-      // Create an empty _document.tsx file without Html component
-      const documentContent = `import { Head, Main, NextScript } from 'next/document';
-import Document from 'next/document';
-
-class MyDocument extends Document {
-  render() {
-    return (
-      <html lang="en">
-        <Head />
-        <body>
-          <Main />
-          <NextScript />
-        </body>
-      </html>
-    );
-  }
-}
-
-export default MyDocument;
-`;
-      fs.writeFileSync(path.join(pagesDir, '_document.tsx'), documentContent);
-      console.log('Created minimal _document.tsx');
-      
-      console.log('✅ Pages Router disabled successfully');
+      console.log('Removed pages directory completely');
+      console.log('✅ Pages Router completely removed');
     } else {
-      console.log('Pages directory not found - nothing to disable');
+      console.log('Pages directory not found - nothing to remove');
     }
   } catch (error) {
-    console.error('❌ Error disabling Pages Router:', error);
+    console.error('❌ Error removing Pages Router:', error);
   }
 }
 
@@ -138,8 +125,21 @@ function removeDirectoryRecursive(directory) {
   });
   
   // Remove the directory itself
-  fs.rmdirSync(directory);
+  try {
+    fs.rmdirSync(directory);
+  } catch (err) {
+    if (err.code === 'ENOTEMPTY') {
+      // If directory is not empty, use a shell command to force remove it
+      if (process.platform === 'win32') {
+        execSync(`rmdir /s /q "${directory}"`);
+      } else {
+        execSync(`rm -rf "${directory}"`);
+      }
+    } else {
+      throw err;
+    }
+  }
 }
 
 // Run the function
-disablePagesRouter();
+removePagesRouter();
