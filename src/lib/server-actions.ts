@@ -1,6 +1,6 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 
 async function getBaseUrl() {
@@ -60,59 +60,123 @@ export async function removeFromCart(questionId: number | string, testId: string
   }
 }
 
-export async function addQuestionToCart(questionId: number, testId: string | undefined, token: string) {
+export async function addQuestionToCart(questionId: number, testId: string) {
+  console.log('server-actions.addQuestionToCart called with questionId:', questionId, 'testId:', testId);
+  
   if (!questionId) {
     throw new Error('Question ID is required');
   }
   
-  // If testId is not provided, we'll let the API generate one
-  const finalTestId = testId || '';
-
+  if (!testId) {
+    throw new Error('Test ID is required');
+  }
+  
   try {
-    const baseUrl = await getBaseUrl();
+    // Get token from cookies
+    const cookiesObj = await cookies();
+    const token = cookiesObj.get('token')?.value;
+    console.log('Token from cookies:', token ? 'Present' : 'Not present');
     
-    // Skip token verification here since it will be done on the server side
-    // Just pass the token directly to the API
+    // Check if token is present
+    if (!token) {
+      throw new Error('Authentication required: You need to sign in to add questions to a test');
+    }
+    
+    // For Vercel deployments, we need to be careful with internal API calls
+    // Instead of using fetch with baseUrl, we'll use a direct import approach
+    
+    // Import the database helper functions
+    const { getDatabasePath } = await import('@/app/api/cart/question/route');
+    const Database = (await import('better-sqlite3')).default;
+    
     try {
-      // First try the cart/question endpoint which is more robust
-      const response = await fetch(`${baseUrl}/api/cart/question`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ questionId, testId: finalTestId }),
-        cache: 'no-store',
-      });
-
-      if (response.ok) {
-        return response.json();
+      // Get database path
+      const dbPath = getDatabasePath();
+      console.log('Using database at path:', dbPath);
+      
+      // Open database connection
+      const db = new Database(dbPath, { readonly: false });
+      
+      try {
+        // Get user ID from token
+        const { jwtVerify } = await import('jose');
+        const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'default_secret_for_development');
+        
+        let userId = null;
+        try {
+          const { payload } = await jwtVerify(token, secret);
+          userId = payload.id as number;
+          console.log('User ID extracted from token:', userId);
+        } catch (tokenError) {
+          console.error('Error verifying token:', tokenError);
+          throw new Error('Invalid authentication token');
+        }
+        
+        // Begin transaction
+        db.prepare('BEGIN TRANSACTION').run();
+        
+        // Check if cart exists for this test ID
+        const existingCart = db.prepare(`
+          SELECT id FROM carts 
+          WHERE test_id = ? AND user_id = ?
+        `).get(testId, userId);
+        
+        let cartId;
+        
+        if (existingCart) {
+          // Use existing cart
+          cartId = (existingCart as { id: number }).id;
+        } else {
+          // Create new cart
+          const insertCartResult = db.prepare(`
+            INSERT INTO carts (test_id, user_id, created_at)
+            VALUES (?, ?, datetime('now'))
+          `).run(testId, userId);
+          
+          cartId = insertCartResult.lastInsertRowid;
+        }
+        
+        // Check if question is already in cart
+        const existingItem = db.prepare(`
+          SELECT id FROM cart_items 
+          WHERE cart_id = ? AND question_id = ?
+        `).get(cartId, questionId);
+        
+        if (!existingItem) {
+          // Add question to cart
+          db.prepare(`
+            INSERT INTO cart_items (cart_id, question_id, created_at)
+            VALUES (?, ?, datetime('now'))
+          `).run(cartId, questionId);
+        }
+        
+        // Commit transaction
+        db.prepare('COMMIT').run();
+        
+        return {
+          success: true,
+          message: existingItem ? 'Question is already in cart' : 'Question added to cart',
+          cartId,
+          questionId
+        };
+      } catch (dbError) {
+        // Rollback transaction on error
+        try {
+          db.prepare('ROLLBACK').run();
+        } catch (rollbackError) {
+          console.error('Error rolling back transaction:', rollbackError);
+        }
+        
+        throw dbError;
+      } finally {
+        // Close database connection
+        if (db) {
+          db.close();
+        }
       }
-
-      // If the first endpoint fails, try the fallback endpoint
-      console.log('Falling back to legacy cart endpoint');
-      const fallbackResponse = await fetch(`${baseUrl}/api/cart`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ questionId, testId: finalTestId }),
-        cache: 'no-store',
-      });
-
-      if (!fallbackResponse.ok) {
-        const errorData = await fallbackResponse.json();
-        throw new Error(errorData.error || 'Failed to add question to cart');
-      }
-
-      return fallbackResponse.json();
     } catch (error) {
-      console.error('Error adding question to cart:', error);
-      if (error instanceof Error && error.message.includes('User with ID')) {
-        throw new Error(`Your session has expired. Please log out and log in again.`);
-      }
-      throw error;
+      console.error('Database operation error:', error);
+      throw new Error(`Failed to add question to cart: ${error instanceof Error ? error.message : String(error)}`);
     }
   } catch (error) {
     console.error('Error in addQuestionToCart:', error);

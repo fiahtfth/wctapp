@@ -36,15 +36,16 @@ export default function Cart() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [testId] = useState(() => {
-    // Use the same test ID from actions.ts
+    // Use the same test ID from localStorage or generate a new one
     if (typeof window !== 'undefined') {
       const storedTestId = localStorage.getItem('testId');
       if (storedTestId) {
-        console.log('Using stored testId:', storedTestId);
+        console.log('Cart component using stored testId:', storedTestId);
         return storedTestId;
       }
+      // If no testId in localStorage, generate a new one and store it
       const newTestId = uuidv4();
-      console.log('Generated new testId:', newTestId);
+      console.log('Cart component generated new testId:', newTestId);
       localStorage.setItem('testId', newTestId);
       return newTestId;
     }

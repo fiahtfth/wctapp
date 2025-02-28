@@ -277,3 +277,8 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  // Reuse the same implementation as PUT
+  return PUT(request);
+}

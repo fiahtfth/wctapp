@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Database from 'better-sqlite3';
+import type { Database as DatabaseType } from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
@@ -85,6 +86,18 @@ async function getUserIdFromToken(request: NextRequest): Promise<number> {
   }
 }
 
+// Function to check if we're in Vercel environment
+function isVercelEnvironment(): boolean {
+  return process.env.VERCEL === '1' || !!process.env.VERCEL;
+}
+
+// Function to enable debug logging
+function debugLog(...args: any[]): void {
+  if (process.env.DEBUG === 'true') {
+    console.log('[DEBUG]', ...args);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
@@ -135,12 +148,15 @@ export async function POST(request: NextRequest) {
         
         if (!testExists) {
           // Create a new cart entry if test doesn't exist
-          const insertCart = db.prepare('INSERT INTO carts (test_id, user_id) VALUES (?, ?)');
-          insertCart.run(finalTestId, userId);
+          const now = new Date().toISOString();
+          console.log('Creating new cart with test ID:', finalTestId, 'and user ID:', userId);
           
-          // Get the newly created cart ID
-          const newCart = db.prepare('SELECT id FROM carts WHERE test_id = ?').get(finalTestId);
-          cartId = (newCart as any).id;
+          const insertCart = db.prepare('INSERT INTO carts (test_id, user_id, created_at) VALUES (?, ?, ?)');
+          const cartResult = insertCart.run(finalTestId, userId, now);
+          
+          // Get the ID of the newly created cart
+          cartId = cartResult.lastInsertRowid;
+          console.log('Created new cart with ID:', cartId);
         } else {
           cartId = (testExists as any).id;
         }
@@ -225,10 +241,32 @@ export async function GET(request: NextRequest) {
     }
     
     console.log('Getting cart for test:', testId);
+    debugLog('Environment:', process.env.NODE_ENV, 'Vercel:', isVercelEnvironment());
     
     // Get user ID from token (if available)
-    const userId = await getUserIdFromToken(request);
-    console.log('User ID for cart operation:', userId);
+    let userId = null;
+    try {
+      userId = await getUserIdFromToken(request);
+      console.log('User ID for cart operation:', userId);
+    } catch (authError) {
+      console.log('No valid authentication, proceeding as anonymous user');
+      // Continue as anonymous user
+    }
+    
+    // If we're in Vercel environment, use a simplified approach
+    if (isVercelEnvironment()) {
+      debugLog('Using simplified cart handling for Vercel environment');
+      
+      // In Vercel, we'll just return an empty cart
+      return NextResponse.json({
+        testId,
+        userId: userId || 1,
+        questions: [],
+        vercelMode: true
+      });
+    }
+    
+    console.log('Getting cart for test:', testId);
     
     // Get database path with proper permissions
     const dbPath = getDatabasePath();
@@ -243,6 +281,49 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
     
+    // Check if the database has the required tables
+    try {
+      const tempDb = new Database(dbPath, { readonly: true });
+      const tables = tempDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+      console.log('Database tables:', tables.map((t: any) => t.name));
+      
+      // Check if carts table exists
+      const cartTableExists = tables.some((t: any) => t.name === 'carts');
+      console.log('Carts table exists:', cartTableExists);
+      
+      // Check if cart_items table exists
+      const cartItemsTableExists = tables.some((t: any) => t.name === 'cart_items');
+      console.log('Cart_items table exists:', cartItemsTableExists);
+      
+      // Check if there are any carts in the database
+      if (cartTableExists) {
+        const cartCount = tempDb.prepare('SELECT COUNT(*) as count FROM carts').get();
+        console.log('Total carts in database:', (cartCount as any).count);
+        
+        // Check if there's a cart with this test ID
+        const cartWithTestId = tempDb.prepare('SELECT COUNT(*) as count FROM carts WHERE test_id = ?').get(testId);
+        console.log('Carts with test ID', testId, ':', (cartWithTestId as any).count);
+        
+        // List all carts in the database
+        const allCarts = tempDb.prepare('SELECT id, test_id, user_id FROM carts').all();
+        console.log('All carts in database:', allCarts);
+        
+        // Check for cart items
+        if (cartItemsTableExists) {
+          const cartItemsCount = tempDb.prepare('SELECT COUNT(*) as count FROM cart_items').get();
+          console.log('Total cart items in database:', (cartItemsCount as any).count);
+          
+          // List all cart items
+          const allCartItems = tempDb.prepare('SELECT cart_id, question_id FROM cart_items').all();
+          console.log('All cart items in database:', allCartItems);
+        }
+      }
+      
+      tempDb.close();
+    } catch (checkError) {
+      console.error('Error checking database tables:', checkError);
+    }
+    
     // Explicitly set readonly: false to ensure write access
     const db = new Database(dbPath, { readonly: false });
     
@@ -251,9 +332,36 @@ export async function GET(request: NextRequest) {
       db.pragma('foreign_keys = OFF');
       
       try {
-        // First check if cart exists
-        const cart = db.prepare('SELECT id FROM carts WHERE test_id = ? AND user_id = ?').get(testId, userId);
+        console.log('Looking for cart with testId:', testId, 'and userId:', userId);
+        
+        // Modified query to handle both authenticated and anonymous users
+        let cartQuery;
+        let cartParams;
+        
+        if (userId) {
+          // For authenticated users, try to find their cart first
+          cartQuery = 'SELECT id FROM carts WHERE test_id = ? AND user_id = ?';
+          cartParams = [testId, userId];
+        } else {
+          // For anonymous users, look for carts with null user_id
+          cartQuery = 'SELECT id FROM carts WHERE test_id = ? AND user_id IS NULL';
+          cartParams = [testId];
+        }
+        
+        const cart = db.prepare(cartQuery).get(...cartParams);
         console.log('Cart lookup result:', cart);
+        
+        // If authenticated user doesn't have a cart, check for anonymous cart with same test ID
+        if (!cart && userId) {
+          console.log('No authenticated cart found, checking for anonymous cart');
+          const anonymousCart = db.prepare('SELECT id FROM carts WHERE test_id = ? AND user_id IS NULL').get(testId);
+          console.log('Anonymous cart lookup result:', anonymousCart);
+          
+          if (anonymousCart) {
+            console.log('Found anonymous cart, using it');
+            return getCartItems(db, (anonymousCart as any).id);
+          }
+        }
 
         if (!cart) {
           console.log('No cart found for testId:', testId, 'and userId:', userId);
@@ -261,41 +369,7 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ questions: [], count: 0 }, { status: 200 });
         }
 
-        const cartId = (cart as any).id;
-        
-        // Get questions in cart with all necessary fields
-        const questions = db.prepare(`
-          SELECT 
-            q.id,
-            q.Question,
-            q.Answer,
-            q.Explanation,
-            q.Subject,
-            q."Module Name" as ModuleName,
-            q.Topic,
-            q."Sub Topic" as SubTopic,
-            q."Difficulty Level" as DifficultyLevel,
-            q.Question_Type as QuestionType
-          FROM questions q
-          JOIN cart_items ci ON ci.question_id = q.id
-          WHERE ci.cart_id = ?
-          ORDER BY ci.created_at DESC
-        `).all(cartId);
-        
-        console.log('Found', questions.length, 'questions in cart');
-        
-        // Re-enable foreign key constraints
-        db.pragma('foreign_keys = ON');
-        
-        db.close();
-        
-        return NextResponse.json(
-          {
-            questions: questions,
-            count: questions.length,
-          },
-          { status: 200 }
-        );
+        return getCartItems(db, (cart as any).id);
       } catch (dbError) {
         console.error('Database error in cart fetch operation:', dbError);
         try {
@@ -328,4 +402,40 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function getCartItems(db: DatabaseType, cartId: number) {
+  // Get questions in cart with all necessary fields
+  const questions = db.prepare(`
+    SELECT 
+      q.id,
+      q.Question,
+      q.Answer,
+      q.Explanation,
+      q.Subject,
+      q."Module Name" as ModuleName,
+      q.Topic,
+      q."Sub Topic" as SubTopic,
+      q."Difficulty Level" as DifficultyLevel,
+      q.Question_Type as QuestionType
+    FROM questions q
+    JOIN cart_items ci ON ci.question_id = q.id
+    WHERE ci.cart_id = ?
+    ORDER BY ci.created_at DESC
+  `).all(cartId);
+  
+  console.log('Found', questions.length, 'questions in cart');
+  
+  // Re-enable foreign key constraints
+  db.pragma('foreign_keys = ON');
+  
+  db.close();
+  
+  return NextResponse.json(
+    {
+      questions: questions,
+      count: questions.length,
+    },
+    { status: 200 }
+  );
 }

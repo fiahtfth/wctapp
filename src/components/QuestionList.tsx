@@ -256,7 +256,7 @@ export default function QuestionList({
   const handleSaveEdit = async (updatedQuestion: Question) => {
     // Implement the logic to update the question in the database
     const response = await fetch(`/api/questions/edit`, {
-        method: 'PUT',
+        method: 'POST', // Changed from PUT to POST for better compatibility
         headers: {
             'Content-Type': 'application/json',
         },

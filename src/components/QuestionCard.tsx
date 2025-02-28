@@ -43,7 +43,7 @@ export function QuestionCard({
     
     setIsLoading(true);
     try {
-      await addQuestionToTest({ questionId: question.id });
+      await addQuestionToTest(question.id);
       setIsInCart(true);
       if (onAddToTest) {
         await onAddToTest(question.id);
