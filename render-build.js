@@ -248,6 +248,17 @@ export default function Custom404() {
   }
 }
 
+// Function to disable the Pages Router
+function disablePagesRouter() {
+  console.log('🔧 Disabling Pages Router to resolve conflicts...');
+  try {
+    require('./disable-pages-router');
+    console.log('✅ Pages Router disabled successfully');
+  } catch (error) {
+    console.error('❌ Error disabling Pages Router:', error);
+  }
+}
+
 // Function to run the HTML import fix script
 function fixHtmlImports() {
   console.log('🔧 Running HTML import fix script...');
@@ -271,6 +282,9 @@ function renderBuild() {
     if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres')) {
       runPostgresqlMigration();
     }
+    
+    // Disable Pages Router to avoid conflicts
+    disablePagesRouter();
     
     // Fix HTML import issues
     fixHtmlImports();
