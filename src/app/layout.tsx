@@ -1,111 +1,36 @@
-'use client';
 import { Inter } from 'next/font/google';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 import './globals.css';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import { useState, useEffect, useCallback } from 'react';
+import { Metadata } from 'next';
+import ClientLayout from '@/components/ClientLayout';
 
 const inter = Inter({
   variable: '--font-inter',
   subsets: ['latin'],
 });
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#2563eb',
-      light: '#3b82f6',
-      dark: '#1d4ed8',
-    },
-    secondary: {
-      main: '#7c3aed',
-      light: '#8b5cf6',
-      dark: '#6d28d9',
-    },
-    background: {
-      default: '#f8fafc',
-      paper: '#ffffff',
-    },
-    text: {
-      primary: '#1e293b',
-      secondary: '#475569',
-    },
-  },
-  typography: {
-    fontFamily: 'var(--font-inter), sans-serif',
-    h1: {
-      fontWeight: 700,
-      fontSize: '2.5rem',
-    },
-    h2: {
-      fontWeight: 600,
-      fontSize: '2rem',
-    },
-    h3: {
-      fontWeight: 600,
-      fontSize: '1.5rem',
-    },
-  },
-  shape: {
-    borderRadius: 8,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: 500,
-          padding: '0.5rem 1.25rem',
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-        },
-      },
-    },
-  },
-});
+export const metadata: Metadata = {
+  title: 'WCT Exam Creation Manager',
+  description: 'A tool for creating and managing WCT exams',
+  manifest: '/manifest.json',
+  themeColor: '#000000',
+  icons: [
+    { rel: 'icon', url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    { rel: 'icon', url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    { rel: 'apple-touch-icon', url: '/icons/icon-192x192.png', sizes: '192x192' }
+  ]
+};
 
 interface RootLayoutProps {
   children: React.ReactNode;
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
-  const [error, setError] = useState<Error | null>(null);
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  const resetErrorBoundary = useCallback(() => {
-    setError(null);
-  }, []);
-
   return (
     <html lang="en" className={inter.variable}>
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#000000" />
-        <link rel="icon" href="/icons/icon-192x192.png" sizes="192x192" type="image/png" />
-        <link rel="icon" href="/icons/icon-512x512.png" sizes="512x512" type="image/png" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" sizes="192x192" />
-      </head>
       <body className={`base-body ${inter.variable}`}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          {isClient ? (
-            error ? (
-              <ErrorBoundary error={error} reset={resetErrorBoundary} />
-            ) : (
-              <>{children}</>
-            )
-          ) : (
-            <>{children}</>
-          )}
-        </ThemeProvider>
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );
