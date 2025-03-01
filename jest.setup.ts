@@ -4,30 +4,15 @@
 // Import jest-dom extensions
 require('@testing-library/jest-dom');
 
-// Extend expect with jest-dom matchers
-const matchers = require('@testing-library/jest-dom/matchers');
-expect.extend(matchers);
+global.Request = jest.fn().mockImplementation((input: RequestInfo, init?: RequestInit) => {
+  return {
+    url: input.toString(),
+    method: init?.method || 'GET',
+    headers: init?.headers || {},
+    body: init?.body,
+  } as any;
+});
 
-// Type declarations for jest-dom
-/** @type {import('@testing-library/jest-dom/matchers')} */
-const jestDomMatchers = {
-  toBeInTheDocument: expect.any(Function),
-  toBeVisible: expect.any(Function),
-  toBeChecked: expect.any(Function),
-  toBeDisabled: expect.any(Function),
-  toHaveTextContent: expect.any(Function),
-  toHaveAttribute: expect.any(Function),
-  toHaveClass: expect.any(Function),
-  toHaveStyle: expect.any(Function),
-  toBeEmpty: expect.any(Function),
-  toContainElement: expect.any(Function),
-};
-
-// Augment global expect type
-global.expect = Object.assign(global.expect, jestDomMatchers);
-
-// Set test environment
-process.env.NODE_ENV = 'test';
 
 // Mock Next.js router
 jest.mock('next/router', () => ({
@@ -64,8 +49,12 @@ if (!global.fetch) {
       json: () => Promise.resolve({}),
       ok: true,
       status: 200,
+      statusText: 'OK',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       text: () => Promise.resolve(''),
-    })
+    } as any)
   );
 }
 

@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Use standalone output mode for better deployment compatibility
+  output: 'standalone',
   // Force server to always run on port 3000
   serverRuntimeConfig: {
     port: 3000
@@ -27,6 +29,8 @@ const nextConfig = {
       },
     ];
   },
+  // Alternate way to handle error pages - use custom middleware to handle errors
+  distDir: process.env.NODE_ENV === 'test' ? '.next-test' : '.next',
 };
 
 module.exports = nextConfig;

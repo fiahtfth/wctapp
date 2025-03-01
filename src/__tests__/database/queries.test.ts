@@ -1,171 +1,313 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import { getQuestions, Question } from '@/lib/database/queries';
-import { createQuestionsTable } from '@/lib/database/init';
+import { getQuestions } from '@/lib/database/queries';
 import { AppError } from '@/lib/errorHandler';
 
-// Mock configuration and error handler
-jest.mock('@/config', () => ({
-  APP_CONFIG: {
-    DATABASE: {
-      PATH: 'test-questions.db'
-    },
-    LOGGING: {
-      ENABLE_CONSOLE: false
+// Mock Supabase client
+jest.mock('@/lib/database/supabaseClient', () => {
+  const mockSelect = jest.fn();
+  const mockRange = jest.fn();
+  const mockOrder = jest.fn();
+  const mockIn = jest.fn();
+  const mockEq = jest.fn();
+  const mockOr = jest.fn();
+
+  return {
+    __esModule: true,
+    default: {
+      from: jest.fn(() => ({
+        select: mockSelect.mockReturnThis(),
+        range: mockRange.mockReturnThis(),
+        order: mockOrder.mockReturnThis(),
+        in: mockIn.mockReturnThis(),
+        eq: mockEq.mockReturnThis(),
+        or: mockOr.mockReturnThis()
+      }))
     }
-  }
-}));
+  };
+});
+
+// Import the mocked client
+import supabase from '@/lib/database/supabaseClient';
 
 describe('getQuestions Database Queries', () => {
-  let testDb: Database.Database;
-  const TEST_DB_PATH = path.resolve(process.cwd(), 'wctapp.db');
-
-  beforeAll(() => {
-    // Ensure test database directory exists
-    const dbDirectory = path.dirname(TEST_DB_PATH);
-    if (!fs.existsSync(dbDirectory)) {
-      fs.mkdirSync(dbDirectory, { recursive: true });
-    }
-
-    // Remove existing test database if it exists
-    if (fs.existsSync(TEST_DB_PATH)) {
-      fs.unlinkSync(TEST_DB_PATH);
-    }
-
-    // Create and setup test database
-    testDb = new Database(TEST_DB_PATH);
-    createQuestionsTable(testDb);
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  afterAll(() => {
-    // Close database and remove test database file
-    testDb.close();
-    if (fs.existsSync(TEST_DB_PATH)) {
-      fs.unlinkSync(TEST_DB_PATH);
-    }
-  });
+  it('should fetch questions with default parameters', async () => {
+    // Setup mock response
+    const mockData = [
+      {
+        id: 1,
+        Question: 'Test question?',
+        Answer: 'Test answer',
+        Explanation: 'Test explanation',
+        Subject: 'Test Subject',
+        'Module Name': 'Test Module',
+        Topic: 'Test Topic',
+        'Sub Topic': 'Test Sub Topic',
+        'Difficulty Level': 'Easy',
+        Question_Type: 'MCQ',
+        'Nature of Question': 'Conceptual'
+      }
+    ];
 
-  beforeEach(async () => {
-    await testDb.exec(`DELETE FROM questions`);
-    await testDb.exec(`
-      INSERT INTO questions 
-        (Question, Answer, Subject, "Difficulty Level", "Module Name", Topic, "Sub Topic", Question_Type, Explanation)
-      VALUES 
-        ('What is the derivative of x^2?', '2x', 'Mathematics', 'Medium', 'Calculus', 'Differentiation', NULL, 'Objective', NULL),
-        ('What is the capital of France?', 'Paris', 'Geography', 'Easy', 'World Capitals', 'European Capitals', NULL, 'Objective', NULL),
-        ('Explain quantum entanglement', 'Spooky action', 'Physics', 'Difficult', 'Quantum Mechanics', 'Entanglement', NULL, 'Essay', NULL);
-    `);
-  });
-
-  test('should retrieve questions with default pagination', async () => {
-    const result = await getQuestions({ 
-      page: 1, 
-      pageSize: 10 
+    // Mock the Supabase response
+    (supabase.from as jest.Mock).mockImplementation(() => {
+      const mockOrderFn = jest.fn().mockReturnValue({
+        data: mockData,
+        count: 1,
+        error: null
+      });
+      
+      const mockRangeFn = jest.fn().mockReturnValue({
+        order: mockOrderFn
+      });
+      
+      const mockSelectFn = jest.fn().mockReturnValue({
+        range: mockRangeFn
+      });
+      
+      return {
+        select: mockSelectFn
+      };
     });
 
-    expect(result).toHaveProperty('questions');
-    expect(result).toHaveProperty('total');
-    expect(result.questions.length).toBe(3);
-    expect(result.total).toBe(3);
-  });
+    // Call the function
+    const result = await getQuestions({});
 
-  test('should filter questions by subject', async () => {
-    const result = await getQuestions({ 
-      page: 1, 
-      pageSize: 10,
-      subject: 'Geography' 
-    });
-
+    // Verify the result
     expect(result.questions.length).toBe(1);
-    expect(result.questions[0].Question).toBe('What is the capital of France?');
+    expect(result.total).toBe(1);
+    expect(result.page).toBe(1);
+    expect(result.pageSize).toBe(10);
+    expect(result.totalPages).toBe(1);
+    expect(result.error).toBeNull();
+
+    // Verify the mapped question
+    const question = result.questions[0];
+    expect(question.id).toBe(1);
+    expect(question.text).toBe('Test question?');
+    expect(question.answer).toBe('Test answer');
+    expect(question.explanation).toBe('Test explanation');
+    expect(question.subject).toBe('Test Subject');
+    expect(question.moduleName).toBe('Test Module');
+    expect(question.topic).toBe('Test Topic');
+    expect(question.subTopic).toBe('Test Sub Topic');
+    expect(question.difficultyLevel).toBe('Easy');
+    expect(question.questionType).toBe('MCQ');
+    expect(question.natureOfQuestion).toBe('Conceptual');
   });
 
-  test('should filter questions by difficulty level', async () => {
-    // First verify the test data
-    const allQuestions = await testDb.prepare('SELECT "Difficulty Level", Question FROM questions').all();
-    console.log('🔍 All questions and their difficulty levels:', allQuestions);
+  it('should handle search queries', async () => {
+    // Setup mock response
+    const mockData = [
+      {
+        id: 1,
+        Question: 'Test question with search term?',
+        Answer: 'Test answer',
+        Explanation: 'Test explanation',
+        Subject: 'Test Subject',
+        'Module Name': 'Test Module',
+        Topic: 'Test Topic',
+        'Sub Topic': 'Test Sub Topic',
+        'Difficulty Level': 'Easy',
+        Question_Type: 'MCQ',
+        'Nature of Question': 'Conceptual'
+      }
+    ];
 
-    // Try direct SQL query
-    const directQuery = await testDb.prepare(`
-      SELECT * FROM questions 
-      WHERE "Difficulty Level" = ?
-      ORDER BY id ASC LIMIT ? OFFSET ?
-    `).all('Difficult', '1', '0');
-    console.log('🔍 Direct query results:', directQuery);
-
-    // Now run the actual test
-    const result = await getQuestions({ 
-      page: 1, 
-      pageSize: 1,
-      difficulty: 'Difficult'
+    // Mock the Supabase response
+    (supabase.from as jest.Mock).mockImplementation(() => {
+      const mockOrderFn = jest.fn().mockReturnValue({
+        data: mockData,
+        count: 1,
+        error: null
+      });
+      
+      const mockRangeFn = jest.fn().mockReturnValue({
+        order: mockOrderFn
+      });
+      
+      const mockOrFn = jest.fn().mockReturnValue({
+        range: mockRangeFn
+      });
+      
+      const mockSelectFn = jest.fn().mockReturnValue({
+        or: mockOrFn
+      });
+      
+      return {
+        select: mockSelectFn
+      };
     });
-    console.log('🎯 Filter results:', result);
-    
-    expect(result.questions.length).toBe(1); // Should get one question due to pagination
-    expect(result.totalQuestions).toBe(1); // Should have one difficult question in total
-  });
 
-  test('should filter questions by question type', async () => {
-    const result = await getQuestions({ 
-      page: 1, 
-      pageSize: 10,
-      question_type: 'Essay' 
-    });
+    // Call the function with search parameter
+    const result = await getQuestions({ search: 'search term' });
 
+    // Verify the result
     expect(result.questions.length).toBe(1);
-    expect(result.questions[0].Question).toBe('Explain quantum entanglement');
+    expect(result.total).toBe(1);
+    expect(supabase.from).toHaveBeenCalledWith('questions');
   });
 
-  test('should handle pagination correctly', async () => {
-    const result1 = await getQuestions({ 
-      page: 1, 
-      pageSize: 2 
+  it('should handle pagination', async () => {
+    // Setup mock response
+    const mockData = Array(5).fill(null).map((_, i) => ({
+      id: i + 1,
+      Question: `Test question ${i + 1}?`,
+      Answer: `Test answer ${i + 1}`,
+      Explanation: `Test explanation ${i + 1}`,
+      Subject: 'Test Subject',
+      'Module Name': 'Test Module',
+      Topic: 'Test Topic',
+      'Sub Topic': 'Test Sub Topic',
+      'Difficulty Level': 'Easy',
+      Question_Type: 'MCQ',
+      'Nature of Question': 'Conceptual'
+    }));
+
+    // Mock the Supabase response
+    (supabase.from as jest.Mock).mockImplementation(() => {
+      const mockOrderFn = jest.fn().mockReturnValue({
+        data: mockData,
+        count: 15, // Total of 15 questions
+        error: null
+      });
+      
+      const mockRangeFn = jest.fn().mockReturnValue({
+        order: mockOrderFn
+      });
+      
+      const mockSelectFn = jest.fn().mockReturnValue({
+        range: mockRangeFn
+      });
+      
+      return {
+        select: mockSelectFn
+      };
     });
 
-    expect(result1.questions.length).toBe(2);
-    expect(result1.total).toBe(3);
-    expect(result1.page).toBe(1);
-    expect(result1.totalPages).toBe(2);
+    // Call the function with pagination parameters
+    const result = await getQuestions({ page: 2, pageSize: 5 });
 
-    const result2 = await getQuestions({ 
-      page: 2, 
-      pageSize: 2 
-    });
-
-    expect(result2.questions.length).toBe(1);
-    expect(result2.page).toBe(2);
+    // Verify the result
+    expect(result.questions.length).toBe(5);
+    expect(result.total).toBe(15);
+    expect(result.page).toBe(2);
+    expect(result.pageSize).toBe(5);
+    expect(result.totalPages).toBe(3);
   });
 
-  test('should handle search query', async () => {
-    const result = await getQuestions({ 
-      page: 1, 
-      pageSize: 10,
-      search: 'entanglement' 
+  it('should return empty results for non-matching filters', async () => {
+    // Mock the Supabase response for empty results
+    (supabase.from as jest.Mock).mockImplementation(() => {
+      const mockOrderFn = jest.fn().mockReturnValue({
+        data: [],
+        count: 0,
+        error: null
+      });
+      
+      const mockRangeFn = jest.fn().mockReturnValue({
+        order: mockOrderFn
+      });
+      
+      const mockInFn = jest.fn().mockReturnValue({
+        range: mockRangeFn
+      });
+      
+      const mockSelectFn = jest.fn().mockReturnValue({
+        in: mockInFn
+      });
+      
+      return {
+        select: mockSelectFn
+      };
     });
 
-    expect(result.questions.length).toBe(1);
-    expect(result.questions[0].Question).toBe('Explain quantum entanglement');
-  });
+    // Call the function with filters that won't match any questions
+    const result = await getQuestions({ subject: ['NonExistentSubject'] });
 
-  test('should return empty result for non-matching filters', async () => {
-    const result = await getQuestions({ 
-      page: 1, 
-      pageSize: 10,
-      subject: 'History' 
-    });
-
+    // Verify the result
     expect(result.questions.length).toBe(0);
     expect(result.total).toBe(0);
+    expect(result.totalPages).toBe(0);
   });
 
-  test('should handle invalid pagination', async () => {
-    const result = await getQuestions({ 
-      page: 100, 
-      pageSize: 10 
+  it('should handle difficulty filter', async () => {
+    // Setup mock response
+    const mockData = [
+      {
+        id: 1,
+        Question: 'Difficult question?',
+        Answer: 'Test answer',
+        Explanation: 'Test explanation',
+        Subject: 'Test Subject',
+        'Module Name': 'Test Module',
+        Topic: 'Test Topic',
+        'Sub Topic': 'Test Sub Topic',
+        'Difficulty Level': 'Hard',
+        Question_Type: 'MCQ',
+        'Nature of Question': 'Conceptual'
+      }
+    ];
+
+    // Mock the Supabase response
+    (supabase.from as jest.Mock).mockImplementation(() => {
+      const mockOrderFn = jest.fn().mockReturnValue({
+        data: mockData,
+        count: 1,
+        error: null
+      });
+      
+      const mockRangeFn = jest.fn().mockReturnValue({
+        order: mockOrderFn
+      });
+      
+      const mockEqFn = jest.fn().mockReturnValue({
+        range: mockRangeFn
+      });
+      
+      const mockSelectFn = jest.fn().mockReturnValue({
+        eq: mockEqFn
+      });
+      
+      return {
+        select: mockSelectFn
+      };
     });
 
-    expect(result.questions.length).toBe(0);
-    expect(result.total).toBe(3);
+    // Call the function with difficulty filter
+    const result = await getQuestions({ difficulty: 'Hard' });
+
+    // Verify the result
+    expect(result.questions.length).toBe(1);
+    expect(result.total).toBe(1);
+    expect(result.questions[0].difficultyLevel).toBe('Hard');
+  });
+
+  it('should handle errors', async () => {
+    // Mock the Supabase response to throw an error
+    (supabase.from as jest.Mock).mockImplementation(() => {
+      const mockOrderFn = jest.fn().mockReturnValue({
+        data: null,
+        count: null,
+        error: new Error('Database error')
+      });
+      
+      const mockRangeFn = jest.fn().mockReturnValue({
+        order: mockOrderFn
+      });
+      
+      const mockSelectFn = jest.fn().mockReturnValue({
+        range: mockRangeFn
+      });
+      
+      return {
+        select: mockSelectFn
+      };
+    });
+
+    // Call the function and expect it to throw
+    await expect(getQuestions({})).rejects.toThrow(AppError);
   });
 });

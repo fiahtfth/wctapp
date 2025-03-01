@@ -9,16 +9,34 @@ import {
   Tooltip,
   CircularProgress,
   alpha,
-  useTheme
+  useTheme,
+  Collapse,
+  Button
 } from '@mui/material';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import { addQuestionToTest } from '@/lib/client-actions';
+import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { addQuestionToTest, removeQuestionFromTest } from '@/lib/client-actions';
 import type { Question } from '@/types/question';
+import { useCartStore } from '@/store/cartStore';
 
-
+// Define a type that can be either Question or CartQuestion
+type QuestionOrCartQuestion = Question | {
+  id: number | string;
+  Question: string;
+  Subject: string;
+  Topic: string;
+  Answer?: string;
+  Explanation?: string;
+  FacultyApproved?: boolean;
+  QuestionType?: string;
+  'Difficulty Level'?: string;
+  'Nature of Question'?: string;
+  [key: string]: any;
+};
 
 export function QuestionCard({ 
   question, 
@@ -28,7 +46,7 @@ export function QuestionCard({
   onAddToTest,
   onEdit
 }: { 
-  question: Question, 
+  question: QuestionOrCartQuestion, 
   onQuestionUpdate: (question: Question) => void,
   initialInCart?: boolean,
   showCartButton?: boolean,
@@ -37,6 +55,12 @@ export function QuestionCard({
 }) {
   const [isInCart, setIsInCart] = useState(initialInCart);
   const [isLoading, setIsLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const { addQuestion, removeQuestion, isInCart: cartIsInCart } = useCartStore();
+
+  const handleExpandClick = () => {
+    setExpanded(!expanded);
+  };
 
   const handleAddToTest = async () => {
     if (isInCart) return;
@@ -55,6 +79,50 @@ export function QuestionCard({
     }
   };
 
+  const handleAddToCart = async () => {
+    try {
+      // Add to local store first for immediate UI feedback
+      addQuestion(question);
+      setIsInCart(true);
+      
+      // Then add to server
+      await addQuestionToTest(Number(question.id));
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      // If server fails, remove from local store
+      removeQuestion(String(question.id));
+      setIsInCart(false);
+    }
+  };
+  
+  const handleRemoveFromCart = async () => {
+    try {
+      // Remove from local store first for immediate UI feedback
+      removeQuestion(String(question.id));
+      setIsInCart(false);
+      
+      // Then remove from server
+      const testId = localStorage.getItem('testId') || '';
+      await removeQuestionFromTest({ questionId: Number(question.id), testId });
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+      // If server fails, add back to local store
+      addQuestion(question);
+      setIsInCart(true);
+    }
+  };
+
+  // Add this debug log
+  console.log('QuestionCard rendering with question:', question);
+  
+  // Determine the text to display - be more defensive
+  const questionText = question.text || question.Question || '';
+  const answerText = question.answer || question.Answer || '';
+  const explanationText = question.explanation || question.Explanation || '';
+  const subjectText = question.subject || question.Subject || '';
+  const topicText = question.topic || question.Topic || '';
+  const difficultyText = question.difficultyLevel || question['Difficulty Level'] || '';
+
   return (
     <Card 
       sx={{ 
@@ -67,11 +135,13 @@ export function QuestionCard({
           transform: 'translateY(-2px)',
           boxShadow: (theme) => theme.shadows[4]
         },
-        borderRadius: 2,
-        overflow: 'hidden'
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: '#fff',
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)'
       }}
     >
-      <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
+      <CardContent sx={{ flexGrow: 1, p: 2 }}>
         {/* Difficulty Indicator */}
         <Box sx={{ 
           display: 'flex', 
@@ -83,7 +153,7 @@ export function QuestionCard({
             sx={{ 
               fontSize: '0.8rem',
               color: (theme) => {
-                switch(question.DifficultyLevel?.toLowerCase()) {
+                switch(difficultyText.toLowerCase()) {
                   case 'easy': return theme.palette.success.main;
                   case 'medium': return theme.palette.warning.main;
                   case 'hard': return theme.palette.error.main;
@@ -99,7 +169,7 @@ export function QuestionCard({
               textTransform: 'capitalize'
             }}
           >
-            {question.DifficultyLevel || 'Unspecified'} Difficulty
+            {difficultyText || 'Unspecified'} Difficulty
           </Typography>
         </Box>
 
@@ -116,7 +186,7 @@ export function QuestionCard({
             fontWeight: 500
           }}
         >
-          {question.Question}
+          {questionText}
         </Typography>
 
         {/* Metadata Details */}
@@ -125,63 +195,35 @@ export function QuestionCard({
           gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
           gap: 1,
           mb: 1,
-          backgroundColor: (theme) => alpha(theme.palette.background.default, 0.6),
           p: 1,
           borderRadius: 1
         }}>
           {[
-            { label: 'Subject', value: question.Subject },
-            { label: 'Module', value: question.ModuleName },
-            { label: 'Topic', value: question.Topic },
-            { label: 'SubTopic', value: question.SubTopic },
-            { label: 'MicroTopic', value: question.MicroTopic },
-            { label: 'Nature', value: question.NatureOfQuestion },
-            { label: 'Difficulty', value: question.DifficultyLevel },
-            { label: 'Answer', value: question.Answer }
+            { label: 'Subject', value: subjectText },
+            { label: 'Module', value: question.moduleName },
+            { label: 'Topic', value: topicText },
+            { label: 'Sub Topic', value: question.subTopic },
+            { label: 'Difficulty', value: difficultyText },
+            { label: 'Answer', value: answerText }
           ].map((item, index) => (
             item.value && (
-              <Box 
-                key={index} 
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'flex-start',
-                  gap: 0.5,
-                  p: 0.75,
-                  borderRadius: 1,
-                  backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.04),
-                  border: '1px solid',
-                  borderColor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08)
-                  }
+              <Box
+                key={index}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: '#e0e0e0',
+                  color: '#424242',
+                  fontSize: '0.75rem',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  margin: '4px',
+                  fontWeight: '500',
+                  textTransform: 'capitalize'
                 }}
               >
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 600, 
-                    color: 'primary.main',
-                    minWidth: 'fit-content',
-                    pr: 0.5,
-                    fontSize: '0.7rem'
-                  }}
-                >
-                  {item.label}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    flexGrow: 1,
-                    color: 'text.primary',
-                    fontWeight: 500,
-                    wordBreak: 'break-word',
-                    fontSize: '0.75rem',
-                    lineHeight: 1.3
-                  }}
-                >
-                  {item.value}
-                </Typography>
+                {item.label}: {item.value}
               </Box>
             )
           ))}
@@ -222,20 +264,14 @@ export function QuestionCard({
             <span>
               <IconButton
                 color={isInCart ? 'success' : 'primary'}
-                onClick={handleAddToTest}
+                onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
                 disabled={isInCart || isLoading}
                 size="small"
-                sx={{
-                  '&:hover': {
-                    backgroundColor: (theme) => 
-                      alpha(theme.palette[isInCart ? 'success' : 'primary'].main, 0.08)
-                  }
-                }}
               >
                 {isLoading ? (
                   <CircularProgress size={20} />
                 ) : isInCart ? (
-                  <CheckCircleIcon />
+                  <RemoveShoppingCartIcon />
                 ) : (
                   <AddShoppingCartIcon />
                 )}

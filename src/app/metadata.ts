@@ -3,7 +3,6 @@ export const metadata: Metadata = {
   title: 'WCT Question Bank',
   description: 'Question Bank Management Application',
   manifest: '/manifest.json',
-  themeColor: '#000000',
   icons: {
     icon: [
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
@@ -11,4 +10,5 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/icons/icon-192x192.png', sizes: '192x192' }],
   },
+  viewport: 'width=device-width, initial-scale=1, theme-color=#000000',
 };

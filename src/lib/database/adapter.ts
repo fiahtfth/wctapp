@@ -3,70 +3,44 @@ import * as pg from './postgres';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Enum for database types
+enum DatabaseType {
+  SQLITE = 'sqlite',
+  POSTGRES = 'postgres'
+}
+
 // Database type from environment variable
-const dbType = process.env.DB_TYPE || 'sqlite';
+const dbType = (process.env.DB_TYPE as DatabaseType) || DatabaseType.SQLITE;
+
+// Logging utility
+function logDatabaseInfo(message: string) {
+  if (process.env.DEBUG === 'true') {
+    console.log(`[Database Adapter] ${message}`);
+  }
+}
 
 /**
  * Get the SQLite database path
  */
 export function getSqliteDatabasePath() {
-  // Function to check if we're in Render environment
-  function isRenderEnvironment(): boolean {
-    return process.env.RENDER === 'true' || !!process.env.RENDER;
-  }
-
-  // Function to check if we're in Vercel environment
-  function isVercelEnvironment(): boolean {
-    return process.env.VERCEL === '1' || !!process.env.VERCEL;
-  }
-
-  // For Render environment
-  if (isRenderEnvironment()) {
-    console.log('Running in Render environment');
-    return process.env.DATABASE_PATH || '/opt/render/project/src/wct.db';
-  }
-  
-  // For Vercel environment
-  if (isVercelEnvironment()) {
-    console.log('Running in Vercel environment');
-    return process.env.DATABASE_PATH || '/tmp/wct.db';
-  }
-  
-  // For local development
-  console.log('Running in local environment');
-  
-  // Check if DATABASE_PATH is set in environment variables
-  if (process.env.DATABASE_PATH) {
-    console.log('Using DATABASE_PATH from environment:', process.env.DATABASE_PATH);
-    return process.env.DATABASE_PATH;
-  }
-  
-  // On macOS, /tmp is a symlink to /private/tmp
   const isMacOS = process.platform === 'darwin';
   const tmpPath = isMacOS ? '/private/tmp/wct.db' : '/tmp/wct.db';
-  
-  // Check if the database exists in the tmp directory
-  if (fs.existsSync(tmpPath)) {
-    console.log('Found database in tmp directory:', tmpPath);
-    return tmpPath;
+
+  const possiblePaths = [
+    process.env.DATABASE_PATH,
+    tmpPath,
+    path.join(process.cwd(), 'wct.db'),
+    path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db')
+  ];
+
+  for (const dbPath of possiblePaths) {
+    if (dbPath && fs.existsSync(dbPath)) {
+      logDatabaseInfo(`Found database at: ${dbPath}`);
+      return dbPath;
+    }
   }
-  
-  // Check if the database exists in the project root
-  let dbPath = path.join(process.cwd(), 'wct.db');
-  if (fs.existsSync(dbPath)) {
-    console.log('Found database in project root:', dbPath);
-    return dbPath;
-  }
-  
-  // Check if the database exists in the src/lib/database directory
-  dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
-  if (fs.existsSync(dbPath)) {
-    console.log('Found database in src/lib/database:', dbPath);
-    return dbPath;
-  }
-  
-  // Default to the tmp path if no database is found
-  console.log('No existing database found, defaulting to:', tmpPath);
+
+  logDatabaseInfo(`No database found, defaulting to: ${tmpPath}`);
   return tmpPath;
 }
 
@@ -77,40 +51,42 @@ export function getSqliteDatabasePath() {
  * @returns Query result
  */
 export async function executeQuery(query: string, params: any[] = []) {
-  if (dbType === 'postgres') {
-    // Convert SQLite-style parameter placeholders (?) to PostgreSQL-style ($1, $2, etc.)
-    if (query.includes('?')) {
-      let paramIndex = 1;
-      query = query.replace(/\?/g, () => `$${paramIndex++}`);
+  try {
+    logDatabaseInfo(`Executing query: ${query} with params: ${JSON.stringify(params)}`);
+
+    switch (dbType) {
+      case DatabaseType.POSTGRES:
+        // Convert SQLite-style parameter placeholders (?) to PostgreSQL-style ($1, $2, etc.)
+        let pgQuery = query;
+        if (pgQuery.includes('?')) {
+          let paramIndex = 1;
+          pgQuery = pgQuery.replace(/\?/g, () => `$${paramIndex++}`);
+        }
+        return pg.query(pgQuery, params);
+
+      case DatabaseType.SQLITE:
+      default:
+        const sqlite3 = require('better-sqlite3');
+        const dbPath = getSqliteDatabasePath();
+        const db = new sqlite3(dbPath);
+        
+        const isSelect = query.trim().toLowerCase().startsWith('select');
+        
+        if (isSelect) {
+          const stmt = db.prepare(query);
+          const result = { rows: stmt.all(...params) };
+          db.close();
+          return result;
+        } else {
+          const stmt = db.prepare(query);
+          const result = stmt.run(...params);
+          db.close();
+          return result;
+        }
     }
-    return pg.query(query, params);
-  } else {
-    // SQLite implementation
-    const sqlite3 = require('better-sqlite3');
-    const dbPath = getSqliteDatabasePath();
-    const db = new sqlite3(dbPath);
-    
-    try {
-      // Determine if it's a SELECT query or a modification query
-      const isSelect = query.trim().toLowerCase().startsWith('select');
-      
-      if (isSelect) {
-        // For SELECT queries, use .all() to get all rows
-        const stmt = db.prepare(query);
-        return { rows: stmt.all(...params) };
-      } else {
-        // For INSERT, UPDATE, DELETE, use .run()
-        const stmt = db.prepare(query);
-        const result = stmt.run(...params);
-        return { 
-          rowCount: result.changes,
-          lastInsertRowid: result.lastInsertRowid,
-          rows: result.lastInsertRowid ? [{ id: result.lastInsertRowid }] : []
-        };
-      }
-    } finally {
-      db.close();
-    }
+  } catch (error) {
+    logDatabaseInfo(`Query execution error: ${error instanceof Error ? error.message : error}`);
+    throw error;
   }
 }
 
@@ -119,7 +95,7 @@ export async function executeQuery(query: string, params: any[] = []) {
  * @returns Database client or connection
  */
 export async function getConnection() {
-  if (dbType === 'postgres') {
+  if (dbType === DatabaseType.POSTGRES) {
     return pg.getClient();
   } else {
     // SQLite implementation
@@ -135,7 +111,7 @@ export async function getConnection() {
  * @returns Result of the callback function
  */
 export async function transaction<T>(callback: (client: any) => Promise<T>): Promise<T> {
-  if (dbType === 'postgres') {
+  if (dbType === DatabaseType.POSTGRES) {
     return pg.transaction(callback);
   } else {
     // SQLite implementation
@@ -150,7 +126,7 @@ export async function transaction<T>(callback: (client: any) => Promise<T>): Pro
       return result;
     } catch (error) {
       db.prepare('ROLLBACK').run();
-      console.error('Transaction error:', error);
+      logDatabaseInfo(`Transaction error: ${error instanceof Error ? error.message : error}`);
       throw error;
     } finally {
       db.close();
@@ -162,11 +138,14 @@ export async function transaction<T>(callback: (client: any) => Promise<T>): Pro
  * Close database connections
  */
 export async function closeConnections() {
-  if (dbType === 'postgres') {
+  if (dbType === DatabaseType.POSTGRES) {
     await pg.closePool();
   }
   // SQLite doesn't need explicit closing as we close connections after each query
 }
+
+// Expose database type for external use
+export const currentDatabaseType = dbType;
 
 export default {
   executeQuery,

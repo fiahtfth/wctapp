@@ -1,7 +1,97 @@
 'use server';
 
-import { headers, cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+import { Database } from './database/schema';
+import { supabaseAdmin as supabase } from './database/supabaseClient';
+import { cookies, headers } from 'next/headers';
+
+// Initialize Supabase client with service role key
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+type UserInsert = Database['public']['Tables']['users']['Insert'];
+type CartInsert = Database['public']['Tables']['carts']['Insert'];
+type CartItemInsert = Database['public']['Tables']['cart_items']['Insert'];
+
+// Input validation schemas
+const UserSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  role: z.enum(['user', 'admin']).default('user')
+});
+
+const LoginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters')
+});
+
+// Utility function to convert input to number
+function toNumber(input: string | number): number {
+  if (typeof input === 'number') return input;
+  const parsed = parseInt(input, 10);
+  if (isNaN(parsed)) {
+    throw new Error(`Cannot convert ${input} to number`);
+  }
+  return parsed;
+}
+
+// Authentication helper functions
+async function generateAuthToken(userId: number) {
+  const token = uuidv4();
+  
+  // Store token in Supabase
+  const { error } = await supabase
+    .from('user_tokens')
+    .insert({
+      user_id: userId,
+      token: token,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+    });
+  
+  if (error) {
+    console.error('Error generating auth token:', error);
+    throw new Error('Failed to generate authentication token');
+  }
+  
+  // Set secure, HTTP-only cookie
+  const cookieStore = await cookies();
+  await cookieStore.set('auth_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 // 24 hours
+  });
+  
+  return token;
+}
+
+async function validateAuthToken(token: string) {
+  const { data, error } = await supabase
+    .from('user_tokens')
+    .select('user_id, expires_at')
+    .eq('token', token)
+    .single();
+  
+  if (error || !data) {
+    return null;
+  }
+  
+  // Check token expiration
+  const expiresAt = new Date(data.expires_at);
+  if (expiresAt < new Date()) {
+    // Token expired, delete it
+    await supabase
+      .from('user_tokens')
+      .delete()
+      .eq('token', token);
+    return null;
+  }
+  
+  return data.user_id;
+}
 
 async function getBaseUrl() {
   // In Vercel, we should use the VERCEL_URL environment variable
@@ -12,7 +102,7 @@ async function getBaseUrl() {
   // For local development or when VERCEL_URL is not available
   try {
     const headersList = await headers();
-    const host = (await headersList).get('host') || '';
+    const host = headersList.get('host') || '';
     const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
     console.log('Base URL from headers:', baseUrl);
@@ -26,41 +116,216 @@ async function getBaseUrl() {
   }
 }
 
-export async function removeFromCart(questionId: number | string, testId: string, token?: string) {
-  if (!testId || !questionId) {
-    throw new Error('Both testId and questionId are required');
-  }
-
+// Server Actions
+export async function createUser(formData: FormData) {
   try {
-    const baseUrl = await getBaseUrl();
-    const headersList = await headers();
-    const authToken = (await headersList).get('authorization') || '';
-    const fetchHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
+    // Validate input
+    const userData = {
+      username: formData.get('username') as string,
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+      role: formData.get('role') as 'user' | 'admin' | undefined
     };
-    if (authToken) {
-      fetchHeaders['Authorization'] = `Bearer ${authToken}`;
+    
+    const validatedData = UserSchema.parse(userData);
+    
+    // Hash password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(validatedData.password, saltRounds);
+    
+    // Check if user already exists
+    const { data: existingUser, error: existingUserError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', validatedData.email)
+      .single();
+    
+    if (existingUserError && existingUserError.code !== 'PGRST116') {
+      throw existingUserError;
     }
-    const response = await fetch(`${baseUrl}/api/cart/remove`, {
-      method: 'POST',
-      headers: fetchHeaders as any,
-      body: JSON.stringify({ questionId, testId }),
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to remove question from cart');
+    
+    if (existingUser) {
+      return { success: false, error: 'User with this email already exists' };
     }
-
-    return response.json();
+    
+    // Insert new user
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        username: validatedData.username,
+        email: validatedData.email,
+        password_hash: passwordHash,
+        role: validatedData.role || 'user',
+        is_active: true,
+        last_login: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select('id')
+      .single();
+    
+    if (error) {
+      console.error('User creation error:', error);
+      return { success: false, error: 'Failed to create user' };
+    }
+    
+    // Generate authentication token
+    const token = await generateAuthToken(data.id);
+    
+    return { 
+      success: true, 
+      user: { 
+        id: data.id, 
+        username: validatedData.username, 
+        email: validatedData.email, 
+        role: validatedData.role || 'user' 
+      } 
+    };
   } catch (error) {
-    console.error('Error removing question from cart:', error);
-    throw error;
+    console.error('User creation error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return { 
+        success: false, 
+        error: error.errors.map(e => e.message).join(', ') 
+      };
+    }
+    
+    return { success: false, error: 'An unexpected error occurred' };
   }
 }
 
-export async function addQuestionToCart(questionId: number, testId: string) {
+export async function loginUser(formData: FormData) {
+  try {
+    // Validate input
+    const loginData = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string
+    };
+    
+    const validatedData = LoginSchema.parse(loginData);
+    
+    // Find user by email
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, password_hash, username, role')
+      .eq('email', validatedData.email)
+      .single();
+    
+    if (userError || !user) {
+      return { success: false, error: 'Invalid email or password' };
+    }
+    
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(
+      validatedData.password, 
+      user.password_hash
+    );
+    
+    if (!isPasswordValid) {
+      return { success: false, error: 'Invalid email or password' };
+    }
+    
+    // Update last login
+    await supabase
+      .from('users')
+      .update({ 
+        last_login: new Date().toISOString(),
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', user.id);
+    
+    // Generate authentication token
+    const token = await generateAuthToken(user.id);
+    
+    return { 
+      success: true, 
+      user: { 
+        id: user.id, 
+        username: user.username, 
+        email: user.email, 
+        role: user.role 
+      } 
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return { 
+        success: false, 
+        error: error.errors.map(e => e.message).join(', ') 
+      };
+    }
+    
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+export async function logoutUser() {
+  try {
+    // Get current auth token
+    const cookieStore = await cookies();
+    const token = (await cookieStore.get('auth_token'))?.value;
+    
+    if (token) {
+      // Delete token from database
+      await supabase
+        .from('user_tokens')
+        .delete()
+        .eq('token', token);
+    }
+    
+    // Clear authentication cookie
+    await cookieStore.delete('auth_token');
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Logout error:', error);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+export async function getCurrentUser() {
+  try {
+    // Get current auth token
+    const cookieStore = await cookies();
+    const token = (await cookieStore.get('auth_token'))?.value;
+    
+    if (!token) {
+      return null;
+    }
+    
+    // Validate token and get user ID
+    const userId = await validateAuthToken(token);
+    
+    if (!userId) {
+      return null;
+    }
+    
+    // Fetch user details
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, username, email, role')
+      .eq('id', userId)
+      .single();
+    
+    if (error || !user) {
+      return null;
+    }
+    
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    };
+  } catch (error) {
+    console.error('Get current user error:', error);
+    return null;
+  }
+}
+
+export async function addQuestionToCart(questionId: number | string, testId: string) {
   console.log('server-actions.addQuestionToCart called with questionId:', questionId, 'testId:', testId);
   
   if (!questionId) {
@@ -72,245 +337,196 @@ export async function addQuestionToCart(questionId: number, testId: string) {
   }
   
   try {
-    // Get token from cookies
-    const cookiesObj = await cookies();
-    const token = cookiesObj.get('token')?.value;
-    console.log('Token from cookies:', token ? 'Present' : 'Not present');
+    // Get current user
+    const user = await getCurrentUser();
     
-    // For Vercel deployments, we need to be careful with internal API calls
-    // Instead of using fetch with baseUrl, we'll use a direct import approach
-    
-    // Import the database helper functions
-    const { getDatabasePath } = await import('@/app/api/cart/question/route');
-    const Database = (await import('better-sqlite3')).default;
-    
-    try {
-      // Get database path
-      const dbPath = getDatabasePath();
-      console.log('Using database at path:', dbPath);
-      
-      // Check if we're using PostgreSQL
-      const isPostgres = process.env.DB_TYPE === 'postgres';
-      console.log('Database type:', isPostgres ? 'PostgreSQL' : 'SQLite');
-      
-      if (isPostgres) {
-        // Use the database adapter for PostgreSQL
-        const { executeQuery } = await import('@/lib/database/adapter');
-        
-        let userId = null;
-        
-        // If token is present, extract user ID from it
-        if (token) {
-          const { jwtVerify } = await import('jose');
-          const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'default_secret_for_development');
-          
-          try {
-            const { payload } = await jwtVerify(token, secret);
-            userId = payload.id as number;
-            console.log('User ID extracted from token:', userId);
-          } catch (tokenError) {
-            console.error('Error verifying token:', tokenError);
-            // Don't throw, we'll create a test user instead
-          }
-        }
-        
-        // If no valid user ID from token, create or get a test user
-        if (!userId) {
-          console.log('No valid user ID, creating or getting test user');
-          
-          // Check if any users exist
-          const userCountResult = await executeQuery('SELECT COUNT(*) as count FROM users');
-          const userCount = userCountResult.rows[0].count;
-          
-          if (userCount === 0) {
-            console.log('No users found, creating a test user');
-            
-            // Create a test user
-            const result = await executeQuery(
-              'INSERT INTO users (username, email, role, is_active) VALUES ($1, $2, $3, $4) RETURNING id',
-              ['test_user', 'test@example.com', 'user', true]
-            );
-            
-            userId = result.rows[0].id;
-            console.log('Created test user with ID:', userId);
-          } else {
-            // Get the first user
-            const userResult = await executeQuery('SELECT id FROM users LIMIT 1');
-            userId = userResult.rows[0].id;
-            console.log('Using existing user with ID:', userId);
-          }
-        }
-        
-        // Check if cart exists for this test ID
-        const existingCartResult = await executeQuery(
-          'SELECT id FROM carts WHERE test_id = $1 AND user_id = $2',
-          [testId, userId]
-        );
-        
-        let cartId;
-        
-        if (existingCartResult.rows.length > 0) {
-          // Use existing cart
-          cartId = existingCartResult.rows[0].id;
-          console.log('Using existing cart with ID:', cartId);
-        } else {
-          // Create a new cart
-          const cartResult = await executeQuery(
-            'INSERT INTO carts (test_id, user_id) VALUES ($1, $2) RETURNING id',
-            [testId, userId]
-          );
-          
-          cartId = cartResult.rows[0].id;
-          console.log('Created new cart with ID:', cartId);
-        }
-        
-        // Check if question is already in cart
-        const existingItemResult = await executeQuery(
-          'SELECT id FROM cart_items WHERE cart_id = $1 AND question_id = $2',
-          [cartId, questionId]
-        );
-        
-        if (existingItemResult.rows.length > 0) {
-          console.log('Question is already in cart');
-          return {
-            success: true,
-            message: 'Question is already in cart',
-            cartId,
-            questionId
-          };
-        }
-        
-        // Add question to cart
-        await executeQuery(
-          'INSERT INTO cart_items (cart_id, question_id) VALUES ($1, $2)',
-          [cartId, questionId]
-        );
-        
-        console.log('Question added to cart successfully');
-        return {
-          success: true,
-          message: 'Question added to cart',
-          cartId,
-          questionId
-        };
-      } else {
-        // SQLite implementation
-        const db = new Database(dbPath, { readonly: false });
-        
-        try {
-          let userId = null;
-          
-          // If token is present, extract user ID from it
-          if (token) {
-            const { jwtVerify } = await import('jose');
-            const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'default_secret_for_development');
-            
-            try {
-              const { payload } = await jwtVerify(token, secret);
-              userId = payload.id as number;
-              console.log('User ID extracted from token:', userId);
-            } catch (tokenError) {
-              console.error('Error verifying token:', tokenError);
-              // Don't throw, we'll create a test user instead
-            }
-          }
-          
-          // If no valid user ID from token, create or get a test user
-          if (!userId) {
-            console.log('No valid user ID, creating or getting test user');
-            
-            // Check if any users exist
-            const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-            
-            if (userCount.count === 0) {
-              console.log('No users found, creating a test user');
-              
-              // Create a test user
-              const result = db.prepare(`
-                INSERT INTO users (username, email, role, is_active)
-                VALUES (?, ?, ?, ?)
-              `).run('test_user', 'test@example.com', 'user', 1);
-              
-              userId = result.lastInsertRowid as number;
-              console.log('Created test user with ID:', userId);
-            } else {
-              // Get the first user
-              const user = db.prepare('SELECT id FROM users LIMIT 1').get() as { id: number };
-              userId = user.id;
-              console.log('Using existing user with ID:', userId);
-            }
-          }
-          
-          // Begin transaction
-          db.prepare('BEGIN TRANSACTION').run();
-          
-          // Check if cart exists for this test ID
-          const existingCart = db.prepare(`
-            SELECT id FROM carts 
-            WHERE test_id = ? AND user_id = ?
-          `).get(testId, userId);
-          
-          let cartId;
-          
-          if (existingCart) {
-            // Use existing cart
-            cartId = (existingCart as { id: number }).id;
-          } else {
-            // Create new cart
-            const insertCartResult = db.prepare(`
-              INSERT INTO carts (test_id, user_id, created_at)
-              VALUES (?, ?, datetime('now'))
-            `).run(testId, userId);
-            
-            cartId = insertCartResult.lastInsertRowid;
-          }
-          
-          // Check if question is already in cart
-          const existingItem = db.prepare(`
-            SELECT id FROM cart_items 
-            WHERE cart_id = ? AND question_id = ?
-          `).get(cartId, questionId);
-          
-          if (!existingItem) {
-            // Add question to cart
-            db.prepare(`
-              INSERT INTO cart_items (cart_id, question_id, created_at)
-              VALUES (?, ?, datetime('now'))
-            `).run(cartId, questionId);
-          }
-          
-          // Commit transaction
-          db.prepare('COMMIT').run();
-          
-          return {
-            success: true,
-            message: existingItem ? 'Question is already in cart' : 'Question added to cart',
-            cartId,
-            questionId
-          };
-        } catch (dbError) {
-          // Rollback transaction on error
-          try {
-            db.prepare('ROLLBACK').run();
-          } catch (rollbackError) {
-            console.error('Error rolling back transaction:', rollbackError);
-          }
-          
-          throw dbError;
-        } finally {
-          // Close database connection
-          if (db) {
-            db.close();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Database operation error:', error);
-      throw new Error(`Failed to add question to cart: ${error instanceof Error ? error.message : String(error)}`);
+    if (!user) {
+      throw new Error('You must be logged in to add questions to cart');
     }
+    
+    // Check for existing cart
+    const { data: existingCart, error: cartError } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('test_id', testId)
+      .eq('user_id', user.id)
+      .limit(1)
+      .single();
+
+    if (cartError) {
+      console.error('Error checking existing cart:', cartError);
+      throw new Error('Failed to check existing cart');
+    }
+
+    let cartId: number;
+    
+    if (existingCart) {
+      // Use existing cart
+      cartId = existingCart.id;
+      console.log('Using existing cart with ID:', cartId);
+    } else {
+      // Create new cart
+      const cartInsertData: CartInsert = { 
+        test_id: testId, 
+        user_id: user.id,
+        created_at: new Date().toISOString()
+      };
+
+      const { data: newCart, error: newCartError } = await supabase
+        .from('carts')
+        .insert(cartInsertData)
+        .select('id')
+        .single();
+      
+      if (newCartError) {
+        console.error('Error creating cart:', newCartError);
+        throw new Error('Failed to create cart');
+      }
+
+      if (!newCart) {
+        console.error('No new cart created');
+        throw new Error('Failed to create cart');
+      }
+
+      cartId = newCart.id;
+      console.log('Created new cart with ID:', cartId);
+    }
+
+    // Check if question is already in cart
+    const { data: existingCartItem, error: cartItemError } = await supabase
+      .from('cart_items')
+      .select('id')
+      .eq('cart_id', cartId)
+      .eq('question_id', toNumber(questionId))
+      .limit(1)
+      .single();
+
+    if (cartItemError) {
+      console.error('Error checking existing cart item:', cartItemError);
+      throw new Error('Failed to check existing cart items');
+    }
+
+    if (existingCartItem) {
+      console.log('Question already in cart');
+      return { message: 'Question already in cart' };
+    }
+
+    // Add question to cart
+    const cartItemInsertData: CartItemInsert = { 
+      cart_id: cartId, 
+      question_id: toNumber(questionId),
+      created_at: new Date().toISOString()
+    };
+
+    const { data: newCartItem, error: newCartItemError } = await supabase
+      .from('cart_items')
+      .insert(cartItemInsertData)
+      .select('id')
+      .single();
+
+    if (newCartItemError) {
+      console.error('Error adding question to cart:', newCartItemError);
+      throw new Error('Failed to add question to cart');
+    }
+
+    if (!newCartItem) {
+      console.error('No new cart item created');
+      throw new Error('Failed to add question to cart');
+    }
+
+    console.log('Successfully added question to cart');
+    return { 
+      message: 'Question added to cart successfully', 
+      cartItemId: newCartItem.id 
+    };
   } catch (error) {
     console.error('Error in addQuestionToCart:', error);
     throw error;
+  }
+}
+
+export async function removeFromCart(questionId: number | string, testId: string) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Find the cart for the given test
+    const { data: cartData, error: cartError } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('test_id', testId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (cartError || !cartData) {
+      return { success: false, error: 'Cart not found' };
+    }
+
+    // Remove the question from cart items
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('cart_id', cartData.id)
+      .eq('question_id', toNumber(questionId));
+
+    if (error) {
+      console.error('Error removing question from cart:', error);
+      return { success: false, error: 'Failed to remove question from cart' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error removing from cart:', error);
+    return { success: false, error: 'Unexpected error' };
+  }
+}
+
+export async function getCartItems(testId: string) {
+  console.log('server-actions.getCartItems called with testId:', testId);
+  if (!testId || testId === 'undefined') {
+    console.error('Invalid or missing testId:', testId);
+    return { questions: [], count: 0 };
+  }
+
+  try {
+    // Get current user
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      throw new Error('You must be logged in to view cart items');
+    }
+    
+    // Fetch cart items from Supabase
+    const { data: cartItems, error: cartItemsError } = await supabase
+      .from('cart_items')
+      .select('question_id')
+      .eq('cart_id', typeof testId === 'string' ? parseInt(testId, 10) : testId);
+
+    if (cartItemsError) {
+      console.error('Error fetching cart items:', cartItemsError);
+      return { questions: [], count: 0 };
+    }
+
+    // Extract question IDs from cart items
+    const questionIds = cartItems.map((item: { question_id: number }) => item.question_id);
+
+    // Fetch questions from Supabase
+    const { data: questions, error: questionsError } = await supabase
+      .from('questions')
+      .select('*')
+      .in('id', questionIds);
+
+    if (questionsError) {
+      console.error('Error fetching questions:', questionsError);
+      return { questions: [], count: 0 };
+    }
+
+    return { questions, count: questions.length };
+  } catch (error) {
+    console.error('Error fetching cart items:', error);
+    return { questions: [], count: 0 };
   }
 }
 
@@ -334,33 +550,4 @@ export async function exportTest(testId: string) {
   }
 
   return response.blob();
-}
-
-export async function getCartItems(testId: string, token?: string) {
-  console.log('server-actions.getCartItems called with testId:', testId);
-  if (!testId || testId === 'undefined') {
-    console.error('Invalid or missing testId:', testId);
-    return { questions: [], count: 0 };
-  }
-
-  try {
-    const baseUrl = await getBaseUrl();
-    const headersList = headers();
-    const authToken = (await headersList).get('authorization') || '';
-    const response = await fetch(`${baseUrl}/api/cart?testId=${testId}`, {
-      cache: 'no-store',
-      headers: {
-        Authorization: authToken ? `Bearer ${authToken}` : '',
-      },
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to fetch cart items');
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching cart items:', error);
-    return { questions: [], count: 0 };
-  }
 }

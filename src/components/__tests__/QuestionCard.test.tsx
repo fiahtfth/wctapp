@@ -7,15 +7,16 @@ import '@testing-library/jest-dom';
 describe('QuestionCard', () => {
   const mockQuestion: Question = {
     id: 1,
-    Question: 'Test question text',
-    Answer: 'Test answer',
-    Subject: 'Math',
-    Topic: 'Linear Equations',
-    FacultyApproved: false,
-    QuestionType: 'Objective',
-    Explanation: 'Test explanation',
-    ModuleName: 'Algebra',
-    DifficultyLevel: 'medium'
+    text: 'Test question text',
+    answer: 'Test answer',
+    subject: 'Math',
+    topic: 'Linear Equations',
+    questionType: 'Objective',
+    explanation: 'Test explanation',
+    moduleName: 'Algebra',
+    difficultyLevel: 'medium',
+    natureOfQuestion: 'Conceptual',
+    subTopic: 'Subtopic',
   };
 
   it('renders question text', () => {

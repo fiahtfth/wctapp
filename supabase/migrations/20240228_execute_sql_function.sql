@@ -1,0 +1,11 @@
+-- Function to execute arbitrary SQL
+CREATE OR REPLACE FUNCTION execute_sql(sql TEXT) RETURNS BOOLEAN AS $$
+BEGIN
+  EXECUTE sql;
+  RETURN TRUE;
+EXCEPTION 
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Error executing SQL: %', SQLERRM;
+    RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql;

@@ -4,27 +4,41 @@
  */
 export interface Question {
   // Unique identifier
-  id: number;
+  id: number | string;
   // Core question content (required)
-  Question: string;
-  Answer: string;
+  text: string;
+  answer: string;
   // Optional explanatory fields
-  Explanation?: string | null;
+  explanation: string;
   // Taxonomical Classification (required)
-  Subject: string;
+  subject: string;
   // Optional Hierarchical Details
-  ModuleNumber?: string;
-  ModuleName?: string;
-  Topic: string;
-  SubTopic?: string | null;
-  MicroTopic?: string | null;
+  moduleName: string;
+  topic: string;
+  subTopic: string;
   // Metadata and Classification
-  FacultyApproved: boolean;
-  DifficultyLevel?: 'easy' | 'medium' | 'hard' | null;
-  NatureOfQuestion?: string | null;
+  difficultyLevel: string;
+  questionType: string;
+  natureOfQuestion: string;
+  FacultyApproved?: boolean;
+  // Legacy properties
+  Question?: string;
+  Answer?: string;
+  Explanation?: string;
+  Subject?: string;
+  'Module Name'?: string;
+  Topic?: string;
+  'Sub Topic'?: string;
+  'Difficulty Level'?: string;
+  Question_Type?: string;
+  'Nature of Question'?: string;
+  // Metadata and Classification
   Objective?: string;
-  // Question Type (required)
-  QuestionType: 'Objective' | 'Subjective';
+  ModuleNumber?: string;
+  MicroTopic?: string;
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
   // Allows for additional dynamic properties
   [key: string]: string | number | boolean | null | undefined;
 }
@@ -38,12 +52,13 @@ export function isQuestion(obj: any): obj is Question {
   return (
     obj &&
     typeof obj.id === 'number' &&
-    typeof obj.Question === 'string' &&
-    typeof obj.Answer === 'string' &&
-    typeof obj.Subject === 'string' &&
-    typeof obj.Topic === 'string' &&
-    typeof obj.FacultyApproved === 'boolean' &&
-    ['Objective', 'Subjective'].includes(obj.QuestionType)
+    typeof obj.text === 'string' &&
+    typeof obj.answer === 'string' &&
+    typeof obj.subject === 'string' &&
+    typeof obj.topic === 'string' &&
+    typeof obj.difficultyLevel === 'string' &&
+    typeof obj.questionType === 'string' &&
+    typeof obj.natureOfQuestion === 'string'
   );
 }
 
@@ -54,12 +69,16 @@ export function isQuestion(obj: any): obj is Question {
 export function createDefaultQuestion(): Question {
   return {
     id: 0,
-    Question: '',
-    Answer: '',
-    Subject: '',
-    Topic: '',
-    FacultyApproved: false,
-    QuestionType: 'Objective',
+    text: '',
+    answer: '',
+    subject: '',
+    topic: '',
+    moduleName: '',
+    subTopic: '',
+    difficultyLevel: '',
+    questionType: '',
+    natureOfQuestion: '',
+    explanation: '',
   };
 }
 

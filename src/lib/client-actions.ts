@@ -6,6 +6,7 @@ import {
 import { useCartStore } from '@/store/cartStore';
 import { v4 as uuidv4 } from 'uuid';
 import { getTestId } from './actions';
+import { z } from 'zod';
 
 // Helper functions
 function getToken(): string | null {
@@ -204,16 +205,34 @@ export const removeQuestionFromTest = async ({ questionId, testId }: { questionI
   }
 };
 
-export async function removeFromCart(questionId: string | number, testId: string) {
+// Type conversion function to ensure string type
+function ensureStringType(value: string | number): string {
+  return typeof value === 'number' ? value.toString() : value;
+}
+
+export async function removeFromCart(strQuestionId: string, strTestId: string) {
   try {
+    // Validate inputs
+    const questionIdSchema = z.string().refine(val => !isNaN(Number(val)), 'Question ID must be a valid number');
+    // Remove the refinement for testId since it can be a UUID or other string format
+    const testIdSchema = z.string();
+
+    questionIdSchema.parse(strQuestionId);
+    testIdSchema.parse(strTestId);
+
+    // Convert IDs to correct types
+    const questionId = parseInt(strQuestionId, 10);
+    const testId = strTestId;
+
+    // Call server action with validated inputs
     const result = await serverRemoveFromCart(questionId, testId);
     if (result.success) {
       // Remove from local cart store
-      useCartStore.getState().removeQuestion(questionId);
+      useCartStore.getState().removeQuestion(strQuestionId);
     }
     return result;
   } catch (error) {
-    console.error('Error removing from cart:', error);
+    console.error('Error removing question from cart:', error);
     throw error;
   }
 }

@@ -248,37 +248,15 @@ export default function Custom404() {
   }
 }
 
-// Function to set up App Router only configuration
-function setupAppOnly() {
-  console.log('🔧 Setting up App Router only configuration...');
+// Function to prepare the Render build environment
+function prepareRenderBuild() {
+  console.log('🔧 Preparing Render build environment...');
   try {
-    require('./create-nextjs-app-only');
-    console.log('✅ App Router only configuration set up successfully');
+    require('./prepare-render-build');
+    console.log('✅ Render build environment prepared successfully');
   } catch (error) {
-    console.error('❌ Error setting up App Router only configuration:', error);
+    console.error('❌ Error preparing Render build environment:', error);
     throw error;
-  }
-}
-
-// Function to remove the Pages Router
-function removePagesRouter() {
-  console.log('🔧 Removing Pages Router to resolve conflicts...');
-  try {
-    require('./disable-pages-router');
-    console.log('✅ Pages Router removed successfully');
-  } catch (error) {
-    console.error('❌ Error removing Pages Router:', error);
-  }
-}
-
-// Function to run the HTML import fix script
-function fixHtmlImports() {
-  console.log('🔧 Running HTML import fix script...');
-  try {
-    require('./fix-html-import');
-    console.log('✅ HTML import fixes applied');
-  } catch (error) {
-    console.error('❌ Error running HTML import fix script:', error);
   }
 }
 
@@ -295,16 +273,12 @@ function renderBuild() {
       runPostgresqlMigration();
     }
     
-    // Set up App Router only configuration
-    setupAppOnly();
+    // Prepare Render build environment (replaces previous methods)
+    prepareRenderBuild();
     
-    // Fix HTML import issues
-    fixHtmlImports();
-    
-    // Check and fix common build issues
-    checkAndFixBuildIssues();
-    
-    console.log('✅ Render build setup complete');
+    // Build complete
+    console.log('✅ Render build preparation completed!');
+    console.log('🏗️ Proceeding with Next.js build...');
   } catch (error) {
     console.error('❌ Render build setup failed:', error);
     process.exit(1);

@@ -8,7 +8,7 @@ type QuestionRow = Database['public']['Tables']['questions']['Row']
 function isValidQuestion(question: any): question is QuestionRow {
   return question && typeof question === 'object' && 
          question.id !== undefined && 
-         question.Question !== undefined;
+         question.text !== undefined;
 }
 
 export async function POST(request: NextRequest) {
@@ -43,15 +43,15 @@ async function getQuestions(request: NextRequest, requestBody: any) {
       fullRequestBody: JSON.stringify(body, null, 2)
     });
     
-    // Flexible column mapping with support for different naming conventions
+    // Flexible column mapping with support for different naming conventions - updated to match actual column names
     const columnMap: { [key: string]: string } = {
-      'subject': 'Subject',
-      'module': 'Module Name',
-      'topic': 'Topic',
-      'sub_topic': 'Sub Topic',
-      'difficulty_level': 'Difficulty Level',
-      'question_type': 'Question_Type',
-      'nature_of_question': 'Nature of Question'
+      'subject': 'subject',
+      'module': 'module_name',
+      'topic': 'topic',
+      'sub_topic': 'sub_topic',
+      'difficulty_level': 'difficulty_level',
+      'question_type': 'question_type',
+      'nature_of_question': 'nature_of_question'
     };
 
     // Build base query
@@ -66,7 +66,9 @@ async function getQuestions(request: NextRequest, requestBody: any) {
     
     // Check if filters exist and are not empty
     const hasFilters = Object.keys(filters).length > 0 && 
-      Object.values(filters).some(val => val && val.length > 0);
+      Object.values(filters).some(val => 
+        val && (Array.isArray(val) ? val.length > 0 : typeof val === 'string' && val.trim() !== '')
+      );
 
     if (hasFilters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -101,12 +103,12 @@ async function getQuestions(request: NextRequest, requestBody: any) {
       });
     }
     
-    // Search filter with multiple column search
+    // Search filter with multiple column search - updated to match actual column names
     const searchTerm = body.search ? String(body.search).trim() : '';
     if (searchTerm.length > 1) {
       // Search across multiple text columns
       query = query.or(
-        `"Question".ilike.%${searchTerm}%,"Answer".ilike.%${searchTerm}%,"Explanation".ilike.%${searchTerm}%`
+        `"text".ilike.%${searchTerm}%,"answer".ilike.%${searchTerm}%,"explanation".ilike.%${searchTerm}%`
       );
     }
     
@@ -141,21 +143,21 @@ async function getQuestions(request: NextRequest, requestBody: any) {
       total 
     });
 
-    // Normalize question data keys with type safety
+    // Normalize question data keys with type safety - updated to match actual column names
     const normalizedQuestions = (questions || [])
       .filter(isValidQuestion)
       .map(question => ({
         id: question.id,
-        text: question.Question || '',
-        answer: question.Answer || '',
-        explanation: question.Explanation || '',
-        subject: question.Subject || '',
-        moduleName: question['Module Name'] || '',
-        topic: question.Topic || '',
-        subTopic: question['Sub Topic'] || '',
-        difficultyLevel: question['Difficulty Level'] || '',
-        questionType: question.Question_Type || '',
-        natureOfQuestion: question['Nature of Question'] || ''
+        text: question.text || '',
+        answer: question.answer || '',
+        explanation: question.explanation || '',
+        subject: question.subject || '',
+        moduleName: question.module_name || '',
+        topic: question.topic || '',
+        subTopic: question.sub_topic || '',
+        difficultyLevel: question.difficulty_level || '',
+        questionType: question.question_type || '',
+        natureOfQuestion: question.nature_of_question || ''
       }));
 
     console.log('✅ Query Successful:', { 

@@ -1,100 +1,13 @@
 'use server';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import supabase from './supabaseClient';
 import { Question as ImportedQuestion, isQuestion } from '@/types/question';
-import { initializeDatabase } from './init';
-import { APP_CONFIG } from '@/config';
 import { AppError, asyncErrorHandler } from '@/lib/errorHandler';
+import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
-// Use configuration for database path
-const DB_PATH = process.env.NODE_ENV === 'test' 
-  ? path.join(process.cwd(), 'wctapp.db')
-  : APP_CONFIG.DATABASE.PATH;
-
-console.log('📂 Database Configuration:', {
-  DB_PATH,
-  NODE_ENV: process.env.NODE_ENV,
-  CWD: process.cwd(),
-  exists: fs.existsSync(DB_PATH)
-});
-
-export const openDatabase = async (): Promise<Database.Database> => {
-  try {
-    console.log('📂 Opening database at:', DB_PATH);
-    
-    // Ensure database directory exists
-    const dbDirectory = path.dirname(APP_CONFIG.DATABASE.PATH);
-    if (!fs.existsSync(dbDirectory)) {
-      console.log('📝 Creating database directory:', dbDirectory);
-      fs.mkdirSync(dbDirectory, { recursive: true });
-    }
-
-    // Create or open database
-    const db = new Database(DB_PATH, { 
-      // Add additional options for more robust database handling
-      readonly: false,
-      fileMustExist: false,
-    });
-
-    // Ensure tables are created if they don't exist
-    createQuestionsTable(db);
-
-    console.log('✅ Database tables created successfully');
-    return db;
-  } catch (error) {
-    console.error('Critical error opening database:', error);
-    throw new AppError('Failed to open or create database', 500, error);
-  }
-};
-
-const createQuestionsTable = (db: Database.Database) => {
-  try {
-    db.prepare(`
-      CREATE TABLE IF NOT EXISTS questions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        Question TEXT NOT NULL,
-        Answer TEXT NOT NULL,
-        Explanation TEXT,
-        Subject TEXT NOT NULL,
-        "Module Name" TEXT NOT NULL,
-        Topic TEXT NOT NULL,
-        "Sub Topic" TEXT,
-        "Difficulty Level" TEXT NOT NULL,
-        Question_Type TEXT NOT NULL,
-        "Nature of Question" TEXT,
-        CONSTRAINT unique_question UNIQUE(Question)
-      )
-    `).run();
-
-    // Create performance indexes
-    const indexStatements = [
-      `CREATE INDEX IF NOT EXISTS idx_subject ON questions(Subject)`,
-      `CREATE INDEX IF NOT EXISTS idx_module ON questions("Module Name")`,
-      `CREATE INDEX IF NOT EXISTS idx_topic ON questions(Topic)`,
-      `CREATE INDEX IF NOT EXISTS idx_difficulty ON questions("Difficulty Level")`,
-      `CREATE INDEX IF NOT EXISTS idx_question_type ON questions(Question_Type)`
-    ];
-
-    indexStatements.forEach(indexSQL => {
-      try {
-        db.prepare(indexSQL).run();
-      } catch (indexError) {
-        console.warn(`Could not create index: ${indexSQL}`, indexError);
-      }
-    });
-  } catch (tableError) {
-    console.error('Error creating questions table:', tableError);
-    throw new AppError('Failed to create questions table', 500, tableError);
-  }
-};
-
-export type Question = ImportedQuestion;
-
-export interface QuestionsResult {
-  questions: Question[];
+// Define return type for getQuestions
+interface QuestionsResult {
+  questions: ImportedQuestion[];
   total: number;
-  totalQuestions: number;
   page: number;
   pageSize: number;
   totalPages: number;
@@ -111,24 +24,13 @@ export const getQuestions = asyncErrorHandler(async (filters: {
   question_type?: string | string[];
   search?: string;
   difficulty?: string;
-}) => {
+}): Promise<QuestionsResult> => {
   console.log('🔍 Fetching Questions with Params:', JSON.stringify(filters, null, 2));
-  console.log('📂 Database Configuration:', {
-    DB_PATH,
-    NODE_ENV: process.env.NODE_ENV,
-    CWD: process.cwd(),
-    exists: fs.existsSync(DB_PATH),
-    stats: fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH) : null
-  });
-  console.log('📂 Database Path:', DB_PATH);
-  console.log('🗃️ Database Exists:', fs.existsSync(DB_PATH));
 
   // Validate input parameters
   if (!filters) {
     throw new Error('No parameters provided for question retrieval');
   }
-
-  const db = await openDatabase();
 
   try {
     // Sanitize and validate parameters
@@ -138,193 +40,107 @@ export const getQuestions = asyncErrorHandler(async (filters: {
 
     console.log('📄 Query pagination:', { page, pageSize, offset });
 
-    console.log('📄 Pagination Details:', { page, pageSize, offset });
-
-    // Prepare base query
-    let query = `
-      SELECT * FROM questions
-    `;
-    let hasFilters = false;
-    const params: any[] = [];
-
-    console.log('📊 Query Parameters Before Applying Filters:', params);
-
-    console.log('🔍 Applying Filters:');
-
-    // Helper function to add filter conditions
-    const addFilter = (column: string, filterValue?: string | string[]) => {
-      if (!filterValue) return;
-
-      const values = Array.isArray(filterValue) ? filterValue : [filterValue];
-      const placeholders = values.map(() => '?').join(',');
-
-      console.log(`🧩 Adding Filter: ${column} IN (${values.join(', ')})`);
-      if (!hasFilters) {
-        query += ` WHERE ${column} IN (${placeholders})`;
-        hasFilters = true;
-      } else {
-        query += ` AND ${column} IN (${placeholders})`;
-      }
-      params.push(...values);
-    };
-
-    // Handle difficulty filter
-    if (filters.difficulty) {
-      addFilter('"Difficulty Level"', filters.difficulty);
-    }
-
+    // Build base query
+    let query = supabase.from('questions').select('*', { count: 'exact' });
+    
+    // Apply filters - updated to match actual column names in the database
     if (filters.subject) {
-      addFilter('Subject', filters.subject);
-    }
-
-    if (filters.module) {
-      addFilter('"Module Name"', filters.module);
-    }
-
-    if (filters.topic) {
-      addFilter('Topic', filters.topic);
-    }
-
-    if (filters.sub_topic) {
-      addFilter('Sub Topic', filters.sub_topic);
-    }
-
-    if (filters.question_type) {
-      addFilter('Question_Type', filters.question_type);
-    }
-
-    // Search filter (if applicable)
-    if (filters.search) {
-      console.log(`🔍 Search Term: ${filters.search}`);
-      if (!hasFilters) {
-        query += ` WHERE (
-        Question LIKE ? OR 
-        Answer LIKE ? OR 
-        Explanation LIKE ? OR 
-        Subject LIKE ? OR 
-        Topic LIKE ?
-      )`;
-      } else {
-        query += ` AND (
-        Question LIKE ? OR 
-        Answer LIKE ? OR 
-        Explanation LIKE ? OR 
-        Subject LIKE ? OR 
-        Topic LIKE ?
-      )`;
+      const subjects = Array.isArray(filters.subject) ? filters.subject : [filters.subject];
+      if (subjects.length > 0) {
+        query = query.in('subject', subjects);
       }
-      const searchTerm = `%${filters.search}%`;
-      params.push(
-        searchTerm, searchTerm, searchTerm, 
-        searchTerm, searchTerm
+    }
+    
+    if (filters.module) {
+      const modules = Array.isArray(filters.module) ? filters.module : [filters.module];
+      if (modules.length > 0) {
+        query = query.in('module_name', modules);
+      }
+    }
+    
+    if (filters.topic) {
+      const topics = Array.isArray(filters.topic) ? filters.topic : [filters.topic];
+      if (topics.length > 0) {
+        query = query.in('topic', topics);
+      }
+    }
+    
+    if (filters.sub_topic) {
+      const subTopics = Array.isArray(filters.sub_topic) ? filters.sub_topic : [filters.sub_topic];
+      if (subTopics.length > 0) {
+        query = query.in('sub_topic', subTopics);
+      }
+    }
+    
+    if (filters.question_type) {
+      const questionTypes = Array.isArray(filters.question_type) ? filters.question_type : [filters.question_type];
+      if (questionTypes.length > 0) {
+        query = query.in('question_type', questionTypes);
+      }
+    }
+    
+    if (filters.difficulty) {
+      query = query.eq('difficulty_level', filters.difficulty);
+    }
+    
+    // Apply search filter
+    if (filters.search && typeof filters.search === 'string' && filters.search.trim() !== '') {
+      const searchTerm = `%${filters.search.trim()}%`;
+      query = query.or(
+        `text.ilike.${searchTerm},answer.ilike.${searchTerm},explanation.ilike.${searchTerm}`
       );
-      console.log('🔧 Query After Search Filter:', query);
     }
-
-    // Add sorting
-    query += ` ORDER BY id ASC`;
-
-    // Get total count before pagination
-    let countQuery = 'SELECT COUNT(*) as total FROM questions';
-    let countParams: any[] = [];
-
-    if (hasFilters) {
-      const whereClauseStart = query.indexOf('WHERE');
-      const orderByStart = query.indexOf('ORDER BY');
-      let filterQuery = orderByStart > -1 
-        ? query.substring(whereClauseStart, orderByStart).trim()
-        : query.substring(whereClauseStart).trim();
-      countQuery += ` ${filterQuery}`;
-      countParams = [...params];
+    
+    // Apply pagination - use range for compatibility with tests
+    const { data: questions, count, error } = await query
+      .range(offset, offset + pageSize - 1)
+      .order('id', { ascending: true });
+    
+    if (error) {
+      console.error('Error fetching questions:', error);
+      throw new AppError('Failed to fetch questions', 500, error);
     }
-
-    let totalCount = 0;
-    try {
-      const countResult = await db.prepare(countQuery).get(...countParams) as { total: number };
-      totalCount = countResult.total;
-      console.log('📊 Total Count:', totalCount);
-    } catch (countError) {
-      console.error('❌ Count Query Error:', countError);
-      throw new Error(`Failed to get total count: ${countError instanceof Error ? countError.message : String(countError)}`);
-    }
-
-    // Add pagination
-    query += ` LIMIT ? OFFSET ?`;
-    params.push(pageSize.toString(), offset.toString());
-
-    console.log('🔧 Final Query:', {
-      query,
-      params: params,
-      pagination: { page, pageSize, offset }
-    });
-
-    console.log('🔢 Final Query Parameters:', params);
-
-    console.log('🔧 SQL Query:', query);
-    console.log('🔢 Query Parameters:', params);
-
-    let rawQuestions: Question[];
-    try {
-      rawQuestions = await db.prepare(query).all(...params) as Question[];
-      console.log('📝 Fetched Questions:', {
-        count: rawQuestions.length,
-        difficulties: rawQuestions.map(q => q['Difficulty Level'])
-      });
-    } catch (queryError) {
-      console.error('❌ Query Execution Error:', queryError);
-      throw new Error(`Failed to fetch questions: ${queryError instanceof Error ? queryError.message : String(queryError)}`);
-    }
-
-    console.log('📝 Raw Questions Fetched:', rawQuestions.length);
-
-    // Map raw questions to Question type
-    const questions: Question[] = rawQuestions.map((q: any) => {
-      console.log('🔍 Processing Question:', q.id);
-      return {
-        id: q.id,
-        Question: q.Question,
-        Answer: q.Answer,
-        Explanation: q.Explanation,
-        Subject: q.Subject,
-        ModuleName: q['Module Name'],
-        Topic: q.Topic,
-        SubTopic: q['Sub Topic'],
-        DifficultyLevel: q['Difficulty Level'],
-        QuestionType: q.Question_Type || 'Objective',
-        FacultyApproved: false, // Default value
-        Objective: '', // Default value
-        ModuleNumber: '', // Default value
-        NatureOfQuestion: null, // Default value
-        MicroTopic: null, // Default value,
-      };
-    });
-
-    // Calculate pagination with bounds checking
-    const totalPages = Math.ceil(totalCount / pageSize);
-    const safePage = Math.min(page, totalPages);
-
-    console.log('✅ Questions Retrieval Successful', {
-      totalQuestions: totalCount,
-      returnedQuestions: questions.length,
-      page: safePage,
-      pageSize,
-      totalPages
-    });
-
+    
+    const total = count || 0;
+    
+    // Map questions to the expected format - updated to match actual column names
+    const mappedQuestions = (questions || []).map((q: any) => ({
+      id: q.id,
+      text: q.text,
+      answer: q.answer,
+      explanation: q.explanation || '',
+      subject: q.subject,
+      moduleName: q.module_name,
+      topic: q.topic,
+      subTopic: q.sub_topic || '',
+      difficultyLevel: q.difficulty_level,
+      questionType: q.question_type,
+      natureOfQuestion: q.nature_of_question || '',
+      // Add these properties to match the ImportedQuestion type
+      Question: q.text,
+      Answer: q.answer,
+      Explanation: q.explanation || '',
+      Subject: q.subject,
+      'Module Name': q.module_name,
+      Topic: q.topic,
+      'Sub Topic': q.sub_topic || '',
+      'Difficulty Level': q.difficulty_level,
+      Question_Type: q.question_type,
+      'Nature of Question': q.nature_of_question || '',
+      FacultyApproved: false // Default value as it's not in the database
+    }));
+    
     return {
-      questions,
-      total: totalCount,
-      totalQuestions: totalCount,
-      page: safePage,
+      questions: mappedQuestions,
+      total,
+      page,
       pageSize,
-      totalPages,
+      totalPages: Math.ceil(total / pageSize),
       error: null
     };
   } catch (error) {
-    console.error('❌ Unexpected Error in getQuestions:', error);
-    throw error; // Re-throw to be handled by the caller
-  } finally {
-    db.close();
+    console.error('Error in getQuestions:', error);
+    throw error;
   }
 });
 
@@ -346,56 +162,274 @@ export async function sanitizeFilterValue(value?: string | string[]): Promise<st
   return sanitizedValue !== '' ? sanitizedValue : null;
 }
 
-export const addQuestion = asyncErrorHandler(async (questionData: Question) => {
-  const db = await openDatabase();
-
+export const addQuestion = asyncErrorHandler(async (questionData: ImportedQuestion) => {
   try {
     // Validate question data
     if (!isQuestion(questionData)) {
       throw new AppError('Invalid question data', 400);
     }
 
-    const insertQuery = db.prepare(`
-      INSERT INTO questions 
-      (Question, Answer, Explanation, Subject, "Module Name", Topic, "Sub Topic", "Difficulty Level", Question_Type)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = insertQuery.run(
-      questionData.Question,
-      questionData.Answer,
-      questionData.Explanation || null,
-      questionData.Subject,
-      questionData.ModuleName || '',
-      questionData.Topic,
-      questionData.SubTopic || null,
-      questionData.DifficultyLevel || null,
-      questionData.QuestionType
-    );
-
-    return {
-      ...questionData
+    // Create a properly typed insert object
+    const insertData = {
+      text: String(questionData.text),
+      answer: String(questionData.answer),
+      explanation: questionData.explanation ? String(questionData.explanation) : null,
+      subject: String(questionData.subject),
+      module_name: String(questionData.moduleName || ''),
+      topic: String(questionData.topic),
+      sub_topic: questionData.subTopic ? String(questionData.subTopic) : null,
+      difficulty_level: String(questionData.difficultyLevel || ''),
+      question_type: String(questionData.questionType),
+      nature_of_question: questionData.natureOfQuestion ? String(questionData.natureOfQuestion) : null
     };
-  } finally {
-    db.close();
+
+    const { data, error } = await supabase
+      .from('questions')
+      .insert(insertData)
+      .select();
+
+    if (error) {
+      console.error('Error adding question:', error);
+      throw new AppError('Failed to add question', 500, error);
+    }
+
+    return data ? data[0] : questionData;
+  } catch (error) {
+    console.error('Error in addQuestion:', error);
+    throw error;
   }
 });
 
-export const saveDraftCart = async (
+export const saveDraftCart = asyncErrorHandler(async (
   userId: number | string, 
   testName: string, 
   batch: string, 
   date: string, 
-  questionIds: number[]
+  questionIds: number[],
+  existingTestId?: string // Optional parameter for updating an existing draft
 ) => {
   console.log('Saving draft cart:', { 
     userId: String(userId), 
     testName, 
     batch, 
     date, 
-    questionIds 
+    questionIds,
+    existingTestId: existingTestId || 'new draft'
   });
   
-  // Placeholder implementation, replace with actual cart saving logic
-  return `draft_${userId}_${testName}_${Date.now()}`;
-};
+  try {
+    // Validate inputs
+    if (!userId) {
+      throw new AppError('User ID is required', 400);
+    }
+    
+    if (!testName) {
+      throw new AppError('Test name is required', 400);
+    }
+    
+    if (!questionIds || questionIds.length === 0) {
+      throw new AppError('Question IDs are required', 400);
+    }
+    
+    // Ensure userId is a valid number
+    const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    if (isNaN(numericUserId) || numericUserId <= 0) {
+      throw new AppError('Invalid user ID', 400);
+    }
+    
+    // Skip user verification and just use the provided user ID
+    // This avoids issues if the users table doesn't exist or the user doesn't exist
+    console.log('Using user ID without verification:', numericUserId);
+    
+    // Create a cart entry with a generated test_id or use the existing one
+    const testId = existingTestId || `test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    try {
+      // First, try to create the carts table if it doesn't exist
+      try {
+        const { error: createCartsError } = await supabase.from('carts').select('id').limit(1);
+        
+        if (createCartsError && createCartsError.message.includes('relation "carts" does not exist')) {
+          console.log('Carts table does not exist, creating it...');
+          
+          // Create the carts table
+          const { error: createTableError } = await supabase.from('carts').insert({
+            test_id: 'temp_test_id',
+            user_id: 1,
+            metadata: {}
+          });
+          
+          if (createTableError && !createTableError.message.includes('relation "carts" does not exist')) {
+            console.error('Error creating carts table:', createTableError);
+          }
+        }
+      } catch (tableError) {
+        console.error('Error checking/creating carts table:', tableError);
+      }
+      
+      // If we're updating an existing draft, first check if it exists
+      if (existingTestId) {
+        const { data: existingCart, error: existingCartError } = await supabase
+          .from('carts')
+          .select('id')
+          .eq('test_id', existingTestId)
+          .eq('user_id', numericUserId)
+          .single();
+        
+        if (existingCartError) {
+          console.log('Existing cart not found, creating new one:', existingCartError);
+          // Continue with creating a new cart
+        } else if (existingCart) {
+          console.log('Updating existing cart:', existingCart.id);
+          
+          // First, try to create the cart_items table if it doesn't exist
+          try {
+            const { error: createCartItemsError } = await supabase.from('cart_items').select('id').limit(1);
+            
+            if (createCartItemsError && createCartItemsError.message.includes('relation "cart_items" does not exist')) {
+              console.log('Cart_items table does not exist, creating it...');
+              
+              // Create the cart_items table
+              const { error: createTableError } = await supabase.from('cart_items').insert({
+                cart_id: existingCart.id,
+                question_id: questionIds[0] || 1
+              });
+              
+              if (createTableError && !createTableError.message.includes('relation "cart_items" does not exist')) {
+                console.error('Error creating cart_items table:', createTableError);
+              }
+            }
+          } catch (tableError) {
+            console.error('Error checking/creating cart_items table:', tableError);
+          }
+          
+          // Delete existing cart items first
+          const { error: deleteError } = await supabase
+            .from('cart_items')
+            .delete()
+            .eq('cart_id', existingCart.id);
+          
+          if (deleteError) {
+            console.error('Error deleting existing cart items:', deleteError);
+            throw new AppError('Failed to update existing cart items', 500, deleteError);
+          }
+          
+          // Add new cart items
+          const cartItems = questionIds.map(questionId => ({
+            cart_id: existingCart.id,
+            question_id: questionId
+          }));
+          
+          const { error: itemsError } = await supabase
+            .from('cart_items')
+            .insert(cartItems);
+          
+          if (itemsError) {
+            console.error('Error adding cart items:', itemsError);
+            throw new AppError('Failed to add cart items', 500, itemsError);
+          }
+          
+          return testId;
+        }
+      }
+      
+      // Create a new cart entry
+      const { data: cartData, error: cartError } = await supabase
+        .from('carts')
+        .insert({
+          test_id: testId,
+          user_id: numericUserId,
+          metadata: {
+            testName,
+            batch,
+            date
+          }
+        })
+        .select();
+
+      if (cartError) {
+        console.error('Error creating cart:', cartError);
+        throw new AppError('Failed to create cart', 500, cartError);
+      }
+
+      if (!cartData || cartData.length === 0) {
+        throw new AppError('Failed to create cart - no data returned', 500);
+      }
+
+      const cartId = cartData[0].id;
+
+      // First, try to create the cart_items table if it doesn't exist
+      try {
+        const { error: createCartItemsError } = await supabase.from('cart_items').select('id').limit(1);
+        
+        if (createCartItemsError && createCartItemsError.message.includes('relation "cart_items" does not exist')) {
+          console.log('Cart_items table does not exist, creating it...');
+          
+          // Create the cart_items table
+          const { error: createTableError } = await supabase.from('cart_items').insert({
+            cart_id: cartId,
+            question_id: questionIds[0] || 1
+          });
+          
+          if (createTableError && !createTableError.message.includes('relation "cart_items" does not exist')) {
+            console.error('Error creating cart_items table:', createTableError);
+          }
+        }
+      } catch (tableError) {
+        console.error('Error checking/creating cart_items table:', tableError);
+      }
+
+      // Skip question verification to simplify the process
+      // Just use the provided question IDs
+      console.log('Using question IDs without verification:', questionIds);
+
+      // Then add cart items
+      const cartItems = questionIds.map(questionId => ({
+        cart_id: cartId,
+        question_id: questionId
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('cart_items')
+        .insert(cartItems);
+
+      if (itemsError) {
+        console.error('Error adding cart items:', itemsError);
+        throw new AppError('Failed to add cart items', 500, itemsError);
+      }
+
+      return testId;
+    } catch (dbError) {
+      console.error('Database operation error:', dbError);
+      
+      // Provide a more specific error message based on the error
+      if (dbError instanceof Error) {
+        const errorMessage = dbError.message;
+        
+        if (errorMessage.includes('relation "carts" does not exist')) {
+          throw new AppError('The carts table does not exist in the database. Please contact the administrator.', 500, dbError);
+        } else if (errorMessage.includes('relation "cart_items" does not exist')) {
+          throw new AppError('The cart_items table does not exist in the database. Please contact the administrator.', 500, dbError);
+        } else if (errorMessage.includes('foreign key constraint')) {
+          throw new AppError('Unable to save cart due to database constraints. Some referenced items may not exist.', 500, dbError);
+        } else if (errorMessage.includes('duplicate key value violates unique constraint')) {
+          throw new AppError('A draft with this name already exists for this user. Please use a different name.', 400, dbError);
+        }
+      }
+      
+      // Re-throw the error with a generic message if it's not a specific case
+      throw new AppError('Failed to save draft cart due to a database error', 500, dbError);
+    }
+  } catch (error) {
+    console.error('Error in saveDraftCart:', error);
+    if (error instanceof AppError) {
+      throw error;
+    } else {
+      throw new AppError(
+        'Failed to save draft cart', 
+        500, 
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+});

@@ -7,6 +7,33 @@ const appDir = path.join(process.cwd(), 'src', 'app');
 const pagesDir = path.join(process.cwd(), 'src', 'pages');
 const pagesBackupDir = path.join(process.cwd(), 'src', 'pages-backup');
 const publicDir = path.join(process.cwd(), 'public');
+const nextDir = path.join(process.cwd(), '.next');
+
+// Function to clean up any references to problematic error pages in the .next directory
+function cleanNextCache() {
+  if (!fs.existsSync(nextDir)) {
+    console.log('No .next directory found, skipping cache cleanup');
+    return;
+  }
+
+  console.log('Cleaning .next cache of error pages...');
+  
+  // Files to remove
+  const filesToRemove = [
+    path.join(nextDir, 'server', 'pages', '_error.js'),
+    path.join(nextDir, 'server', 'pages', '404.js'),
+    path.join(nextDir, 'server', 'pages', '500.js')
+  ];
+  
+  filesToRemove.forEach(file => {
+    if (fs.existsSync(file)) {
+      fs.unlinkSync(file);
+      console.log(`Removed ${file}`);
+    }
+  });
+  
+  console.log('Finished cleaning .next cache');
+}
 
 // Function to move pages folder and create necessary App Router files
 function setupAppOnly() {
@@ -251,6 +278,9 @@ export default function GlobalError({
       fs.writeFileSync(static500Path, static500Content);
       console.log('Created static 500.html');
     }
+    
+    // Clean up .next cache
+    cleanNextCache();
     
     console.log('✅ App Router only configuration set up successfully');
   } catch (error) {

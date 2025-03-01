@@ -3,7 +3,7 @@ import { verifyJwtToken } from '@/lib/auth';
 import { jwtVerify } from 'jose';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as dbAdapter from '@/lib/database/adapter';
+import Database from 'better-sqlite3';
 
 // JWT secret for token verification
 const jwtSecret = process.env.JWT_SECRET || 'default-secret-change-me-please';
@@ -123,7 +123,10 @@ async function ensureDatabaseExists(dbPath: string): Promise<boolean> {
         console.log('No source database found, creating a new one');
         
         // Create necessary tables
-        await dbAdapter.executeQuery(`
+        const db = new Database(dbPath);
+        
+        // Create tables
+        db.prepare(`
           CREATE TABLE IF NOT EXISTS questions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             Question TEXT,
@@ -136,71 +139,41 @@ async function ensureDatabaseExists(dbPath: string): Promise<boolean> {
             "Difficulty Level" TEXT,
             Question_Type TEXT,
             "Nature of Question" TEXT
-          );
-          
-          CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            email TEXT,
-            password_hash TEXT,
-            role TEXT,
-            is_active BOOLEAN,
-            last_login DATETIME,
-            created_at DATETIME,
-            updated_at DATETIME
-          );
-          
+          )
+        `).run();
+        
+        db.prepare(`
           CREATE TABLE IF NOT EXISTS carts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            test_id TEXT NOT NULL,
-            user_id INTEGER NOT NULL,
+            test_id TEXT,
+            user_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-          
+          )
+        `).run();
+        
+        db.prepare(`
           CREATE TABLE IF NOT EXISTS cart_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cart_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (cart_id) REFERENCES carts(id)
-          );
-        `);
+          )
+        `).run();
         
-        // Add a sample question if the questions table is empty
-        const questionCountResult = await dbAdapter.executeQuery('SELECT COUNT(*) as count FROM questions');
-        const questionCount = questionCountResult.rows[0].count;
+        // Check the number of questions
+        const questionCountQuery = db.prepare('SELECT COUNT(*) as count FROM questions');
+        const questionCount = questionCountQuery.get() as { count: number };
         
-        if (questionCount === 0) {
-          console.log('Adding sample question to the database');
-          await dbAdapter.executeQuery(`
-            INSERT INTO questions (
-              Question, 
-              Answer, 
-              Explanation, 
-              Subject, 
-              "Module Name", 
-              Topic, 
-              "Sub Topic", 
-              "Difficulty Level", 
-              Question_Type, 
-              "Nature of Question"
-            ) VALUES (
-              'What is the capital of India?', 
-              'New Delhi', 
-              'New Delhi is the capital city of India.', 
-              'Geography', 
-              'World Geography', 
-              'Countries and Capitals', 
-              'Asian Countries', 
-              'Easy', 
-              'MCQ', 
-              'Factual'
-            )
-          `);
-          console.log('Sample question added');
+        if (questionCount.count === 0) {
+          console.log('No questions found in the database');
+          // Do NOT add a sample question
+          db.close();
+          return false;
         }
         
-        console.log('New database created with required schema');
+        db.close();
+        console.log('Database initialized successfully');
         return true;
       }
     }
@@ -216,46 +189,44 @@ async function ensureDatabaseExists(dbPath: string): Promise<boolean> {
 async function createTestUserIfNeeded(): Promise<number> {
   try {
     // Check if any users exist
-    const userCountResult = await dbAdapter.executeQuery('SELECT COUNT(*) as count FROM users');
-    const userCount = userCountResult.rows[0].count;
+    const dbPath = getDatabasePath();
+    const db = new Database(dbPath);
     
-    if (userCount === 0) {
+    const userCountQuery = db.prepare('SELECT COUNT(*) as count FROM users');
+    const userCount = userCountQuery.get() as { count: number };
+    
+    if (userCount.count === 0) {
       console.log('No users found, creating a test user');
-      
-      // Create a test user
-      const result = await dbAdapter.executeQuery(`
+      const insertUserQuery = db.prepare(`
         INSERT INTO users (
           username, 
           email, 
           password_hash, 
           role, 
           is_active, 
+          last_login, 
           created_at, 
           updated_at
-        ) VALUES (
-          'testuser', 
-          'test@example.com', 
-          '$2a$10$JcH8WBaHxQyQJgjS8Xg5j.tCYnXIouWw1q3b.0GQJwjuXQiLBJQrC', 
-          'user', 
-          true, 
-          CURRENT_TIMESTAMP, 
-          CURRENT_TIMESTAMP
-        ) RETURNING id
+        ) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
       `);
       
-      const userId = result.rows[0].id;
-      console.log('Test user created with ID:', userId);
-      return userId;
-    } else {
-      // Get the first user's ID
-      const firstUserResult = await dbAdapter.executeQuery('SELECT id FROM users ORDER BY id ASC LIMIT 1');
-      const userId = firstUserResult.rows[0].id;
-      console.log('Using existing user with ID:', userId);
-      return userId;
+      const result = insertUserQuery.run(
+        'testuser', 
+        'test@example.com', 
+        'hashed_password', 
+        'user', 
+        true
+      );
+      
+      db.close();
+      return result.lastInsertRowid as number;
     }
+    
+    db.close();
+    return 0;
   } catch (error) {
     console.error('Error creating test user:', error);
-    return 1; // Fallback to ID 1
+    return 0;
   }
 }
 
@@ -402,10 +373,13 @@ export async function POST(request: NextRequest) {
       if (!isVercelEnvironment()) {
         try {
           // Get an existing user ID from the database
-          const userResult = await dbAdapter.executeQuery('SELECT id FROM users ORDER BY id ASC LIMIT 1');
+          const dbPath = getDatabasePath();
+          const db = new Database(dbPath);
+          const userResult = db.prepare('SELECT id FROM users ORDER BY id ASC LIMIT 1').get() as { id: number } | null;
+          db.close();
           
-          if (userResult.rows.length > 0) {
-            userId = userResult.rows[0].id;
+          if (userResult) {
+            userId = userResult.id;
             console.log('Using existing user with ID:', userId);
           } else {
             // If no users exist, create a test user
@@ -413,151 +387,94 @@ export async function POST(request: NextRequest) {
           }
         } catch (error) {
           console.error('Error getting user ID:', error);
-          return NextResponse.json({ 
-            error: 'Failed to get user ID',
-            details: error instanceof Error ? error.message : String(error)
-          }, { status: 500 });
+          userId = await createTestUserIfNeeded();
         }
       } else {
         // For Vercel, get a valid user ID from the database
         try {
-          const userResult = await dbAdapter.executeQuery('SELECT id FROM users ORDER BY id ASC LIMIT 1');
-          userId = userResult.rows[0].id;
-          console.log('Using existing user with ID for Vercel:', userId);
+          const dbPath = getDatabasePath();
+          const db = new Database(dbPath);
+          const userResult = db.prepare('SELECT id FROM users ORDER BY id ASC LIMIT 1').get() as { id: number } | null;
+          db.close();
+          
+          if (userResult) {
+            userId = userResult.id;
+            console.log('Using existing user with ID for Vercel:', userId);
+          } else {
+            userId = await createTestUserIfNeeded();
+          }
         } catch (error) {
           console.error('Error getting user ID for Vercel:', error);
-          userId = 7; // Use a default ID that exists in the database
+          userId = await createTestUserIfNeeded();
         }
       }
     }
     
     // Verify that the user ID exists in the database
     try {
-      const userExistsResult = await dbAdapter.executeQuery('SELECT id FROM users WHERE id = $1', [userId]);
-      if (userExistsResult.rows.length === 0) {
+      const dbPath = getDatabasePath();
+      const db = new Database(dbPath);
+      const userExistsResult = db.prepare('SELECT id FROM users WHERE id = ?').get(userId) as { id: number } | null;
+      db.close();
+      
+      if (!userExistsResult) {
         console.log('User ID does not exist in database, getting a valid user ID');
-        const validUserResult = await dbAdapter.executeQuery('SELECT id FROM users ORDER BY id ASC LIMIT 1');
-        if (validUserResult.rows.length > 0) {
-          userId = validUserResult.rows[0].id;
+        const db = new Database(dbPath);
+        const validUserResult = db.prepare('SELECT id FROM users ORDER BY id ASC LIMIT 1').get() as { id: number } | null;
+        db.close();
+        
+        if (validUserResult) {
+          userId = validUserResult.id;
           console.log('Using valid user ID:', userId);
         } else {
           console.error('No valid users found in database');
-          return NextResponse.json({ 
-            error: 'No valid users found in database',
-          }, { status: 500 });
+          userId = await createTestUserIfNeeded();
         }
-      } else {
-        console.log('Verified user ID exists in database:', userId);
       }
     } catch (error) {
       console.error('Error verifying user ID:', error);
-      // Continue with the operation, as this is just a verification step
+      userId = await createTestUserIfNeeded();
     }
     
     // Execute the cart operation within a transaction
     try {
-      return await dbAdapter.transaction(async (client) => {
-        // Check if cart exists for this test ID
-        let existingCartResult;
+      const dbPath = getDatabasePath();
+      const db = new Database(dbPath);
+      
+      // Check if cart exists for this test ID
+      let existingCartResult = db.prepare('SELECT id FROM carts WHERE test_id = ? AND (user_id = ? OR user_id IS NULL)').all(testId, userId) as Array<{ id: number }>;
+      
+      console.log('Existing cart check result:', existingCartResult);
+      
+      let cartId;
+      
+      if (existingCartResult.length > 0) {
+        // Use existing cart
+        cartId = existingCartResult[0].id;
+        console.log('Using existing cart with ID:', cartId);
+      } else {
+        // Create new cart
+        console.log('Creating new cart with testId:', testId, 'userId:', userId);
         
-        if (process.env.DB_TYPE === 'postgres') {
-          existingCartResult = await client.query(
-            'SELECT id FROM carts WHERE test_id = $1 AND (user_id = $2 OR user_id IS NULL)',
-            [testId, userId]
-          );
-        } else {
-          existingCartResult = {
-            rows: client.prepare(
-              'SELECT id FROM carts WHERE test_id = ? AND (user_id = ? OR user_id IS NULL)'
-            ).all(testId, userId)
-          };
-        }
+        let insertCartResult = db.prepare('INSERT INTO carts (test_id, user_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(testId, userId);
+        cartId = insertCartResult.lastInsertRowid;
         
-        console.log('Existing cart check result:', existingCartResult.rows);
+        console.log('New cart created with ID:', cartId);
+      }
+      
+      // Check if question is already in cart
+      let existingItemResult = db.prepare('SELECT id FROM cart_items WHERE cart_id = ? AND question_id = ?').all(cartId, questionId) as Array<{ id: number }>;
+      
+      console.log('Existing item check result:', existingItemResult);
+      
+      if (existingItemResult.length > 0) {
+        // Question already in cart, return success
+        console.log('Question already in cart');
         
-        let cartId;
-        
-        if (existingCartResult.rows.length > 0) {
-          // Use existing cart
-          cartId = existingCartResult.rows[0].id;
-          console.log('Using existing cart with ID:', cartId);
-        } else {
-          // Create new cart
-          console.log('Creating new cart with testId:', testId, 'userId:', userId);
-          
-          let insertCartResult;
-          
-          if (process.env.DB_TYPE === 'postgres') {
-            insertCartResult = await client.query(
-              'INSERT INTO carts (test_id, user_id, created_at) VALUES ($1, $2, CURRENT_TIMESTAMP) RETURNING id',
-              [testId, userId]
-            );
-            cartId = insertCartResult.rows[0].id;
-          } else {
-            insertCartResult = client.prepare(
-              'INSERT INTO carts (test_id, user_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
-            ).run(testId, userId);
-            cartId = insertCartResult.lastInsertRowid;
-          }
-          
-          console.log('New cart created with ID:', cartId);
-        }
-        
-        // Check if question is already in cart
-        let existingItemResult;
-        
-        if (process.env.DB_TYPE === 'postgres') {
-          existingItemResult = await client.query(
-            'SELECT id FROM cart_items WHERE cart_id = $1 AND question_id = $2',
-            [cartId, questionId]
-          );
-        } else {
-          existingItemResult = {
-            rows: client.prepare(
-              'SELECT id FROM cart_items WHERE cart_id = ? AND question_id = ?'
-            ).all(cartId, questionId)
-          };
-        }
-        
-        console.log('Existing item check result:', existingItemResult.rows);
-        
-        if (existingItemResult.rows.length > 0) {
-          // Question already in cart, return success
-          console.log('Question already in cart');
-          
-          return NextResponse.json({
-            success: true,
-            message: 'Question is already in cart',
-            cartId,
-            questionId
-          }, {
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'POST, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            }
-          });
-        }
-        
-        // Add question to cart
-        console.log('Adding question to cart:', { cartId, questionId });
-        
-        if (process.env.DB_TYPE === 'postgres') {
-          await client.query(
-            'INSERT INTO cart_items (cart_id, question_id, created_at) VALUES ($1, $2, CURRENT_TIMESTAMP)',
-            [cartId, questionId]
-          );
-        } else {
-          client.prepare(
-            'INSERT INTO cart_items (cart_id, question_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
-          ).run(cartId, questionId);
-        }
-        
-        console.log('Question added to cart successfully');
-        
+        db.close();
         return NextResponse.json({
           success: true,
-          message: 'Question added to cart',
+          message: 'Question is already in cart',
           cartId,
           questionId
         }, {
@@ -567,6 +484,27 @@ export async function POST(request: NextRequest) {
             'Access-Control-Allow-Headers': 'Content-Type, Authorization'
           }
         });
+      }
+      
+      // Add question to cart
+      console.log('Adding question to cart:', { cartId, questionId });
+      
+      db.prepare('INSERT INTO cart_items (cart_id, question_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(cartId, questionId);
+      
+      console.log('Question added to cart successfully');
+      
+      db.close();
+      return NextResponse.json({
+        success: true,
+        message: 'Question added to cart',
+        cartId,
+        questionId
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
       });
     } catch (error) {
       console.error('Error in cart operation:', error);

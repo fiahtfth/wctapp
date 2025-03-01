@@ -21,6 +21,14 @@ interface CartStore {
   isInCart: (questionId: string | number) => boolean;
 }
 
+// Type guard to check if a question is a CartQuestion
+function isCartQuestion(question: any): question is CartQuestion {
+  return question && 
+    typeof question.Question === 'string' && 
+    typeof question.Subject === 'string' && 
+    typeof question.Topic === 'string';
+}
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -28,24 +36,52 @@ export const useCartStore = create<CartStore>()(
       addQuestion: (question) => {
         console.log('Adding question to cart', question);
         set((state) => {
+          // Prevent adding sample questions
+          const safeQuestion = { ...question };
+          
+          if (
+            (typeof safeQuestion.Question === 'string' && safeQuestion.Question.includes('Sample Question')) || 
+            (typeof safeQuestion.Subject === 'string' && safeQuestion.Subject === 'Sample Subject')
+          ) {
+            console.warn('Attempted to add a sample question, skipping');
+            return state;
+          }
+
           // Ensure the question has a valid id
-          const questionId = question.id ?? crypto.randomUUID();
-          const cartQuestion: CartQuestion = 'Question' in question ? {
-            ...question,
-            id: questionId,
-            Question: question.Question,
-            Subject: question.Subject,
-            Topic: question.Topic,
-            FacultyApproved: question.FacultyApproved,
-            QuestionType: question.QuestionType,
-          } : question as CartQuestion;
+          const questionId = safeQuestion.id ?? crypto.randomUUID();
+          
+          // Normalize the question to CartQuestion type
+          const cartQuestion: CartQuestion = isCartQuestion(safeQuestion) 
+            ? {
+                ...safeQuestion,
+                id: questionId,
+              } 
+            : {
+                id: questionId,
+                Question: String(safeQuestion.text || ''),
+                Subject: String(safeQuestion.subject || ''),
+                Topic: String(safeQuestion.topic || ''),
+                text: safeQuestion.text || '',
+                subject: safeQuestion.subject || '',
+                topic: safeQuestion.topic || '',
+                answer: safeQuestion.answer || '',
+                explanation: safeQuestion.explanation || '',
+                moduleName: safeQuestion.moduleName || '',
+                subTopic: safeQuestion.subTopic || '',
+                difficultyLevel: safeQuestion.difficultyLevel || '',
+                questionType: safeQuestion.questionType || '',
+                natureOfQuestion: safeQuestion.natureOfQuestion || '',
+                FacultyApproved: false,
+                QuestionType: 'Objective'
+              };
 
           // Check if question is already in cart
-          const isAlreadyInCart = state.questions.some(q => q.id === questionId);
+          const isAlreadyInCart = state.questions.some(q => String(q.id) === String(questionId));
           if (isAlreadyInCart) {
             console.log('Question already in cart, skipping');
             return state;
           }
+          
           const newQuestions = [...state.questions, cartQuestion];
           console.log('Updated cart questions', newQuestions);
           return { questions: newQuestions };
@@ -68,9 +104,9 @@ export const useCartStore = create<CartStore>()(
       },
       isInCart: (questionId) => {
         const inCart = get().questions.some((question) => 
-          question.id === questionId || 
-          question.text === questionId || 
-          question.Question === questionId
+          String(question.id) === String(questionId) || 
+          (typeof question.text === 'string' && question.text === questionId) || 
+          (typeof question.Question === 'string' && question.Question === questionId)
         );
         console.log('Checking if question is in cart', { questionId, inCart });
         return inCart;

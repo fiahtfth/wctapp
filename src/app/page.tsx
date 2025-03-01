@@ -25,6 +25,7 @@ import QuestionList from "@/components/QuestionList";
 import CartIndicator from "@/components/CartIndicator";
 import { addQuestionToCart, getCartItems } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+
 export default function Home() {
   const [testId] = useState("home-question-list");
   const [cartCount, setCartCount] = useState(0);
@@ -49,17 +50,17 @@ export default function Home() {
       return;
     }
 
+    loadCartCount();
+  }, [router, testId]);
+
     const loadCartCount = async () => {
       try {
         const items = await getCartItems(testId);
-        setCartCount(items.length);
+        setCartCount(items.count);
       } catch (error) {
         console.error("Error loading cart count:", error);
       }
     };
-
-    loadCartCount();
-  }, [router, testId]);
 
   const handleAddToTest = async (questionId: number) => {
     try {
@@ -68,19 +69,22 @@ export default function Home() {
         console.error("No token found");
         return;
       }
-      await addQuestionToCart(questionId, testId, token);
+      await addQuestionToCart(questionId, testId);
       setCartCount((prev) => prev + 1);
     } catch (error) {
       console.error("Error adding question to cart:", error);
     }
   };
+
   const handleLogout = () => {
     setLogoutDialogOpen(true);
   };
+
   const confirmLogout = () => {
-    // TODO: Implement actual logout logic here
+    localStorage.removeItem('token');
     window.location.href = "/login"; // Redirect to login page
   };
+
   const theme = createTheme({
     palette: {
       mode: "light",
@@ -89,6 +93,7 @@ export default function Home() {
       },
     },
   });
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -256,6 +261,7 @@ export default function Home() {
             }}
           >
             <QuestionList
+              data-testid="question-list-mock"
               testId={testId}
               filters={filters}
               currentPage={currentPage}
@@ -266,6 +272,7 @@ export default function Home() {
               onFilterChange={(newFilters) => {
                 setFilters(newFilters);
               }}
+              onAddToCart={handleAddToTest}
             />
           </Paper>
         </Container>

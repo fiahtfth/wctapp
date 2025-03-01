@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Metadata } from 'next';
 import ClientLayout from '@/components/ClientLayout';
+import { setupDatabase } from '@/lib/database/setupDatabase';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -22,6 +23,18 @@ export const metadata: Metadata = {
 
 interface RootLayoutProps {
   children: React.ReactNode;
+}
+
+// Initialize the database when the app starts
+if (typeof window !== 'undefined') {
+  // Only run on client-side
+  setupDatabase()
+    .then(result => {
+      console.log('Database setup result:', result);
+    })
+    .catch(error => {
+      console.error('Error setting up database:', error);
+    });
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {

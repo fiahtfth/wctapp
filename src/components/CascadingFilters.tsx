@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Checkbox,
@@ -13,20 +13,10 @@ import {
   TextField,
   InputAdornment,
   Alert,
+  Typography
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import { 
-  getSubjects, 
-  getModules, 
-  getTopics, 
-  getQuestions 
-} from '@/lib/database/hierarchicalData';
-import { 
-  FilterConfig, 
-  validateFilters, 
-  logFilterProcessing,
-  sanitizeFilters
-} from '@/config/filters';
+import hierarchicalData, { Subject, Module, Topic } from '@/lib/database/hierarchicalData';
 
 interface CascadingFiltersProps {
   onFilterChange?: (filters: {
@@ -46,390 +36,214 @@ interface CascadingFiltersProps {
 
 export const CascadingFilters = ({
   onFilterChange,
+  subject: initialSubject,
+  module: initialModule,
+  topic: initialTopic,
+  questionType: initialQuestionType,
+  search: initialSearch,
   testId = 'cascading-filters',
 }: CascadingFiltersProps) => {
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [selectedModules, setSelectedModules] = useState<string[]>([]);
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [modules, setModules] = useState<string[]>([]);
-  const [topics, setTopics] = useState<string[]>([]);
-  const [questionTypes, setQuestionTypes] = useState<string[]>([]);
-  const [filterErrors, setFilterErrors] = useState<Record<string, string[]>>({});
+  // State for selected filters
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(initialSubject || []);
+  const [selectedModules, setSelectedModules] = useState<string[]>(initialModule || []);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>(initialTopic || []);
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>(initialQuestionType || []);
+  const [searchQuery, setSearchQuery] = useState(initialSearch || '');
 
-  useEffect(() => {
-    const subjects = getSubjects();
-    console.log('Loaded Subjects:', subjects);
-    setSubjects(subjects);
-  }, []);
-
-  useEffect(() => {
-    console.log('Current Selected Subjects:', selectedSubjects);
+  // Derived state from hierarchical data
+  const subjects = useMemo(() => hierarchicalData.map(subject => subject.name), []);
+  const modules = useMemo(() => {
+    return selectedSubjects.length > 0
+      ? hierarchicalData
+          .filter(subject => selectedSubjects.includes(subject.name))
+          .flatMap(subject => subject.modules.map(module => module.name))
+      : [];
   }, [selectedSubjects]);
 
-  useEffect(() => {
-    console.log('Current Selected Modules:', selectedModules);
-  }, [selectedModules]);
-
-  useEffect(() => {
-    console.log('Current Selected Topics:', selectedTopics);
-  }, [selectedTopics]);
-
-  useEffect(() => {
-    if (selectedSubjects.length > 0) {
-      const uniqueModules = selectedSubjects.flatMap(subject => {
-        console.log('Fetching modules for subject:', subject);
-        return getModules(subject);
-      });
-      const deduplicatedModules = [...new Set(uniqueModules)];
-      setModules(deduplicatedModules);
-      const validModules = selectedModules.filter(module => deduplicatedModules.includes(module));
-      setSelectedModules(validModules);
-    } else {
-      setModules([]);
-      setSelectedModules([]);
-      setTopics([]);
-      setSelectedTopics([]);
-    }
-  }, [selectedSubjects]);
-
-  useEffect(() => {
-    if (selectedSubjects.length > 0 && selectedModules.length > 0) {
-      const uniqueTopics = selectedSubjects.flatMap(subject =>
-        selectedModules.flatMap(module => {
-          console.log('Fetching topics for subject:', subject, 'module:', module);
-          return getTopics(subject, module);
-        })
+  const topics = useMemo(() => {
+    if (selectedSubjects.length === 0 || selectedModules.length === 0) return [];
+    
+    return hierarchicalData
+      .filter(subject => selectedSubjects.includes(subject.name))
+      .flatMap(subject => 
+        subject.modules
+          .filter(module => selectedModules.includes(module.name))
+          .flatMap(module => module.topics.map(topic => topic.name))
       );
-      const deduplicatedTopics = [...new Set(uniqueTopics)];
-      setTopics(deduplicatedTopics);
-      const validTopics = selectedTopics.filter(topic => deduplicatedTopics.includes(topic));
-      setSelectedTopics(validTopics);
-    } else {
-      setTopics([]);
-      setSelectedTopics([]);
-    }
   }, [selectedSubjects, selectedModules]);
 
-  useEffect(() => {
-    const questionTypes = ['Objective', 'Subjective'];
-    console.log('Loaded Question Types:', questionTypes);
-    setQuestionTypes(questionTypes);
-  }, []);
+  const questionTypes = ['Objective', 'Subjective'];
 
-  useEffect(() => {
-    console.log('Current Selected Subjects:', selectedSubjects);
-  }, [selectedSubjects]);
-
-  const handleFilterChange = (filterState: {
-    subject?: string[];
-    module?: string[];
-    topic?: string[];
-    questionType?: string[];
-    search?: string;
-  }) => {
-    const sanitizedFilters = sanitizeFilters(filterState);
-    const validationResult = validateFilters(sanitizedFilters);
-    logFilterProcessing('CascadingFilters', filterState, validationResult);
-    setFilterErrors(validationResult.errors);
-    if (validationResult.isValid) {
-      console.log('CascadingFilters filterState:', filterState);
-      onFilterChange?.(sanitizedFilters);
-    }
-  };
-
-  const handleSubjectChange = (event: SelectChangeEvent<string[]>) => {
-    const value = event.target.value;
-    const subjects = typeof value === 'string' ? value.split(',') : value;
-    console.log('Selected Subjects:', subjects);
-    setSelectedSubjects(subjects);
-    console.log('Updated selectedSubjects:', subjects);
-    handleFilterChange({
-      subject: subjects.length > 0 ? subjects : undefined,
+  // Handler for filter changes
+  const handleFilterChange = () => {
+    const filters = {
+      subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
       module: selectedModules.length > 0 ? selectedModules : undefined,
       topic: selectedTopics.length > 0 ? selectedTopics : undefined,
       questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
-      search: searchQuery,
-    });
+      search: searchQuery || undefined,
+    };
+
+    onFilterChange?.(filters);
+  };
+
+  // Event handlers for filter selections
+  const handleSubjectChange = (event: SelectChangeEvent<string[]>) => {
+    const value = event.target.value;
+    const subjects = typeof value === 'string' ? value.split(',') : value;
+    
+    setSelectedSubjects(subjects);
+    // Reset dependent filters when subject changes
+    setSelectedModules([]);
+    setSelectedTopics([]);
+    
+    handleFilterChange();
   };
 
   const handleModuleChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const modules = typeof value === 'string' ? value.split(',') : value;
-    console.log('Selected Modules:', modules); 
+    
     setSelectedModules(modules);
-    console.log('Updated Selected Modules:', modules);
-    console.log('Updated selectedModules:', modules);
+    // Reset dependent filters when module changes
     setSelectedTopics([]);
-    handleFilterChange({
-      subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
-      module: modules.length > 0 ? modules : undefined,
-      topic: undefined,
-      questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
-      search: searchQuery,
-    });
+    
+    handleFilterChange();
   };
 
   const handleTopicChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const topics = typeof value === 'string' ? value.split(',') : value;
-    console.log('Selected Topics:', topics); 
+    
     setSelectedTopics(topics);
-    console.log('Updated Selected Topics:', topics);
-    console.log('Updated selectedTopics:', topics);
-    handleFilterChange({
-      subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
-      module: selectedModules.length > 0 ? selectedModules : undefined,
-      topic: topics.length > 0 ? topics : undefined,
-      questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
-      search: searchQuery,
-    });
+    handleFilterChange();
   };
 
   const handleQuestionTypeChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const types = typeof value === 'string' ? value.split(',') : value;
-    console.log('Selected Question Types:', types); 
+    
     setSelectedQuestionTypes(types);
-    console.log('Updated Selected Question Types:', types); 
-    handleFilterChange({
-      subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
-      module: selectedModules.length > 0 ? selectedModules : undefined,
-      topic: selectedTopics.length > 0 ? selectedTopics : undefined,
-      questionType: types.length > 0 ? types : undefined,
-      search: searchQuery,
-    });
+    handleFilterChange();
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    console.log('Search Query:', value); 
     setSearchQuery(value);
-    console.log('Updated Search Query:', value); 
-    handleFilterChange({
-      subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
-      module: selectedModules.length > 0 ? selectedModules : undefined,
-      topic: selectedTopics.length > 0 ? selectedTopics : undefined,
-      questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
-      search: value,
-    });
+    handleFilterChange();
   };
 
   return (
-    <Box
-      sx={{
-        flexGrow: 1,
-        mb: 1,
-        py: 0.75,
-        px: 1.5,
-        backgroundColor: 'background.paper',
-        borderBottom: 1,
+    <Box 
+      id={testId} 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: 2, 
+        mb: 3,
+        p: 2,
+        border: '1px solid',
         borderColor: 'divider',
+        borderRadius: 2
       }}
-      data-testid={testId}
     >
-      {Object.entries(filterErrors).map(([key, errors]) => (
-        <Alert 
-          key={key} 
-          severity="warning" 
-          sx={{ mb: 1 }}
-        >
-          {errors.join(', ')}
-        </Alert>
-      ))}
-      <Grid container spacing={1} alignItems="center">
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl
-            fullWidth
-            size="small"
-            sx={{
-              '& .MuiInputBase-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiInputLabel-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiSelect-select': {
-                py: 1,
-              },
-            }}
-          >
+      <Typography variant="h6" gutterBottom>
+        Filter Questions
+      </Typography>
+
+      <Grid container spacing={2}>
+        {/* Subject Filter */}
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth variant="outlined">
             <InputLabel>Subject</InputLabel>
             <Select
-              data-testid="subject-filter"
               multiple
-              value={selectedSubjects}
               label="Subject"
+              value={selectedSubjects}
               onChange={handleSubjectChange}
-              renderValue={selected => selected.join(', ')}
-              MenuProps={{
-                PaperProps: {
-                  style: {
-                    maxHeight: 300
-                  }
-                }
-              }}
+              renderValue={(selected) => (selected as string[]).join(', ')}
             >
-              {subjects.map(subject => (
-                <MenuItem key={`subject-${subject}`} value={subject}>
-                  <Checkbox 
-                    checked={selectedSubjects.includes(subject)} 
-                  />
-                  <ListItemText primary={subject} />
+              {subjects.map((subjectName) => (
+                <MenuItem key={subjectName} value={subjectName}>
+                  <Checkbox checked={selectedSubjects.indexOf(subjectName) > -1} />
+                  <ListItemText primary={subjectName} />
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl
-            fullWidth
-            size="small"
-            disabled={selectedSubjects.length === 0}
-            sx={{
-              '& .MuiInputBase-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiInputLabel-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiSelect-select': {
-                py: 1,
-              },
-            }}
-          >
+
+        {/* Module Filter */}
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth variant="outlined" disabled={selectedSubjects.length === 0}>
             <InputLabel>Module</InputLabel>
             <Select
-              data-testid="module-filter"
               multiple
-              value={selectedModules}
               label="Module"
+              value={selectedModules}
               onChange={handleModuleChange}
-              renderValue={selected => selected.join(', ')}
-              MenuProps={{
-                PaperProps: {
-                  style: {
-                    maxHeight: 300
-                  }
-                }
-              }}
+              renderValue={(selected) => (selected as string[]).join(', ')}
             >
-              {modules.map(module => (
-                <MenuItem key={`module-${module}`} value={module}>
-                  <Checkbox 
-                    checked={selectedModules.includes(module)} 
-                  />
-                  <ListItemText primary={module} />
+              {modules.map((moduleName) => (
+                <MenuItem key={moduleName} value={moduleName}>
+                  <Checkbox checked={selectedModules.indexOf(moduleName) > -1} />
+                  <ListItemText primary={moduleName} />
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl
-            fullWidth
-            size="small"
-            disabled={selectedSubjects.length === 0 || selectedModules.length === 0}
-            sx={{
-              '& .MuiInputBase-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiInputLabel-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiSelect-select': {
-                py: 1,
-              },
-            }}
-          >
+
+        {/* Topic Filter */}
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth variant="outlined" disabled={selectedModules.length === 0}>
             <InputLabel>Topic</InputLabel>
             <Select
-              data-testid="topic-filter"
               multiple
-              value={selectedTopics}
               label="Topic"
+              value={selectedTopics}
               onChange={handleTopicChange}
-              renderValue={selected => selected.join(', ')}
-              MenuProps={{
-                PaperProps: {
-                  style: {
-                    maxHeight: 300
-                  }
-                }
-              }}
+              renderValue={(selected) => (selected as string[]).join(', ')}
             >
-              {topics.map(topic => (
-                <MenuItem key={`topic-${topic}`} value={topic}>
-                  <Checkbox 
-                    checked={selectedTopics.includes(topic)} 
-                  />
-                  <ListItemText primary={topic} />
+              {topics.map((topicName) => (
+                <MenuItem key={topicName} value={topicName}>
+                  <Checkbox checked={selectedTopics.indexOf(topicName) > -1} />
+                  <ListItemText primary={topicName} />
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl
-            fullWidth
-            size="small"
-            sx={{
-              '& .MuiInputBase-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiInputLabel-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiSelect-select': {
-                py: 1,
-              },
-            }}
-          >
+
+        {/* Question Type Filter */}
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth variant="outlined">
             <InputLabel>Question Type</InputLabel>
             <Select
-              data-testid="question-type-filter"
               multiple
-              value={selectedQuestionTypes}
               label="Question Type"
+              value={selectedQuestionTypes}
               onChange={handleQuestionTypeChange}
-              renderValue={selected => selected.join(', ')}
-              MenuProps={{
-                PaperProps: {
-                  style: {
-                    maxHeight: 300
-                  }
-                }
-              }}
+              renderValue={(selected) => (selected as string[]).join(', ')}
             >
-              {questionTypes.map(type => (
-                <MenuItem key={`question-type-${type}`} value={type}>
-                  <Checkbox 
-                    checked={selectedQuestionTypes.includes(type)} 
-                  />
-                  <ListItemText primary={type} />
+              {questionTypes.map((typeName) => (
+                <MenuItem key={typeName} value={typeName}>
+                  <Checkbox checked={selectedQuestionTypes.indexOf(typeName) > -1} />
+                  <ListItemText primary={typeName} />
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+
+        {/* Search Input */}
+        <Grid item xs={12}>
           <TextField
-            data-testid="search-filter"
             fullWidth
-            size="small"
+            variant="outlined"
             label="Search Questions"
             value={searchQuery}
             onChange={handleSearchChange}
-            sx={{
-              '& .MuiInputBase-root': {
-                fontSize: '0.875rem',
-              },
-              '& .MuiInputLabel-root': {
-                fontSize: '0.875rem',
-              },
-            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
