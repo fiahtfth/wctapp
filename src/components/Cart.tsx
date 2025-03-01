@@ -46,6 +46,7 @@ import { saveDraftCart } from '@/lib/database/queries';
 import { Question } from '@/types/question';
 import { exportTest } from '@/lib/exportUtils';
 import { getTestId } from '@/lib/actions';
+import DatabaseSetupAlert from './DatabaseSetupAlert';
 
 // Helper function to convert CartQuestion to Question
 const convertToQuestion = (cartQuestion: any): Question => {
@@ -111,6 +112,7 @@ export default function Cart({ testId: propTestId }: CartProps) {
   const [draftsMenuAnchor, setDraftsMenuAnchor] = useState<null | HTMLElement>(null);
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [confirmDeleteDraftId, setConfirmDeleteDraftId] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   useEffect(() => {
     // Ensure this only runs on the client
@@ -416,25 +418,31 @@ export default function Cart({ testId: propTestId }: CartProps) {
         setRemovedQuestion(`Draft "${testDetails.testName}" saved successfully`);
         
         console.log('Draft cart saved successfully with ID:', draftCartId);
-      } catch (saveError) {
-        console.error('Error saving draft cart:', saveError);
-        // Provide a more user-friendly error message
-        const errorMessage = saveError instanceof Error 
-          ? saveError.message 
-          : 'Failed to save draft cart';
-        
-        // Check for specific error types and provide more helpful messages
-        if (errorMessage.includes('foreign key constraint')) {
-          setDraftSaveError('Unable to save draft: One or more questions no longer exist in the database.');
-        } else if (errorMessage.includes('user')) {
-          setDraftSaveError('Unable to save draft: User authentication issue. Please try logging in again.');
-        } else {
-          setDraftSaveError(`Unable to save draft: ${errorMessage}`);
-        }
+      } catch (error) {
+        console.error('Error saving draft:', error);
+        setDraftError(error instanceof Error ? error.message : 'Failed to save draft');
+        setLoadingDraft(false);
       }
-    } catch (error: unknown) {
-      console.error('Error in handleSaveDraft:', error);
-      setDraftSaveError(error instanceof Error ? error.message : 'Failed to save draft cart');
+    } catch (saveError) {
+      console.error('Error saving draft cart:', saveError);
+      // Provide a more user-friendly error message
+      const errorMessage = saveError instanceof Error 
+        ? saveError.message 
+        : 'Failed to save draft cart';
+      
+      // Set the draft error for the DatabaseSetupAlert component
+      setDraftError(errorMessage);
+      
+      // Check for specific error types and provide more helpful messages
+      if (errorMessage.includes('foreign key constraint')) {
+        setDraftSaveError('Unable to save draft: One or more questions no longer exist in the database.');
+      } else if (errorMessage.includes('user')) {
+        setDraftSaveError('Unable to save draft: User authentication issue. Please try logging in again.');
+      } else {
+        setDraftSaveError(`Unable to save draft: ${errorMessage}`);
+      }
+      
+      setLoadingDraft(false);
     }
   };
 
@@ -1086,6 +1094,19 @@ export default function Cart({ testId: propTestId }: CartProps) {
           {removedQuestion}
         </Alert>
       </Snackbar>
+      {/* Add the DatabaseSetupAlert component at the top */}
+      {draftError && (
+        <DatabaseSetupAlert 
+          errorMessage={draftError} 
+          onSetupComplete={() => {
+            setDraftError(null);
+            // Retry the last operation if there was one
+            if (loadingDraft) {
+              handleSaveDraft();
+            }
+          }}
+        />
+      )}
     </Container>
   );
 }

@@ -1,85 +1,152 @@
-# Database Setup Instructions
+# Database Setup and Troubleshooting Guide
 
-## Fixing the "Failed to save draft cart due to a database error" Issue
+This guide provides instructions for setting up and troubleshooting the database for the WCT application.
 
-If you're encountering the error "Failed to save draft cart due to a database error", it's likely because the necessary database tables don't exist in your Supabase database. Follow these steps to fix the issue:
+## Table of Contents
 
-### Option 1: Run the SQL Migration Directly
+1. [Database Requirements](#database-requirements)
+2. [Automatic Setup](#automatic-setup)
+3. [Manual Setup](#manual-setup)
+4. [Diagnostic Tools](#diagnostic-tools)
+5. [Common Issues](#common-issues)
+6. [Troubleshooting Steps](#troubleshooting-steps)
 
-1. Log in to your Supabase dashboard
-2. Go to the SQL Editor
-3. Copy and paste the following SQL code:
+## Database Requirements
+
+The application requires the following database tables:
+
+- `carts`: Stores cart metadata and user information
+- `cart_items`: Stores items in each cart
+- `questions`: Stores question data that can be added to carts
+
+## Automatic Setup
+
+The easiest way to set up your database is to use our built-in diagnostic tools:
+
+1. Navigate to `/diagnostic-tools` in your application
+2. Click on "Run Migrations" to set up all required tables
+3. Click on "Database Test & Fix" to verify your setup
+
+If you encounter any issues with saving or loading draft carts, the application will display an alert with options to fix the database setup automatically.
+
+## Manual Setup
+
+If you prefer to set up the database manually, you can run the following SQL commands:
 
 ```sql
--- Create carts table if it doesn't exist
-CREATE TABLE IF NOT EXISTS public.carts (
+-- Create carts table
+CREATE TABLE IF NOT EXISTS carts (
   id SERIAL PRIMARY KEY,
-  test_id TEXT UNIQUE NOT NULL,
-  user_id INTEGER NOT NULL,
+  test_id TEXT,
+  user_id TEXT,
   metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create indexes for carts
-CREATE INDEX IF NOT EXISTS idx_carts_user_id ON public.carts(user_id);
-CREATE INDEX IF NOT EXISTS idx_carts_test_id ON public.carts(test_id);
-
--- Create cart_items table if it doesn't exist
-CREATE TABLE IF NOT EXISTS public.cart_items (
-  id SERIAL PRIMARY KEY,
-  cart_id INTEGER NOT NULL,
-  question_id INTEGER NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  FOREIGN KEY (cart_id) REFERENCES public.carts(id) ON DELETE CASCADE
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create indexes for cart_items
-CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON public.cart_items(cart_id);
-CREATE INDEX IF NOT EXISTS idx_cart_items_question_id ON public.cart_items(question_id);
+-- Create index on test_id for faster lookups
+CREATE INDEX IF NOT EXISTS carts_test_id_idx ON carts(test_id);
+
+-- Create cart_items table
+CREATE TABLE IF NOT EXISTS cart_items (
+  id SERIAL PRIMARY KEY,
+  cart_id INTEGER REFERENCES carts(id) ON DELETE CASCADE,
+  question_id INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create index on cart_id for faster lookups
+CREATE INDEX IF NOT EXISTS cart_items_cart_id_idx ON cart_items(cart_id);
+
+-- Create questions table if needed for testing
+CREATE TABLE IF NOT EXISTS questions (
+  id INTEGER PRIMARY KEY,
+  text TEXT,
+  subject TEXT,
+  topic TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insert test questions if needed
+INSERT INTO questions (id, text, subject, topic)
+VALUES 
+  (1001, 'Test question 1', 'Math', 'Algebra'),
+  (1002, 'Test question 2', 'Science', 'Physics')
+ON CONFLICT (id) DO NOTHING;
 ```
 
-4. Click "Run" to execute the SQL
+## Diagnostic Tools
 
-### Option 2: Use the Supabase CLI
+The application includes several diagnostic tools to help you troubleshoot database issues:
 
-If you have the Supabase CLI installed, you can run the migration file directly:
+### Database Test & Fix (`/database-test`)
+- Tests your database connection
+- Checks for required tables
+- Creates missing tables if needed
+- Verifies cart functionality
 
-```bash
-supabase db push --db-url=YOUR_SUPABASE_DB_URL
-```
+### Cart Debug Tool (`/cart-debug`)
+- Debugs issues with specific carts
+- Checks if a cart exists by test ID
+- Verifies cart items and questions
+- Provides detailed error information
 
-### Option 3: Use the Application's Auto-Creation Feature
+### Cart Test Suite (`/cart-test`)
+- Runs comprehensive tests on cart functionality
+- Creates test carts and adds items
+- Retrieves, updates, and deletes carts
+- Verifies that all operations work correctly
 
-The application has been updated to attempt to create the necessary tables automatically when you try to save a draft cart. This approach might work in some cases, but it's more reliable to use one of the options above.
+### Run Migrations (`/run-migrations`)
+- Executes all SQL migration files
+- Creates necessary database tables
+- Reports on migration success or failure
 
-## Verifying the Fix
+### Database Setup (`/setup-database`)
+- Simple interface to set up database tables
+- Creates required tables if they don't exist
+- Provides feedback on setup success or failure
 
-After running the SQL, try saving a draft cart again. The error should be resolved, and your cart should be saved successfully.
+## Common Issues
 
-## Database Schema
+### "Failed to save draft cart due to a database error"
 
-The database schema includes:
+This error typically occurs when:
+1. The `carts` or `cart_items` tables don't exist
+2. There are permission issues with the database
+3. The database connection is not configured correctly
 
-### `carts` Table
-- `id`: Serial primary key
-- `test_id`: Unique text identifier for the test
-- `user_id`: Integer reference to the user who created the cart
-- `metadata`: JSONB field containing test details (name, batch, date)
-- `created_at`: Timestamp of creation
+### "No cart items found for cart ID X"
 
-### `cart_items` Table
-- `id`: Serial primary key
-- `cart_id`: Foreign key reference to the carts table
-- `question_id`: Integer reference to the question
-- `created_at`: Timestamp of creation
+This error can occur when:
+1. The cart exists but has no items
+2. The cart items were not saved correctly
+3. The questions referenced by cart items don't exist
 
-## Troubleshooting
+## Troubleshooting Steps
 
-If you continue to experience issues:
+If you encounter database issues, follow these steps:
 
-1. Check the browser console for specific error messages
-2. Verify that your Supabase database is accessible
-3. Ensure that the user has permission to create tables in the database
-4. Check if there are any foreign key constraint issues (e.g., referenced questions don't exist)
+1. **Check Database Connection**
+   - Verify that your Supabase URL and key are correct
+   - Ensure your database is running and accessible
 
-For further assistance, please contact the system administrator. 
+2. **Verify Table Existence**
+   - Use the Database Test & Fix tool to check if required tables exist
+   - Run migrations if tables are missing
+
+3. **Test Cart Functionality**
+   - Use the Cart Test Suite to verify all cart operations
+   - Check for specific errors in the test results
+
+4. **Debug Specific Carts**
+   - If a particular cart is causing issues, use the Cart Debug tool
+   - Provide the test ID of the problematic cart
+
+5. **Manual Inspection**
+   - If all else fails, inspect your database directly
+   - Check table structures and data integrity
+
+For additional help, contact support or refer to the application documentation. 
