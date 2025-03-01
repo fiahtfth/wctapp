@@ -1,23 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Grid,
   Box,
+  Grid,
   Typography,
-  Skeleton,
   Pagination,
-  Chip,
-  CardActions,
-  Alert,
-  Button,
+  CircularProgress,
+  Alert
 } from '@mui/material';
-import { Question } from '@/types/question';
-import PaginationControls from './PaginationControls';
-import ErrorBoundary from './ErrorBoundary';
-import { CascadingFilters } from './CascadingFilters';
-import TestCart from './TestCart';
-import { addQuestionToCart } from '@/lib/actions';
 import { QuestionCard } from './QuestionCard';
-import EditQuestionModal from './EditQuestionModal';
+import { CascadingFilters } from './CascadingFilters';
+import type { Question } from '@/types/question';
+
+
 
 interface QuestionListProps {
   filters?: {
@@ -27,7 +21,7 @@ interface QuestionListProps {
     sub_topic?: string[];
     question_type?: string[];
     search?: string;
-  };
+  } | null;
   onFilterChange?: (filters: {
     subject?: string[];
     module?: string[];
@@ -36,23 +30,17 @@ interface QuestionListProps {
     question_type?: string[];
     search?: string;
   }) => void;
-  testId: string;
-  currentPage: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  totalPages: number;
-  onTotalPagesChange: (pages: number) => void;
-}
-
-interface ErrorState {
-  type: 'fetch' | 'general';
-  message: string;
-  details?: string;
-  filters?: Record<string, string[] | string | undefined>;
+  testId?: string;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  totalPages?: number;
+  onTotalPagesChange?: (pages: number) => void;
+  onAddToCart?: (questionId: number) => Promise<void>;
 }
 
 export default function QuestionList({
-  filters = {},
+  filters,
   onFilterChange,
   testId,
   currentPage,
@@ -60,313 +48,202 @@ export default function QuestionList({
   onPageChange,
   totalPages,
   onTotalPagesChange,
+  onAddToCart,
 }: QuestionListProps) {
+  // Comprehensive default filters
+  const defaultFilters = {
+    subject: [],
+    module: [],
+    topic: [],
+    sub_topic: [],
+    question_type: [],
+    search: ''
+  };
+
+  // Safely merge provided filters with default filters
+  const safeFilters = filters ?? defaultFilters;
+
+  const {
+    subject = [],
+    module: moduleFilters = [],
+    topic: topicFilters = [],
+    sub_topic: subTopicFilters = [],
+    question_type: questionTypeFilters = [],
+    search: searchFilter = ''
+  } = safeFilters;
+
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [totalQuestions, setTotalQuestions] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ErrorState | null>(null);
-  const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
-  const [isEditModalOpen, setEditModalOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
-  // Log initial filters for debugging
-  useEffect(() => {
-    console.log('Initial QuestionList filters:', filters);
-  }, [filters]);
+  const usedTestId = testId ?? 'question-list';
+  const usedCurrentPage = currentPage ?? 1;
+  const usedPageSize = pageSize ?? 10;
+  const usedTotalPages = totalPages ?? 1;
 
-  // Fetch questions with enhanced error handling
+  // Fetch questions based on filters
   const fetchQuestions = async () => {
+    setLoading(true);
+    setError(null);
+    setDebugInfo(null);
+
     try {
-      // Reset loading and error states
-      setLoading(true);
-      setError(null);
+      // Log debug information
+      const debugPayload = {
+        filters: safeFilters,
+        page: usedCurrentPage,
+        pageSize: usedPageSize
+      };
+      setDebugInfo(debugPayload);
 
-      // Prepare filters for the API call
-      const sanitizedFilters: Record<string, string | string[]> = {};
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value && value.length > 0) {
-          sanitizedFilters[key] = value;
-        }
+      const response = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          page: usedCurrentPage,
+          pageSize: usedPageSize,
+          filters: safeFilters || {},
+          ...(searchFilter ? { search: searchFilter } : {})
+        })
       });
 
-      console.log('Fetching Questions with Filters:', {
-        page: currentPage,
-        pageSize,
-        filters: sanitizedFilters
-      });
-
-      // Set a timeout to prevent indefinite loading
-      const timeoutId = setTimeout(() => {
-        setError({
-          type: 'fetch',
-          message: 'Request timed out. Please try again.',
-          filters: sanitizedFilters
-        });
-        setLoading(false);
-      }, 15000); // 15 seconds timeout
-
-      try {
-        // Prepare request body
-        const requestBody = {
-          page: currentPage,
-          pageSize,
-          ...sanitizedFilters
-        };
-
-        console.log('🔍 Request Details:', {
-          url: '/api/questions',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: requestBody
-        });
-
-        // Fetch questions from the database with comprehensive parameters
-        const response = await fetch('/api/questions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        // Clear timeout
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const responseData = await response.json();
-
-        console.log('Received response data:', responseData);
-
-        // Comprehensive response validation
-        if (!responseData) {
-          throw new Error('Empty response received from server');
-        }
-
-        // Validate response structure
-        if (!responseData.questions || !Array.isArray(responseData.questions)) {
-          console.error('Invalid response structure:', responseData);
-          throw new Error('Invalid response format: questions is not an array');
-        }
-
-        // Validate questions data
-        const validQuestions = responseData.questions.filter((q: any) => {
-          const isValid = q &&
-            typeof q === 'object' &&
-            q.hasOwnProperty('id') &&
-            q.hasOwnProperty('Question') &&
-            q.hasOwnProperty('Answer') &&
-            q.hasOwnProperty('Subject');
-
-          if (!isValid) {
-            console.warn('Invalid question found:', q);
-          }
-
-          return isValid;
-        });
-
-        // Update state with validated data
-        setQuestions(validQuestions);
-        setTotalQuestions(responseData.total || 0);
-        
-        // Update total pages if provided
-        if (responseData.totalPages) {
-          onTotalPagesChange(responseData.totalPages);
-        } else {
-          // Calculate total pages if not provided
-          const calculatedTotalPages = Math.ceil((responseData.total || 0) / 1000);
-          onTotalPagesChange(calculatedTotalPages);
-        }
-
-        setLoading(false);
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        console.error('Fetch Questions Error:', {
-          error: fetchError,
-          filters: sanitizedFilters,
-          page: currentPage,
-          pageSize: 1000
-        });
-
-        setError({
-          type: 'fetch',
-          message: fetchError instanceof Error ? fetchError.message : String(fetchError),
-          details: fetchError instanceof Error ? fetchError.stack : undefined,
-          filters: sanitizedFilters
-        });
-        setLoading(false);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
-    } catch (generalError) {
-      console.error('General Fetch Questions Error:', generalError);
-      setError({
-        type: 'general',
-        message: generalError instanceof Error ? generalError.message : String(generalError),
-        details: generalError instanceof Error ? generalError.stack : undefined
-      });
+
+      const responseData = await response.json();
+      
+      // Validate response structure
+      if (!responseData || typeof responseData !== 'object') {
+        throw new Error('Invalid response format: response is not an object');
+      }
+
+      const { questions, total } = responseData;
+
+      // Validate questions
+      if (!Array.isArray(questions)) {
+        throw new Error(`Invalid response format: questions is not an array. Received: ${JSON.stringify(questions)}`);
+      }
+
+      setQuestions(questions);
+      
+      // Calculate total pages
+      const calculatedTotalPages = Math.ceil(total / usedPageSize);
+      onTotalPagesChange?.(calculatedTotalPages);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      setQuestions([]);
+      
+      // Log full error details
+      console.error('Fetch Questions Error:', err);
+    } finally {
       setLoading(false);
     }
   };
 
+  // Fetch questions when filters or page changes
   useEffect(() => {
     fetchQuestions();
-  }, [filters, currentPage]);
+  }, [usedCurrentPage, JSON.stringify(safeFilters)]);
 
-  const handleFilterChange = useCallback(
-    (filterParams: {
-      subject?: string[];
-      module?: string[];
-      topic?: string[];
-      sub_topic?: string[];
-      question_type?: string[];
-      search?: string;
-    }) => {
-      console.log('Filter params:', filterParams);
-      // Reset to first page when filters change
-      onPageChange(1);
-      // Update parent component's filters
-      if (onFilterChange) {
-        onFilterChange(filterParams);
-      }
-    },
-    [onFilterChange]
-  );
+  // Handle filter changes from CascadingFilters
+  const handleFilterChange = (newFilters: {
+    subject?: string[];
+    module?: string[];
+    topic?: string[];
+    questionType?: string[];
+    search?: string;
+  }) => {
+    const mappedFilters = {
+      subject: newFilters.subject,
+      module: newFilters.module,
+      topic: newFilters.topic,
+      question_type: newFilters.questionType,
+      search: newFilters.search
+    };
 
-  const handleAddToTest = async (questionId: number) => {
-    try {
-      // Call server action to add question to cart
-      await addQuestionToCart(questionId, testId);
-      const questionToAdd = questions.find(q => q.id === questionId);
-      if (questionToAdd && !selectedQuestions.some(q => q.id === questionId)) {
-        setSelectedQuestions([...selectedQuestions, questionToAdd]);
-      }
-    } catch (error) {
-      console.error('Error adding question to cart:', error);
-      // Optional: show error notification to user
-    }
+    onFilterChange?.(mappedFilters);
   };
 
-  const handleEdit = (question: Question) => {
-    console.log('Editing question:', question);
-    setEditingQuestion(question);
-    setEditModalOpen(true);
-  };
+  // Render method
+  return (
+    <Box 
+      id={usedTestId} 
+      data-testid="question-list-mock"  
+      sx={{ width: '100%' }}
+    >
+      {/* Debug Information */}
+      {debugInfo && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            Debug Info: {JSON.stringify(debugInfo)}
+          </Typography>
+        </Alert>
+      )}
 
-  const handleSaveEdit = async (updatedQuestion: Question) => {
-    // Implement the logic to update the question in the database
-    const response = await fetch(`/api/questions/edit`, {
-        method: 'POST', // Changed from PUT to POST for better compatibility
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedQuestion),
-    });
-    if (response.ok) {
-        const newQuestion = await response.json();
-        handleQuestionUpdate(newQuestion);
-    } else {
-        console.error('Failed to update question');
-    }
-  };
+      {/* Cascading Filters */}
+      <CascadingFilters 
+        onFilterChange={handleFilterChange}
+        subject={subject}
+        module={moduleFilters}
+        topic={topicFilters}
+        questionType={questionTypeFilters}
+        search={searchFilter}
+      />
 
-  const handleRemoveFromTest = async (questionId: number) => {
-    setSelectedQuestions(selectedQuestions.filter(q => q.id !== questionId));
-  };
+      {/* Loading State */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
-  const handleQuestionUpdate = (updatedQuestion: Question) => {
-    console.group('Question List Update');
-    console.log('Updating question:', updatedQuestion);
-    // Replace the question in the existing list
-    setQuestions(prevQuestions =>
-      prevQuestions.map(q => (q.id === updatedQuestion.id ? updatedQuestion : q))
-    );
-    // If the updated question was the editing question, reset editing state
-    if (editingQuestion && editingQuestion.id === updatedQuestion.id) {
-      setEditingQuestion(null);
-    }
-    console.log('Updated questions list');
-    console.groupEnd();
-  };
+      {/* Error State */}
+      {error && (
+        <Alert severity="error" sx={{ my: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-  const renderQuestionContent = () => {
-    if (loading) {
-      return (
-        <Grid container spacing={2}>
-          {[...Array(9)].map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <Box sx={{ height: '100%' }}>
-                <Skeleton variant="rectangular" height={200} />
-              </Box>
+      {/* Questions Grid */}
+      {!loading && !error && (
+        <Grid container spacing={2} sx={{ mt: 2 }}>
+          {questions.map((question) => (
+            <Grid item xs={12} sm={6} md={4} key={question.id}>
+              <QuestionCard 
+                question={question} 
+                onAddToCart={onAddToCart} 
+                testId={usedTestId} 
+              />
             </Grid>
           ))}
         </Grid>
-      );
-    }
-    const safeQuestions = Array.isArray(questions) ? questions : [];
-    if (safeQuestions.length === 0) {
-      return (
-        <Typography variant="body1" sx={{ textAlign: 'center', mt: 4 }}>
-          No questions found. Try adjusting your filters.
-        </Typography>
-      );
-    }
-    return (
-      <Grid container spacing={2}>
-        {safeQuestions.slice(0, 9).map((question, index) => {
-          if (!question) return null;
-          const uniqueKey = `question-${question.id || 'no-id'}-${index}-${question.Subject || 'no-subject'}-${question.Topic || 'no-topic'}-${question.Question.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '-')}`;
-          return (
-            <Grid item xs={12} sm={6} md={4} key={uniqueKey}>
-              <QuestionCard
-                key={uniqueKey}
-                question={question}
-                onAddToTest={handleAddToTest}
-                onEdit={handleEdit}
-                onQuestionUpdate={handleQuestionUpdate}
-              />
-            </Grid>
-          );
-        })}
-      </Grid>
-    );
-  };
+      )}
 
-  if (error) return <ErrorBoundary error={new Error(error.message)} reset={() => setError(null)} />;
-
-  return (
-    <>
-      <EditQuestionModal
-        open={isEditModalOpen}
-        question={editingQuestion}
-        onClose={() => setEditModalOpen(false)}
-        onSave={handleSaveEdit}
-      />
-      <Box>
-        <CascadingFilters
-          onFilterChange={filters => {
-            console.log('CascadingFilters filters:', filters);
-            handleFilterChange(filters);
-          }}
-        />
-        {renderQuestionContent()}
-        <Box display='flex' justifyContent='center' mt={4}>
-          <Pagination
-            count={totalPages}
-            page={currentPage}
-            onChange={(_, page) => onPageChange(page)}
-            color='primary'
+      {/* Pagination */}
+      {!loading && !error && questions.length > 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Pagination 
+            count={usedTotalPages} 
+            page={usedCurrentPage} 
+            onChange={(_, page) => onPageChange?.(page)} 
+            color="primary" 
           />
         </Box>
-      </Box>
-    </>
-  );
-}
+      )}
 
-interface QuestionCardProps {
-  key?: string;
-  question: Question;
-  onAddToTest?: (questionId: number) => Promise<void>;
-  onEdit?: (question: Question) => void;
-  onQuestionUpdate?: (updatedQuestion: Question) => void;
+      {/* No Questions State */}
+      {!loading && !error && questions.length === 0 && (
+        <Typography variant="body1" align="center" sx={{ mt: 4, color: 'text.secondary' }}>
+          No questions found matching your filters.
+        </Typography>
+      )}
+    </Box>
+  );
 }

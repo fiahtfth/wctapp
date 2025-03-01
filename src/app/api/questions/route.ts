@@ -1,247 +1,211 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getQuestions, addQuestion } from '@/lib/database/queries';
-import { Question } from '@/types/question';
-import fs from 'fs';
-import path from 'path';
-import Database from 'better-sqlite3';
+import { NextRequest, NextResponse } from 'next/server'
+import supabase from '@/lib/database/supabaseClient'
+import { Database } from '@/lib/database/schema'
 
-// Global error handler for API routes
-function handleApiError(error: unknown): NextResponse {
-  console.error('🚨 API Error:', error);
+type QuestionRow = Database['public']['Tables']['questions']['Row']
 
-  // Detailed error logging
-  if (error instanceof Error) {
-    console.error('Error Name:', error.name);
-    console.error('Error Message:', error.message);
-    console.error('Error Stack:', error.stack);
-  }
-
-  return NextResponse.json({
-    error: 'Internal Server Error',
-    details: error instanceof Error 
-      ? {
-          name: error.name,
-          message: error.message,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        }
-      : { message: String(error) }
-  }, { status: 500 });
+// Type guard to check if the result is a valid question
+function isValidQuestion(question: any): question is QuestionRow {
+  return question && typeof question === 'object' && 
+         question.id !== undefined && 
+         question.Question !== undefined;
 }
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
+  console.log('🚀 POST /api/questions ROUTE ENTERED');
   try {
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const subject = searchParams.get('subject');
-    const topic = searchParams.get('topic');
-    const search = searchParams.get('search');
+    // Log the entire request body for debugging
+    const requestBody = await request.json();
+    console.log('🔍 Full Request Body:', JSON.stringify(requestBody, null, 2));
+
+    return await getQuestions(request, requestBody);
+  } catch (error) {
+    console.error('🚨 Error in questions API POST route:', error);
+    return NextResponse.json({
+      error: 'Unexpected error processing request',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
+  }
+}
+
+async function getQuestions(request: NextRequest, requestBody: any) {
+  try {
+    // Ensure requestBody is an object and has default values
+    const body = requestBody || {};
     
-    console.log('GET /api/questions:', { page, limit, subject, topic, search });
+    // Extract parameters with robust parsing
+    const page = Math.max(1, parseInt(body.page || '1', 10));
+    const limit = Math.min(Math.max(1, parseInt(body.pageSize || '10', 10)), 50);
     
-    try {
-      // Try both possible database paths
-      let dbPath = path.join(process.cwd(), 'wct.db');
-      if (!fs.existsSync(dbPath)) {
-        dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
-      }
-      
-      console.log('Opening database at:', dbPath);
-      console.log('Database exists:', fs.existsSync(dbPath));
-      
-      if (!fs.existsSync(dbPath)) {
-        console.error('Database file does not exist:', dbPath);
-        return NextResponse.json({ 
-          error: 'Database file does not exist',
-          questions: []
-        }, { status: 500 });
-      }
-      
-      const db = new Database(dbPath);
-      
-      try {
-        // Build query
-        let query = `
-          SELECT 
-            id, 
-            Question, 
-            Answer, 
-            Explanation, 
-            Subject, 
-            "Module Name" as ModuleName, 
-            Topic, 
-            "Sub Topic" as SubTopic, 
-            "Difficulty Level" as DifficultyLevel,
-            Question_Type as QuestionType
-          FROM questions
-          WHERE 1=1
-        `;
+    console.log('📋 DETAILED Query Parameters:', {
+      page,
+      limit,
+      fullRequestBody: JSON.stringify(body, null, 2)
+    });
+    
+    // Flexible column mapping with support for different naming conventions
+    const columnMap: { [key: string]: string } = {
+      'subject': 'Subject',
+      'module': 'Module Name',
+      'topic': 'Topic',
+      'sub_topic': 'Sub Topic',
+      'difficulty_level': 'Difficulty Level',
+      'question_type': 'Question_Type',
+      'nature_of_question': 'Nature of Question'
+    };
+
+    // Build base query
+    let query = supabase.from('questions').select('*', { count: 'exact' });
+    
+    // Dynamic filter application
+    const columnFilters: { [column: string]: string[] } = {};
+    console.log('🔍 Column Mapping:', columnMap);
+    
+    // Ensure filters is an object
+    const filters = body.filters || {};
+    
+    // Check if filters exist and are not empty
+    const hasFilters = Object.keys(filters).length > 0 && 
+      Object.values(filters).some(val => val && val.length > 0);
+
+    if (hasFilters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        const mappedColumn = columnMap[key];
+        console.log(`🔬 Processing key: ${key}, Mapped Column: ${mappedColumn}, Value:`, value);
         
-        const queryParams: any[] = [];
-        
-        // Add filters
-        if (subject) {
-          query += ' AND Subject = ?';
-          queryParams.push(subject);
+        if (mappedColumn && value) {
+          if (!columnFilters[mappedColumn]) {
+            columnFilters[mappedColumn] = [];
+          }
+          // Ensure value is converted to a string array
+          const stringValues = Array.isArray(value) 
+            ? value.map(v => String(v)) 
+            : [String(value)];
+          columnFilters[mappedColumn].push(...stringValues);
         }
-        
-        if (topic) {
-          query += ' AND Topic = ?';
-          queryParams.push(topic);
+      });
+
+      console.log('🧩 Processed Column Filters:', JSON.stringify(columnFilters, null, 2));
+
+      // Apply filters to the query
+      Object.entries(columnFilters).forEach(([column, values]) => {
+        if (values.length > 1) {
+          // Combine multiple filters for the same column using 'or'
+          query = query.or(
+            values.map(value => `"${column}".ilike.%${value}%`).join(',')
+          );
+        } else if (values.length === 1) {
+          // Apply single filter for the column
+          query = query.ilike(`"${column}"`, `%${values[0]}%`);
         }
-        
-        if (search) {
-          query += ' AND (Question LIKE ? OR Answer LIKE ? OR Explanation LIKE ?)';
-          const searchPattern = `%${search}%`;
-          queryParams.push(searchPattern, searchPattern, searchPattern);
-        }
-        
-        console.log('Query:', query);
-        console.log('Query params:', queryParams);
-        
-        // Count total matching questions
-        const countQuery = `SELECT COUNT(*) as total FROM questions WHERE 1=1` + 
-          query.substring(query.indexOf('WHERE 1=1') + 8);
-        
-        console.log('Count query:', countQuery);
-        
-        const totalResult = db.prepare(countQuery).get(...queryParams);
-        const total = totalResult ? (totalResult as any).total : 0;
-        
-        console.log('Total questions:', total);
-        
-        // Add pagination
-        query += ' ORDER BY id DESC LIMIT ? OFFSET ?';
-        queryParams.push(limit, (page - 1) * limit);
-        
-        // Execute query
-        const questions = db.prepare(query).all(...queryParams);
-        
-        console.log('Found questions:', questions.length);
-        
-        db.close();
-        
-        return NextResponse.json({
-          questions,
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit)
-        }, { status: 200 });
-      } catch (dbError) {
-        console.error('Database error fetching questions:', dbError);
-        try {
-          db.close();
-        } catch (closeError) {
-          console.error('Error closing database:', closeError);
-        }
-        return NextResponse.json({ 
-          error: 'Database error: ' + (dbError instanceof Error ? dbError.message : String(dbError)),
-          questions: []
-        }, { status: 500 });
-      }
-    } catch (dbConnectionError) {
-      console.error('Failed to connect to database:', dbConnectionError);
+      });
+    }
+    
+    // Search filter with multiple column search
+    const searchTerm = body.search ? String(body.search).trim() : '';
+    if (searchTerm.length > 1) {
+      // Search across multiple text columns
+      query = query.or(
+        `"Question".ilike.%${searchTerm}%,"Answer".ilike.%${searchTerm}%,"Explanation".ilike.%${searchTerm}%`
+      );
+    }
+    
+    // Pagination
+    const start = (page - 1) * limit;
+    const end = start + limit - 1;
+    
+    console.log('🔍 Executing Supabase Query', { 
+      start, 
+      end, 
+      query: query.toString() 
+    });
+    
+    const { data: questions, count, error } = await query
+      .range(start, end)
+      .order('id', { ascending: false });
+    
+    if (error) {
+      console.error('❌ Supabase Query Error:', error);
       return NextResponse.json({ 
-        error: 'Database connection error: ' + (dbConnectionError instanceof Error ? dbConnectionError.message : String(dbConnectionError)),
+        error: 'Database query error',
+        details: error.message,
         questions: []
       }, { status: 500 });
     }
-  } catch (error) {
-    console.error('Error in questions API:', error);
+    
+    const total = count || 0;
+    
+    console.log('🔍 Raw Supabase Result:', { 
+      questionsCount: questions?.length, 
+      count, 
+      total 
+    });
+
+    // Normalize question data keys with type safety
+    const normalizedQuestions = (questions || [])
+      .filter(isValidQuestion)
+      .map(question => ({
+        id: question.id,
+        text: question.Question || '',
+        answer: question.Answer || '',
+        explanation: question.Explanation || '',
+        subject: question.Subject || '',
+        moduleName: question['Module Name'] || '',
+        topic: question.Topic || '',
+        subTopic: question['Sub Topic'] || '',
+        difficultyLevel: question['Difficulty Level'] || '',
+        questionType: question.Question_Type || '',
+        natureOfQuestion: question['Nature of Question'] || ''
+      }));
+
+    console.log('✅ Query Successful:', { 
+      questionsCount: normalizedQuestions.length, 
+      total, 
+      page, 
+      limit 
+    });
+
+    if (normalizedQuestions.length === 0) {
+      console.log('🚨 Empty questions list:', { 
+        page, 
+        limit, 
+        requestBody: body, 
+        query: query.toString() 
+      });
+    }
+
     return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Failed to fetch questions',
+      questions: normalizedQuestions,
+      page,
+      pageSize: limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }, { status: 200 });
+  } catch (error) {
+    console.error('🚨 Unexpected Error in getQuestions:', error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Unexpected error fetching questions',
       questions: []
     }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
+  console.log('🚀 GET /api/questions ROUTE ENTERED');
   try {
-    console.group('🔍 Question Retrieval POST Request');
-    console.log('📨 Request Headers:', Object.fromEntries(request.headers));
-    console.log('📍 Request URL:', request.url);
-    try {
-      // Log the raw request body for debugging
-      const rawBody = await request.text();
-      console.log('📋 Raw Request Body:', rawBody);
+    const searchParams = request.nextUrl.searchParams;
+    console.log('🔍 Full Request Body:', JSON.stringify(Object.fromEntries(searchParams), null, 2));
 
-      // Parse request body
-      let requestBody;
-      try {
-        requestBody = JSON.parse(rawBody);
-      } catch (parseError) {
-        console.error('❌ JSON Parsing Error:', parseError);
-        return NextResponse.json({
-          error: 'Invalid JSON in request body',
-          details: parseError instanceof Error ? parseError.message : String(parseError)
-        }, { status: 400 });
-      }
+    const requestBody = Object.fromEntries(
+      Array.from(searchParams.entries()).map(([key, value]) => [key, value])
+    );
 
-      console.log('📋 Parsed Request Body:', requestBody);
-      
-      // Sanitize and parse request parameters
-      const page = parseInt(requestBody.page || '1', 10);
-      const pageSize = Math.min(parseInt(requestBody.pageSize || '10', 10), 50); // Limit to 50 questions per page
-      console.log('📄 Using page size:', pageSize);
-      
-      // Prepare filters from request body
-      const filters: Record<string, string | string[]> = {};
-      const filterKeys = ['subject', 'module', 'topic', 'sub_topic', 'question_type', 'search'];
-      
-      filterKeys.forEach(key => {
-        const value = requestBody[key];
-        if (value) {
-          // Normalize filter values
-          const processedValue = Array.isArray(value) 
-            ? value.map(v => String(v).trim()).filter(v => v !== '')
-            : String(value).trim();
-          
-          if (processedValue && processedValue.length > 0) {
-            filters[key] = processedValue;
-          }
-        }
-      });
-      
-      console.log('🧩 Parsed Filters:', filters);
-      console.log('📄 Pagination:', { page, pageSize });
-
-      try {
-        // Retrieve questions with comprehensive error handling
-        const result = await getQuestions({
-          page,
-          pageSize,
-          ...filters
-        });
-
-        console.log('📊 Query Result:', {
-          totalQuestions: result.total,
-          returnedQuestions: result.questions.length,
-          page: result.page,
-          pageSize: result.pageSize
-        });
-
-        // Return comprehensive response
-        return NextResponse.json({
-          questions: result.questions,
-          total: result.total,
-          page: result.page,
-          pageSize: result.pageSize,
-          totalPages: Math.ceil(result.total / pageSize)
-        }, { status: 200 });
-
-      } catch (queryError) {
-        console.error('❌ Query Error:', queryError);
-        return handleApiError(queryError);
-      }
-    } catch (error) {
-      console.error('❌ Request Processing Error:', error);
-      return handleApiError(error);
-    } finally {
-      console.groupEnd();
-    }
+    return await getQuestions(request, requestBody);
   } catch (error) {
-    return handleApiError(error);
+    console.error('🚨 Error in questions API GET route:', error);
+    return NextResponse.json({
+      error: 'Unexpected error processing request',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
