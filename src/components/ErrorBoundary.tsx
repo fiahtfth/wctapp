@@ -1,19 +1,46 @@
 'use client';
-import { useEffect } from 'react';
-import { Alert, Snackbar } from '@mui/material';
-interface ErrorBoundaryProps {
-  error: Error;
-  reset: () => void;
+
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
 }
-export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
-  useEffect(() => {
-    console.error(error);
-  }, [error]);
-  return (
-    <Snackbar open={true} autoHideDuration={6000} onClose={reset}>
-      <Alert severity="error" onClose={reset} sx={{ width: '100%' }} variant="filled">
-        {error.message}
-      </Alert>
-    </Snackbar>
-  );
+
+interface State {
+  hasError: boolean;
+  error?: Error;
 }
+
+class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+  };
+
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Uncaught error:', error, errorInfo);
+    // Here you would typically log to your error tracking service
+    // Example: Sentry.captureException(error);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <div className="error-boundary">
+          <h2>Something went wrong.</h2>
+          <button onClick={() => this.setState({ hasError: false })}>
+            Try again
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;

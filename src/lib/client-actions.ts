@@ -386,3 +386,44 @@ export async function getQuestionById(questionId: number) {
     return null;
   }
 }
+
+// Add saveDraftCart function
+export async function saveDraftCart(
+  userId: number | string, 
+  testName: string, 
+  batch: string, 
+  date: string, 
+  questionIds: number[],
+  existingTestId?: string
+) {
+  try {
+    console.log('Saving draft cart:', { userId, testName, batch, date, questionIds, existingTestId });
+    
+    const baseUrl = getBaseUrl();
+    const response = await fetch(`${baseUrl}/api/cart/draft`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        userId, 
+        testName, 
+        batch, 
+        date, 
+        questionIds,
+        existingTestId
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to save draft cart');
+    }
+    
+    const result = await response.json();
+    return result.testId;
+  } catch (error) {
+    console.error('Error saving draft cart:', error);
+    throw error;
+  }
+}

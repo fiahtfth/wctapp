@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { openDatabase } from '@/lib/database/queries';
+import supabase from '@/lib/database/supabaseClient';
 
 export async function DELETE(request: NextRequest) {
     try {
@@ -12,23 +12,24 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        const db = await openDatabase();
+        // Delete questions using Supabase
+        const { error } = await supabase
+            .from('questions')
+            .delete()
+            .in('text', questions);
         
-        try {
-            // Create placeholders for the SQL query
-            const placeholders = questions.map(() => '?').join(',');
-            const stmt = db.prepare(`DELETE FROM questions WHERE Question IN (${placeholders})`);
-            
-            // Execute the delete query
-            const result = stmt.run(questions);
-            
-            return NextResponse.json({
-                success: true,
-                deletedCount: result.changes
-            });
-        } finally {
-            db.close();
+        if (error) {
+            console.error('Error deleting questions:', error);
+            return NextResponse.json(
+                { error: 'Failed to delete questions' },
+                { status: 500 }
+            );
         }
+        
+        return NextResponse.json({
+            success: true,
+            message: `Successfully deleted ${questions.length} questions`
+        });
     } catch (error) {
         console.error('Error deleting questions:', error);
         return NextResponse.json(

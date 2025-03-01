@@ -42,7 +42,7 @@ import { removeFromCart, fetchCartItems } from '@/lib/client-actions';
 import { useRouter } from 'next/navigation';
 import { QuestionCard } from './QuestionCard';
 import * as XLSX from 'xlsx';
-import { saveDraftCart } from '@/lib/database/queries';
+import { saveDraftCart } from '@/lib/client-actions';
 import { Question } from '@/types/question';
 import { exportTest } from '@/lib/exportUtils';
 import { getTestId } from '@/lib/actions';

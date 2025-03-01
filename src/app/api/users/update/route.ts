@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import Database from 'better-sqlite3';
 import { jwtVerify } from 'jose';
-import path from 'path';
+import { supabaseAdmin } from '@/lib/database/supabaseClient';
+
 export async function PUT(request: NextRequest) {
-  let db;
   try {
     // Verify admin token
     const authHeader = request.headers.get('authorization');
@@ -58,83 +57,81 @@ export async function PUT(request: NextRequest) {
     if (role !== undefined && role !== 'user' && role !== 'admin') {
       return NextResponse.json({ error: 'Invalid role. Must be either "user" or "admin".' }, { status: 400 });
     }
-    // Resolve database path dynamically
-    const dbPath = path.resolve(process.cwd(), 'src/lib/database/wct.db');
-    // Open database connection
-    try {
-      db = new Database(dbPath);
-    } catch (dbError) {
-      console.error('Database connection error:', dbError);
-      return NextResponse.json(
-        {
-          error: 'Database connection failed',
-          details: dbError instanceof Error ? dbError.message : 'Unknown error',
-        },
-        { status: 500 }
-      );
+
+    // Check if user exists and is active
+    const { data: existingUser, error: checkError } = await supabaseAdmin
+      .from('users')
+      .select('is_active')
+      .eq('id', id)
+      .single();
+
+    if (checkError || !existingUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    // Prepare update statement
-    const updateFields = [];
-    const params = [];
+
+    if (!existingUser.is_active && is_active !== true) {
+      return NextResponse.json({ error: 'Cannot update inactive user' }, { status: 400 });
+    }
+
+    // Prepare update data
+    const updateData: Record<string, any> = {};
     
     if (username) {
-      updateFields.push('username = ?');
-      params.push(username);
+      updateData.username = username;
     }
     
     if (password) {
       const saltRounds = 10;
-      const passwordHash = await bcrypt.hash(password, saltRounds);
-      updateFields.push('password_hash = ?');
-      params.push(passwordHash);
+      updateData.password_hash = await bcrypt.hash(password, saltRounds);
     }
+    
     if (email) {
-      updateFields.push('email = ?');
-      params.push(email);
+      updateData.email = email;
     }
+    
     if (role !== undefined) {
-      updateFields.push('role = ?');
-      params.push(role);
+      updateData.role = role;
     }
     
     if (is_active !== undefined) {
-      updateFields.push('is_active = ?');
-      params.push(is_active ? 1 : 0);
+      updateData.is_active = is_active;
     }
-    updateFields.push('updated_at = CURRENT_TIMESTAMP');
-    if (updateFields.length === 1) {
+    
+    // Add updated_at timestamp
+    updateData.updated_at = new Date().toISOString();
+    
+    if (Object.keys(updateData).length === 1 && updateData.updated_at) {
       return NextResponse.json({ error: 'No update fields provided' }, { status: 400 });
     }
-    params.push(id);
+
     try {
-      const stmt = db.prepare(`
-                UPDATE users 
-                SET ${updateFields.join(', ')}
-                WHERE id = ?
-            `);
-      const result = stmt.run(...params);
-      if (result.changes === 0) {
-        return NextResponse.json({ error: 'User not found or no changes made' }, { status: 404 });
-      }
-      // Fetch updated user details
-      // Check if user exists and is active
-      const checkUserStmt = db.prepare('SELECT is_active FROM users WHERE id = ?');
-      const userStatus = checkUserStmt.get(id);
-      if (!userStatus) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
-      if (!userStatus.is_active && is_active !== true) {
-        return NextResponse.json({ error: 'Cannot update inactive user' }, { status: 400 });
+      // Update user in Supabase
+      const { data: updatedUser, error: updateError } = await supabaseAdmin
+        .from('users')
+        .update(updateData)
+        .eq('id', id)
+        .select('id, username, email, role, is_active, last_login, created_at, updated_at')
+        .single();
+
+      if (updateError) {
+        console.error('User update error:', updateError);
+        return NextResponse.json(
+          {
+            error: 'Failed to update user',
+            details: updateError.message,
+          },
+          { status: 500 }
+        );
       }
 
-      const getUserStmt = db.prepare(
-        'SELECT id, username, email, role, is_active, last_login, created_at, updated_at FROM users WHERE id = ?'
-      );
-      const updatedUser = getUserStmt.get(id);
+      if (!updatedUser) {
+        return NextResponse.json({ error: 'User not found or no changes made' }, { status: 404 });
+      }
+
       return NextResponse.json({
         message: 'User updated successfully',
         user: updatedUser,
-        changes: result.changes,
+        changes: 1, // Supabase doesn't return changes count like SQLite
       });
     } catch (updateError) {
       console.error('User update error:', updateError);
@@ -145,9 +142,6 @@ export async function PUT(request: NextRequest) {
         },
         { status: 500 }
       );
-    } finally {
-      // Always close the database connection
-      if (db) db.close();
     }
   } catch (unexpectedError) {
     console.error('Unexpected error in user update:', unexpectedError);

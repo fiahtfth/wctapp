@@ -1,42 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
+import supabase from '@/lib/database/supabaseClient';
+import { Database } from '@/lib/database/schema';
 
-// Helper function to get database path
-function getDatabasePath() {
-  // For Render environment
-  if (isRenderEnvironment()) {
-    console.log('Running in Render environment');
-    return process.env.DATABASE_PATH || '/opt/render/project/src/wct.db';
-  }
-  
-  // For Vercel environment
-  if (isVercelEnvironment()) {
-    console.log('Running in Vercel environment');
-    return process.env.DATABASE_PATH || '/tmp/wct.db';
-  }
-  
-  // For local development
-  const dbPath = path.resolve(process.cwd(), 'src/lib/database/wct.db');
-  return dbPath;
-}
-
-// Function to check if we're in Vercel environment
-function isVercelEnvironment(): boolean {
-  return process.env.VERCEL === '1' || !!process.env.VERCEL;
-}
-
-// Function to check if we're in Render environment
-function isRenderEnvironment(): boolean {
-  return process.env.RENDER === 'true' || !!process.env.RENDER;
-}
+type QuestionRow = Database['public']['Tables']['questions']['Row'];
 
 // Function to enable debug logging
 function debugLog(...args: any[]): void {
   if (process.env.DEBUG === 'true') {
     console.log('[DEBUG]', ...args);
   }
+}
+
+// Function to check if we're in Vercel environment
+function isVercelEnvironment(): boolean {
+  return process.env.VERCEL === '1' || !!process.env.VERCEL;
 }
 
 export async function GET(
@@ -57,25 +34,25 @@ export async function GET(
   }
   
   console.log('Getting question with ID:', questionId);
-  debugLog('Environment:', process.env.NODE_ENV, 'Vercel:', isVercelEnvironment(), 'Render:', isRenderEnvironment());
+  debugLog('Environment:', process.env.NODE_ENV, 'Vercel:', isVercelEnvironment());
   
-  // If we're in Vercel environment, use a simplified approach
-  if (isVercelEnvironment()) {
+  // If we're in Vercel environment and using mock data
+  if (isVercelEnvironment() && process.env.USE_MOCK_DATA === 'true') {
     debugLog('Using simplified question handling for Vercel environment');
     
     // In Vercel, we'll create a mock question
     const mockQuestion = {
       id: Number(questionId),
-      Question: `Sample Question #${questionId}`,
-      Answer: 'Sample Answer',
-      Explanation: 'Sample Explanation',
-      Subject: 'Sample Subject',
-      ModuleName: 'Sample Module',
-      Topic: 'Sample Topic',
-      SubTopic: 'Sample SubTopic',
-      DifficultyLevel: 'Medium',
-      QuestionType: 'MCQ',
-      NatureOfQuestion: 'Conceptual'
+      text: `Sample Question #${questionId}`,
+      answer: 'Sample Answer',
+      explanation: 'Sample Explanation',
+      subject: 'Sample Subject',
+      moduleName: 'Sample Module',
+      topic: 'Sample Topic',
+      subTopic: 'Sample SubTopic',
+      difficultyLevel: 'Medium',
+      questionType: 'MCQ',
+      natureOfQuestion: 'Conceptual'
     };
     
     return NextResponse.json({ 
@@ -91,47 +68,28 @@ export async function GET(
     });
   }
   
-  console.log('Getting question with ID:', questionId);
-  
-  // Get database path
-  const dbPath = getDatabasePath();
-  
-  if (!fs.existsSync(dbPath)) {
-    console.error('Database file does not exist:', dbPath);
-    return NextResponse.json({ 
-      error: 'Database file does not exist'
-    }, { 
-      status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      }
-    });
-  }
-  
-  let db = null;
-  
   try {
-    db = new Database(dbPath, { readonly: true });
+    // Get question by ID from Supabase
+    const { data: question, error } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('id', parseInt(questionId, 10))
+      .single();
     
-    // Get question by ID
-    const question = db.prepare(`
-      SELECT 
-        id,
-        Question,
-        Answer,
-        Explanation,
-        Subject,
-        "Module Name" as ModuleName,
-        Topic,
-        "Sub Topic" as SubTopic,
-        "Difficulty Level" as DifficultyLevel,
-        Question_Type as QuestionType,
-        "Nature of Question" as NatureOfQuestion
-      FROM questions
-      WHERE id = ?
-    `).get(questionId);
+    if (error) {
+      console.error('Error fetching question:', error);
+      return NextResponse.json({ 
+        error: 'Error fetching question',
+        details: error.message
+      }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
     
     if (!question) {
       return NextResponse.json({ error: 'Question not found' }, { 
@@ -144,7 +102,33 @@ export async function GET(
       });
     }
     
-    return NextResponse.json({ question }, { 
+    // Transform the question to match the expected format
+    const formattedQuestion = {
+      id: question.id,
+      text: question.text || '',
+      answer: question.answer || '',
+      explanation: question.explanation || '',
+      subject: question.subject || '',
+      moduleName: question.module_name || '',
+      topic: question.topic || '',
+      subTopic: question.sub_topic || '',
+      difficultyLevel: question.difficulty_level || '',
+      questionType: question.question_type || '',
+      natureOfQuestion: question.nature_of_question || '',
+      // Legacy fields for compatibility
+      Question: question.text || '',
+      Answer: question.answer || '',
+      Explanation: question.explanation || '',
+      Subject: question.subject || '',
+      ModuleName: question.module_name || '',
+      Topic: question.topic || '',
+      SubTopic: question.sub_topic || '',
+      DifficultyLevel: question.difficulty_level || '',
+      QuestionType: question.question_type || '',
+      NatureOfQuestion: question.nature_of_question || ''
+    };
+    
+    return NextResponse.json({ question: formattedQuestion }, { 
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
@@ -165,10 +149,6 @@ export async function GET(
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
       }
     });
-  } finally {
-    if (db) {
-      db.close();
-    }
   }
 }
 

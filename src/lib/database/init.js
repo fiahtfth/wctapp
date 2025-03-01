@@ -48,7 +48,6 @@ var better_sqlite3_1 = __importDefault(require("better-sqlite3"));
 var fs_1 = __importDefault(require("fs"));
 var path_1 = __importDefault(require("path"));
 var bcryptjs_1 = __importDefault(require("bcryptjs"));
-var init_users_1 = __importDefault(require("../../../scripts/init-users"));
 exports.DB_PATH = path_1.default.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
 var SCHEMA_PATH = path_1.default.join(process.cwd(), 'src', 'lib', 'database', 'schema.sql');
 function createQuestionsTable(db) {
@@ -214,12 +213,20 @@ function createUsersTable(db) {
 }
 function initializeDatabase() {
     return __awaiter(this, void 0, void 0, function () {
-        var dbDirectory, db, tableError_1, countResult, questionsCount, sampleQuestions, insertQuestionStmt_1, insertMany, error_1;
+        var useSupabase, dbDirectory, db, tableError_1, countResult, questionsCount, sampleQuestions, insertQuestionStmt_1, insertMany, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 5, , 6]);
                     console.log('🚀 Starting Database Initialization');
+                    
+                    // Check if we should use Supabase instead of SQLite
+                    useSupabase = process.env.NEXT_PUBLIC_USE_SUPABASE === 'true';
+                    if (useSupabase) {
+                        console.log('🔄 Using Supabase instead of SQLite, skipping SQLite initialization');
+                        return [2 /*return*/, null]; // Skip SQLite initialization
+                    }
+                    
                     console.log('Database Path:', exports.DB_PATH);
                     console.log('Current Working Directory:', process.cwd());
                     dbDirectory = path_1.default.dirname(exports.DB_PATH);
@@ -251,8 +258,28 @@ function initializeDatabase() {
                     _a.trys.push([1, 3, , 4]);
                     createUsersTable(db);
                     console.log('✅ Users table created or verified');
-                    // Call initializeUsers to populate the users table
-                    return [4 /*yield*/, (0, init_users_1.default)()];
+                    // Add admin user directly here
+                    var adminUser = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@nextias.com');
+                    if (!adminUser) {
+                        var saltRounds = 10;
+                        var passwordHash = bcryptjs_1.default.hashSync('admin123', saltRounds);
+                        db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)').run('admin', 'admin@nextias.com', passwordHash, 'admin');
+                        console.log('✅ Admin user created');
+                    }
+                    
+                    // Add navneet user
+                    var navneetUser = db.prepare('SELECT id FROM users WHERE email = ?').get('navneet@nextias.com');
+                    if (!navneetUser) {
+                        var saltRounds = 10;
+                        var passwordHash = bcryptjs_1.default.hashSync('welcomenavneet', saltRounds);
+                        db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)').run('navneet', 'navneet@nextias.com', passwordHash, 'user');
+                        console.log('✅ Navneet user created');
+                    }
+                    
+                    createQuestionsTable(db);
+                    createCartTables(db);
+                    console.log('✅ All tables created or verified');
+                    return [3 /*break*/, 4];
                 case 2:
                     // Call initializeUsers to populate the users table
                     _a.sent();

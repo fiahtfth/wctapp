@@ -1,11 +1,12 @@
 'use client';
 import React from 'react';
 import Cart from '@/components/Cart';
-import { Box } from '@mui/material';
+import MainLayout from '@/components/MainLayout';
+
 export default function CartPage() {
   return (
-    <Box sx={{ py: 4 }}>
+    <MainLayout title="Cart" subtitle="Review and manage your selected questions">
       <Cart />
-    </Box>
+    </MainLayout>
   );
 }

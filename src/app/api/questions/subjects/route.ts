@@ -1,60 +1,115 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import supabase from '@/lib/database/supabaseClient';
+
+// Function to enable debug logging
+function debugLog(...args: any[]): void {
+  if (process.env.DEBUG === 'true') {
+    console.log('[DEBUG]', ...args);
+  }
+}
+
+// Function to check if we're in Vercel environment
+function isVercelEnvironment(): boolean {
+  return process.env.VERCEL === '1' || !!process.env.VERCEL;
+}
 
 export async function GET(request: NextRequest) {
   try {
-    // Open database connection
-    // Try both possible database paths
-    let dbPath = path.join(process.cwd(), 'wct.db');
-    if (!fs.existsSync(dbPath)) {
-      dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
-    }
+    debugLog('Getting all subjects');
     
-    console.log('Opening database at:', dbPath);
-    console.log('Database exists:', fs.existsSync(dbPath));
-    
-    if (!fs.existsSync(dbPath)) {
-      console.error('Database file does not exist:', dbPath);
-      return NextResponse.json({ 
-        error: 'Database file does not exist',
-        subjects: []
-      }, { status: 500 });
-    }
-    
-    const db = new Database(dbPath);
-    
-    try {
-      // Get distinct subjects
-      const subjects = db.prepare('SELECT DISTINCT Subject FROM questions ORDER BY Subject').all();
+    // If we're in Vercel environment and using mock data
+    if (isVercelEnvironment() && process.env.USE_MOCK_DATA === 'true') {
+      debugLog('Using mock subjects for Vercel environment');
       
-      // Extract subject names from the result
-      const subjectList = subjects.map((row: any) => row.Subject);
-      
-      db.close();
+      // Return mock subjects
+      const mockSubjects = [
+        'Sample Subject 1',
+        'Sample Subject 2',
+        'Sample Subject 3'
+      ];
       
       return NextResponse.json({
-        subjects: subjectList,
-        count: subjectList.length
-      }, { status: 200 });
-    } catch (dbError) {
-      console.error('Database error fetching subjects:', dbError);
-      try {
-        db.close();
-      } catch (closeError) {
-        console.error('Error closing database:', closeError);
-      }
-      return NextResponse.json({ 
-        error: 'Database error: ' + (dbError instanceof Error ? dbError.message : String(dbError)),
-        subjects: []
-      }, { status: 500 });
+        subjects: mockSubjects,
+        count: mockSubjects.length,
+        vercelMode: true
+      }, { 
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
     }
+    
+    // Get distinct subjects from Supabase
+    const { data, error } = await supabase
+      .from('questions')
+      .select('subject')
+      .not('subject', 'is', null)
+      .order('subject');
+    
+    if (error) {
+      console.error('Error fetching subjects:', error);
+      return NextResponse.json({ 
+        error: 'Error fetching subjects: ' + error.message,
+        subjects: []
+      }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
+    
+    // Extract unique subject names from the result
+    const subjectSet = new Set<string>();
+    data.forEach(item => {
+      if (item.subject) {
+        subjectSet.add(item.subject);
+      }
+    });
+    
+    const subjectList = Array.from(subjectSet).sort();
+    
+    return NextResponse.json({
+      subjects: subjectList,
+      count: subjectList.length
+    }, { 
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   } catch (error) {
     console.error('Error in subjects API:', error);
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Failed to fetch subjects',
       subjects: []
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   }
+}
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400' // 24 hours
+    }
+  });
 }

@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import supabase from '@/lib/database/supabaseClient';
+
+// Function to enable debug logging
+function debugLog(...args: any[]): void {
+  if (process.env.DEBUG === 'true') {
+    console.log('[DEBUG]', ...args);
+  }
+}
+
+// Function to check if we're in Vercel environment
+function isVercelEnvironment(): boolean {
+  return process.env.VERCEL === '1' || !!process.env.VERCEL;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,59 +23,112 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ 
         error: 'Subject parameter is required', 
         topics: [] 
-      }, { status: 400 });
+      }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
     }
     
-    // Open database connection
-    // Try both possible database paths
-    let dbPath = path.join(process.cwd(), 'wct.db');
-    if (!fs.existsSync(dbPath)) {
-      dbPath = path.join(process.cwd(), 'src', 'lib', 'database', 'wct.db');
-    }
+    debugLog('Getting topics for subject:', subject);
     
-    console.log('Opening database at:', dbPath);
-    console.log('Database exists:', fs.existsSync(dbPath));
-    
-    if (!fs.existsSync(dbPath)) {
-      console.error('Database file does not exist:', dbPath);
-      return NextResponse.json({ 
-        error: 'Database file does not exist',
-        topics: []
-      }, { status: 500 });
-    }
-    
-    const db = new Database(dbPath);
-    
-    try {
-      // Get distinct topics for the given subject
-      const topics = db.prepare('SELECT DISTINCT Topic FROM questions WHERE Subject = ? ORDER BY Topic').all(subject);
+    // If we're in Vercel environment and using mock data
+    if (isVercelEnvironment() && process.env.USE_MOCK_DATA === 'true') {
+      debugLog('Using mock topics for Vercel environment');
       
-      // Extract topic names from the result
-      const topicList = topics.map((row: any) => row.Topic);
-      
-      db.close();
+      // Return mock topics
+      const mockTopics = [
+        'Sample Topic 1',
+        'Sample Topic 2',
+        'Sample Topic 3'
+      ];
       
       return NextResponse.json({
-        topics: topicList,
-        count: topicList.length
-      }, { status: 200 });
-    } catch (dbError) {
-      console.error('Database error fetching topics:', dbError);
-      try {
-        db.close();
-      } catch (closeError) {
-        console.error('Error closing database:', closeError);
-      }
-      return NextResponse.json({ 
-        error: 'Database error: ' + (dbError instanceof Error ? dbError.message : String(dbError)),
-        topics: []
-      }, { status: 500 });
+        topics: mockTopics,
+        count: mockTopics.length,
+        vercelMode: true
+      }, { 
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
     }
+    
+    // Get distinct topics for the given subject from Supabase
+    const { data, error } = await supabase
+      .from('questions')
+      .select('topic')
+      .eq('subject', subject)
+      .not('topic', 'is', null)
+      .order('topic');
+    
+    if (error) {
+      console.error('Error fetching topics:', error);
+      return NextResponse.json({ 
+        error: 'Error fetching topics: ' + error.message,
+        topics: []
+      }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
+    
+    // Extract unique topic names from the result
+    const topicSet = new Set<string>();
+    data.forEach(item => {
+      if (item.topic) {
+        topicSet.add(item.topic);
+      }
+    });
+    
+    const topicList = Array.from(topicSet).sort();
+    
+    return NextResponse.json({
+      topics: topicList,
+      count: topicList.length
+    }, { 
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   } catch (error) {
     console.error('Error in topics API:', error);
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Failed to fetch topics',
       topics: []
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   }
+}
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400' // 24 hours
+    }
+  });
 }

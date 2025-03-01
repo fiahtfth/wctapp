@@ -1,8 +1,8 @@
-'use server';
 import supabase from './supabaseClient';
 import { Question as ImportedQuestion, isQuestion } from '@/types/question';
 import { AppError, asyncErrorHandler } from '@/lib/errorHandler';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
+import path from 'path';
 
 // Define return type for getQuestions
 interface QuestionsResult {

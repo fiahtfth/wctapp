@@ -2,15 +2,9 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
-  Container,
   Typography,
-  ThemeProvider,
-  CssBaseline,
-  AppBar,
-  Toolbar,
   Button,
   Grid,
-  Paper,
   Badge,
   Dialog,
   DialogTitle,
@@ -18,13 +12,12 @@ import {
   DialogActions,
 } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
-import { createTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import QuestionList from "@/components/QuestionList";
-import CartIndicator from "@/components/CartIndicator";
 import { addQuestionToCart, getCartItems } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+import MainLayout from "@/components/MainLayout";
 
 export default function Home() {
   const [testId] = useState("home-question-list");
@@ -49,26 +42,31 @@ export default function Home() {
       router.push('/login');
       return;
     }
-
-    loadCartCount();
-  }, [router, testId]);
-
-    const loadCartCount = async () => {
+    
+    // Load cart count on mount
+    const fetchCartCount = async () => {
       try {
-        const items = await getCartItems(testId);
-        setCartCount(items.count);
+        const cartItems = await getCartItems(testId);
+        setCartCount(cartItems.count);
       } catch (error) {
-        console.error("Error loading cart count:", error);
+        console.error("Failed to fetch cart items", error);
       }
     };
+    fetchCartCount();
+  }, [testId, router]);
 
-  const handleAddToTest = async (questionId: number) => {
+  const handleLogout = () => {
+    setLogoutDialogOpen(true);
+  };
+
+  const confirmLogout = () => {
+    setLogoutDialogOpen(false);
+    localStorage.removeItem('token');
+    window.location.href = "/login"; // Redirect to login page
+  };
+
+  const handleAddToCart = async (questionId: number) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error("No token found");
-        return;
-      }
       await addQuestionToCart(questionId, testId);
       setCartCount((prev) => prev + 1);
     } catch (error) {
@@ -76,207 +74,66 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => {
-    setLogoutDialogOpen(true);
-  };
-
-  const confirmLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = "/login"; // Redirect to login page
-  };
-
-  const theme = createTheme({
-    palette: {
-      mode: "light",
-      primary: {
-        main: "#1976d2",
-      },
-    },
-  });
-
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box
+    <MainLayout title="Questions" subtitle="Browse and manage your question bank">
+      <QuestionList
+        testId={testId}
+        filters={filters}
+        onFilterChange={setFilters}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        totalPages={totalPages}
+        onTotalPagesChange={setTotalPages}
+        pageSize={pageSize}
+        onAddToCart={handleAddToCart}
+      />
+      {/* Logout Confirmation Dialog */}
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "100vh",
-          bgcolor: "#f5f5f7",
+          "& .MuiDialog-paper": {
+            borderRadius: 2,
+            minWidth: 300,
+          },
         }}
       >
-        {/* Navbar */}
-        <AppBar
-          position="static"
-          color="transparent"
-          elevation={0}
-          sx={{
-            backgroundColor: "rgba(255,255,255,0.85)",
-            backdropFilter: "blur(10px)",
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-          }}
-        >
-          <Toolbar
+        <DialogTitle sx={{ pb: 1 }}>Confirm Logout</DialogTitle>
+        <DialogContent sx={{ pb: 2 }}>
+          <Typography
+            variant="body2"
             sx={{
-              minHeight: "48px !important",
-              px: { xs: 1, sm: 2, md: 3 },
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              mb: 0.5,
+              display: "block",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography
-                variant="h6"
-                onClick={() => window.location.reload()}
-                sx={{
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  color: "text.primary",
-                  letterSpacing: "-0.5px",
-                  cursor: "pointer",
-                  "&:hover": {
-                    color: "primary.main",
-                  },
-                }}
-              >
-                Weekly Test Creator
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <CartIndicator count={cartCount} />
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={() => router.push("/dashboard")}
-                sx={{
-                  fontSize: "0.8rem",
-                  textTransform: "none",
-                  px: 1,
-                  py: 0.5,
-                  mr: 1,
-                  borderRadius: 2,
-                  transition: "all 0.2s",
-                  "&:hover": {
-                    backgroundColor: "primary.light",
-                    color: "white",
-                    transform: "translateY(-1px)",
-                  },
-                }}
-              >
-                Dashboard
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={handleLogout}
-                sx={{
-                  fontSize: "0.8rem",
-                  textTransform: "none",
-                  px: 1,
-                  py: 0.5,
-                  borderRadius: 2,
-                  transition: "all 0.2s",
-                  "&:hover": {
-                    backgroundColor: "error.light",
-                    color: "white",
-                    transform: "translateY(-1px)",
-                  },
-                }}
-              >
-                Logout
-              </Button>
-            </Box>
-          </Toolbar>
-        </AppBar>
-        {/* Logout Confirmation Dialog */}
-        <Dialog
-          open={logoutDialogOpen}
-          onClose={() => setLogoutDialogOpen(false)}
-          sx={{
-            "& .MuiDialog-paper": {
-              borderRadius: 2,
-              minWidth: 300,
-            },
-          }}
-        >
-          <DialogTitle sx={{ pb: 1 }}>Confirm Logout</DialogTitle>
-          <DialogContent sx={{ pb: 2 }}>
-            <Typography
-              variant="body2"
-              sx={{
-                mb: 0.5,
-                display: "block",
-              }}
-            >
-              Are you sure you want to logout?
-            </Typography>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button
-              onClick={() => setLogoutDialogOpen(false)}
-              variant="text"
-              sx={{
-                textTransform: "none",
-                transition: "all 0.2s",
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmLogout}
-              variant="contained"
-              color="error"
-              sx={{
-                textTransform: "none",
-                transition: "all 0.2s",
-              }}
-            >
-              Logout
-            </Button>
-          </DialogActions>
-        </Dialog>
-        {/* Main Content */}
-        <Container
-          maxWidth="xl"
-          sx={{
-            flexGrow: 1,
-            py: 1,
-            px: { xs: 1, sm: 2, md: 3 },
-            display: "flex",
-            flexDirection: "column",
-            gap: 1,
-          }}
-        >
-          <Paper
-            elevation={0}
+            Are you sure you want to logout?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setLogoutDialogOpen(false)}
+            variant="text"
             sx={{
-              bgcolor: "background.paper",
-              borderRadius: 1,
-              overflow: "hidden",
-              border: 1,
-              borderColor: "divider",
+              textTransform: "none",
+              transition: "all 0.2s",
             }}
           >
-            <QuestionList
-              data-testid="question-list-mock"
-              testId={testId}
-              filters={filters}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              onPageChange={setCurrentPage}
-              totalPages={totalPages}
-              onTotalPagesChange={setTotalPages}
-              onFilterChange={(newFilters) => {
-                setFilters(newFilters);
-              }}
-              onAddToCart={handleAddToTest}
-            />
-          </Paper>
-        </Container>
-      </Box>
-    </ThemeProvider>
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmLogout}
+            variant="contained"
+            color="error"
+            sx={{
+              textTransform: "none",
+              transition: "all 0.2s",
+            }}
+          >
+            Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </MainLayout>
   );
 }

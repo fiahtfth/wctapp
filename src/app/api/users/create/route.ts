@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import Database from 'better-sqlite3';
 import { jwtVerify } from 'jose';
-import path from 'path';
+import { supabaseAdmin } from '@/lib/database/supabaseClient';
+
 export async function POST(request: NextRequest) {
-  let db;
   try {
     // Verify admin token
     const authHeader = request.headers.get('authorization');
@@ -57,37 +56,48 @@ export async function POST(request: NextRequest) {
     if (role !== 'user' && role !== 'admin') {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
-    // Resolve database path dynamically
-    const dbPath = path.resolve(process.cwd(), 'src/lib/database/wct.db');
-    // Open database connection
-    try {
-      db = new Database(dbPath);
-    } catch (dbError) {
-      console.error('Database connection error:', dbError);
-      return NextResponse.json(
-        {
-          error: 'Database connection failed',
-          details: dbError instanceof Error ? dbError.message : 'Unknown error',
-        },
-        { status: 500 }
-      );
-    }
+
     // Hash password
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
+
     try {
-      // Prepare insert statement
-      const stmt = db.prepare(`
-                INSERT INTO users 
-                (username, email, password_hash, role) 
-                VALUES (?, ?, ?, ?)
-            `);
-      const result = stmt.run(username, email, passwordHash, role);
-      // Fetch the newly created user
-      const getUserStmt = db.prepare(
-        'SELECT id, username, email, role, is_active, last_login, created_at, updated_at FROM users WHERE id = ?'
-      );
-      const newUser = getUserStmt.get(result.lastInsertRowid);
+      // Insert user into Supabase
+      const { data: newUser, error } = await supabaseAdmin
+        .from('users')
+        .insert({
+          username,
+          email,
+          password_hash: passwordHash,
+          role,
+          is_active: true
+        })
+        .select('id, username, email, role, is_active, last_login, created_at, updated_at')
+        .single();
+
+      if (error) {
+        console.error('User creation error:', error);
+        
+        // Check for unique constraint violation
+        if (error.code === '23505') { // PostgreSQL unique constraint violation code
+          return NextResponse.json(
+            {
+              error: 'User creation failed',
+              details: 'Email already exists',
+            },
+            { status: 409 }
+          );
+        }
+        
+        return NextResponse.json(
+          {
+            error: 'Failed to create user',
+            details: error.message,
+          },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
         {
           message: 'User created successfully',
@@ -102,16 +112,6 @@ export async function POST(request: NextRequest) {
       );
     } catch (insertError) {
       console.error('User creation error:', insertError);
-      // Check for unique constraint violation
-      if (insertError instanceof Error && insertError.message.includes('UNIQUE constraint')) {
-        return NextResponse.json(
-          {
-            error: 'User creation failed',
-            details: 'Email already exists',
-          },
-          { status: 409 }
-        );
-      }
       return NextResponse.json(
         {
           error: 'Failed to create user',
@@ -119,9 +119,6 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 }
       );
-    } finally {
-      // Always close the database connection
-      if (db) db.close();
     }
   } catch (unexpectedError) {
     console.error('Unexpected error in user creation:', unexpectedError);

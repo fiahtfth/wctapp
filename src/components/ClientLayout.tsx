@@ -3,6 +3,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useState, useEffect, useCallback } from 'react';
+import { Box, Typography, Button } from '@mui/material';
 
 const theme = createTheme({
   palette: {
@@ -88,26 +89,48 @@ interface ClientLayoutProps {
 }
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
-  const [error, setError] = useState<Error | null>(null);
   const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
   }, []);
-  
-  const resetErrorBoundary = useCallback(() => {
-    setError(null);
-  }, []);
+
+  // Custom fallback UI for error boundary
+  const ErrorFallback = () => (
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        minHeight: '100vh',
+        p: 3,
+        textAlign: 'center'
+      }}
+    >
+      <Typography variant="h4" component="h1" gutterBottom color="error.main">
+        Something went wrong
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 4, maxWidth: 500 }}>
+        We're sorry, but an error occurred while rendering this page. Please try refreshing the page or contact support if the problem persists.
+      </Typography>
+      <Button 
+        variant="contained" 
+        color="primary" 
+        onClick={() => window.location.reload()}
+      >
+        Refresh Page
+      </Button>
+    </Box>
+  );
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       {isClient ? (
-        error ? (
-          <ErrorBoundary error={error} reset={resetErrorBoundary} />
-        ) : (
-          <>{children}</>
-        )
+        <ErrorBoundary fallback={<ErrorFallback />}>
+          {children}
+        </ErrorBoundary>
       ) : (
         <>{children}</>
       )}
