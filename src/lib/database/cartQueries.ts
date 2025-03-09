@@ -1,16 +1,20 @@
 'use server';
 
-import supabase from './supabaseClient';
+import getSupabaseClient from './supabaseClient';
 import { Question } from '@/types/question';
 import { AppError, asyncErrorHandler } from '@/lib/errorHandler';
-import { initializeDatabase } from './init';
-
-// Initialize database
-initializeDatabase().catch(console.error);
 
 // Create cart tables if they dont exist
 const createCartTables = async () => {
   try {
+    // Get the Supabase client
+    const supabase = getSupabaseClient();
+    
+    if (!supabase) {
+      console.error('Failed to initialize Supabase client');
+      return;
+    }
+    
     // Check if carts table exists
     const { error: cartsCheckError } = await supabase
       .from('carts')
@@ -63,8 +67,18 @@ const createCartTables = async () => {
   }
 };
 
+// Call createCartTables on module initialization
+createCartTables().catch(console.error);
+
 export const addQuestionToCart = asyncErrorHandler(async (questionId: number | string, testId: string, userId: number): Promise<boolean> => {
   try {
+    // Get the Supabase client
+    const supabase = getSupabaseClient();
+    
+    if (!supabase) {
+      throw new AppError('Failed to initialize Supabase client', 500);
+    }
+    
     // Ensure cart exists
     const { data: cart, error: cartError } = await supabase
       .from('carts')
@@ -122,6 +136,13 @@ export const addQuestionToCart = asyncErrorHandler(async (questionId: number | s
 
 export const removeQuestionFromCart = asyncErrorHandler(async (questionId: number | string, testId: string, userId: number): Promise<boolean> => {
   try {
+    // Get the Supabase client
+    const supabase = getSupabaseClient();
+    
+    if (!supabase) {
+      throw new AppError('Failed to initialize Supabase client', 500);
+    }
+    
     // Get cart ID
     const { data: cart, error: cartError } = await supabase
       .from('carts')
@@ -154,6 +175,13 @@ export const removeQuestionFromCart = asyncErrorHandler(async (questionId: numbe
 
 export const getCartQuestions = asyncErrorHandler(async (testId: string, userId: number): Promise<Question[]> => {
   try {
+    // Get the Supabase client
+    const supabase = getSupabaseClient();
+    
+    if (!supabase) {
+      throw new AppError('Failed to initialize Supabase client', 500);
+    }
+    
     // Get cart ID
     const { data: cart, error: cartError } = await supabase
       .from('carts')
