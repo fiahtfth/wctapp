@@ -1,22 +1,17 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
+  "framework": "nextjs",
+  "buildCommand": "next build",
   "env": {
     "NEXT_PUBLIC_SITE_URL": "https://wctapp.vercel.app",
-    "DATABASE_URL": "file:/tmp/wct.db",
-    "DATABASE_PATH": "/tmp/wct.db",
-    "JWT_SECRET": "66J5NovcG/rEn1luBGDyKG7DjtfrrRs/TR9VsDg7guM=",
     "NODE_ENV": "production",
-    "NEXT_PUBLIC_USE_SUPABASE": "true"
+    "NEXT_PUBLIC_USE_SUPABASE": "true",
+    "NEXT_PUBLIC_USE_MOCK_DATA": "false",
+    "JWT_SECRET": "NOlWLmhqqevQsY3deJe6/bga0deW1QLMoaICDYAEVJYrwTvPfm7Pgd1jrmjGBaLh03ySJJ+ALTfrexEfzNXY0A==",
+    "JWT_REFRESH_SECRET": "your_jwt_secret_key_for_refresh_tokens",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://ztrgchnlakmpsshkzpkl.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0cmdjaG5sYWttcHNzaGt6cGtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3NjQ3NjcsImV4cCI6MjA1NjM0MDc2N30.HZ4WQcUJZdyFodiSJ8o86x814PYYrXPmHcCpqF4hVQg"
   },
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "installCommand": "apt-get update && apt-get install -y build-essential python3 && npm install",
   "routes": [
     {
       "src": "/manifest.json",
