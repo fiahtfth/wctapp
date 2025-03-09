@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useAuth, User } from '@/components/AuthProvider';
 
 const theme = createTheme({
   palette: {
@@ -66,7 +67,19 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const router = useRouter();
+  const { login, user } = useAuth();
+  const isAuthenticated = !!user;
+
+  // Clear any redirection loop counters on page load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Reset redirect count when landing on login page
+      sessionStorage.setItem('redirectCount', '0');
+      console.log('Reset redirect count on login page load');
+    }
+  }, []);
 
   // Check for expired token query parameter
   useEffect(() => {
@@ -78,53 +91,99 @@ export default function LoginPage() {
     }
   }, []);
 
+  // Function to handle role-based redirection
+  const handleRoleBasedRedirect = (userRole: string) => {
+    // Check if there's a redirect URL stored
+    const redirectUrl = localStorage.getItem('redirectAfterLogin');
+    
+    if (redirectUrl) {
+      console.log('Redirecting to stored URL:', redirectUrl);
+      localStorage.removeItem('redirectAfterLogin');
+      router.push(redirectUrl);
+    } else {
+      // Default redirect based on role
+      if (userRole === 'admin') {
+        console.log('User is admin, redirecting to /users');
+        router.push('/users');
+      } else {
+        console.log('User is not admin, redirecting to /dashboard');
+        router.push('/dashboard');
+      }
+    }
+  };
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (user) {
+      console.log('User already authenticated, checking for redirect URL');
+      handleRoleBasedRedirect(user.role);
+    }
+  }, [user, router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoggingIn(true);
+    
+    // Clear any existing tokens to ensure a fresh login
+    localStorage.removeItem('accessToken');
+    
+    console.log('Login attempt started for email:', email);
+    
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        // Handle login errors
-        setError(data.error || 'Login failed');
-        return;
-      }
-      // Store token and user info
-      localStorage.setItem('token', data.token);
-      // Store user details in localStorage
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          id: data.user.id,
-          email: data.user.email,
-          role: data.user.role,
-        })
-      );
+      console.log('Calling login function...');
+      const result = await login(email, password);
+      console.log('Login function returned:', result);
       
-      // Check if there's a redirect URL stored in localStorage
-      const redirectUrl = localStorage.getItem('redirectAfterLogin');
-      if (redirectUrl) {
-        // Clear the stored redirect URL
-        localStorage.removeItem('redirectAfterLogin');
-        // Redirect to the stored URL
-        router.push(redirectUrl);
+      if (!result.success) {
+        console.log('Login failed:', result.error);
+        setError(result.error || 'Login failed');
       } else {
-        // Default redirect based on user role
-        if (data.user.role === 'admin') {
-          router.push('/users');
+        console.log('Login successful, token should be stored');
+        
+        // Get the token from localStorage and set it as a cookie for middleware
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          // Set a cookie with the token to help middleware access it
+          document.cookie = `ls_token=${token}; path=/; max-age=3600; SameSite=Strict`;
+          console.log('Token cookie set for middleware access');
+        }
+        
+        // Add a small delay to ensure the token is properly stored
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check if there's a redirect URL stored
+        const redirectUrl = localStorage.getItem('redirectAfterLogin');
+        
+        if (redirectUrl) {
+          console.log('Redirecting to stored URL:', redirectUrl);
+          localStorage.removeItem('redirectAfterLogin');
+          
+          // Use window.location.href for a full page navigation
+          window.location.href = redirectUrl;
         } else {
-          router.push('/dashboard');
+          // Default redirect based on role
+          // We need to check the user again as it might have been updated
+          const currentUser = result.user || user;
+          
+          if (currentUser && currentUser.role === 'admin') {
+            console.log('User is admin, redirecting to /users');
+            
+            // Use window.location.href for a full page navigation
+            window.location.href = '/users';
+          } else {
+            console.log('User is not admin, redirecting to /dashboard');
+            
+            // Use window.location.href for a full page navigation
+            window.location.href = '/dashboard';
+          }
         }
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('An unexpected error occurred');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -294,8 +353,9 @@ export default function LoginPage() {
                   color="primary"
                   size="large"
                   sx={{ mt: 3, mb: 2 }}
+                  disabled={isLoggingIn}
                 >
-                  Sign In
+                  {isLoggingIn ? 'Signing In...' : 'Sign In'}
                 </Button>
               </form>
             </Paper>
