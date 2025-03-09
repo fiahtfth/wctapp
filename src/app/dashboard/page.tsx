@@ -9,22 +9,31 @@ import {
   ShoppingCart as CartIcon,
 } from '@mui/icons-material';
 import MainLayout from '@/components/MainLayout';
+import { useAuth } from '@/components/AuthProvider';
+import { useRouter } from 'next/navigation';
+import { withAuth } from '@/components/AuthProvider';
 
-export default function Dashboard() {
+function Dashboard() {
+  const { user, isLoading } = useAuth();
+  const isAuthenticated = !!user;
   const [isAdmin, setIsAdmin] = useState(false);
+  const router = useRouter();
   
-  // Check if user is admin on component mount
+  // Check if user is admin on component mount and handle authentication
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setIsAdmin(user.role === 'admin');
-      } catch (error) {
-        console.error("Failed to parse user data:", error);
-      }
+    // Redirect to login if not authenticated
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+      return;
     }
-  }, []);
+    
+    // Set admin status based on user role
+    if (user && user.role === 'admin') {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [isAuthenticated, isLoading, router, user]);
   
   return (
     <MainLayout title="Dashboard" subtitle="Welcome to the WCT Exam Creation Manager">
@@ -243,3 +252,5 @@ export default function Dashboard() {
     </MainLayout>
   );
 }
+
+export default withAuth(Dashboard);

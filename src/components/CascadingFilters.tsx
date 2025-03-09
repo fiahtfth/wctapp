@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Box,
   Checkbox,
@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import hierarchicalData, { Subject, Module, Topic } from '@/lib/database/hierarchicalData';
+import SafeFormControl from '@/components/SafeFormControl';
 
 interface CascadingFiltersProps {
   onFilterChange?: (filters: {
@@ -49,6 +50,8 @@ export const CascadingFilters = ({
   const [selectedTopics, setSelectedTopics] = useState<string[]>(initialTopic || []);
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>(initialQuestionType || []);
   const [searchQuery, setSearchQuery] = useState(initialSearch || '');
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialRenderRef = useRef(true);
 
   // Derived state from hierarchical data
   const subjects = useMemo(() => hierarchicalData.map(subject => subject.name), []);
@@ -74,18 +77,25 @@ export const CascadingFilters = ({
 
   const questionTypes = ['Objective', 'Subjective'];
 
-  // Handler for filter changes
-  const handleFilterChange = () => {
-    const filters = {
-      subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
-      module: selectedModules.length > 0 ? selectedModules : undefined,
-      topic: selectedTopics.length > 0 ? selectedTopics : undefined,
-      questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
-      search: searchQuery || undefined,
-    };
+  // Handler for filter changes with debounce
+  const handleFilterChange = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
 
-    onFilterChange?.(filters);
-  };
+    debounceTimerRef.current = setTimeout(() => {
+      const filters = {
+        subject: selectedSubjects.length > 0 ? selectedSubjects : undefined,
+        module: selectedModules.length > 0 ? selectedModules : undefined,
+        topic: selectedTopics.length > 0 ? selectedTopics : undefined,
+        questionType: selectedQuestionTypes.length > 0 ? selectedQuestionTypes : undefined,
+        search: searchQuery || undefined,
+      };
+
+      onFilterChange?.(filters);
+      debounceTimerRef.current = null;
+    }, 300);
+  }, [selectedSubjects, selectedModules, selectedTopics, selectedQuestionTypes, searchQuery, onFilterChange]);
 
   // Event handlers for filter selections
   const handleSubjectChange = (event: SelectChangeEvent<string[]>) => {
@@ -96,8 +106,6 @@ export const CascadingFilters = ({
     // Reset dependent filters when subject changes
     setSelectedModules([]);
     setSelectedTopics([]);
-    
-    handleFilterChange();
   };
 
   const handleModuleChange = (event: SelectChangeEvent<string[]>) => {
@@ -107,8 +115,6 @@ export const CascadingFilters = ({
     setSelectedModules(modules);
     // Reset dependent filters when module changes
     setSelectedTopics([]);
-    
-    handleFilterChange();
   };
 
   const handleTopicChange = (event: SelectChangeEvent<string[]>) => {
@@ -116,7 +122,6 @@ export const CascadingFilters = ({
     const topics = typeof value === 'string' ? value.split(',') : value;
     
     setSelectedTopics(topics);
-    handleFilterChange();
   };
 
   const handleQuestionTypeChange = (event: SelectChangeEvent<string[]>) => {
@@ -124,14 +129,30 @@ export const CascadingFilters = ({
     const types = typeof value === 'string' ? value.split(',') : value;
     
     setSelectedQuestionTypes(types);
-    handleFilterChange();
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setSearchQuery(value);
-    handleFilterChange();
   };
+
+  // Add useEffect to handle filter changes
+  useEffect(() => {
+    // Skip the first render to prevent unnecessary API calls on mount
+    if (isInitialRenderRef.current) {
+      isInitialRenderRef.current = false;
+      return;
+    }
+    
+    handleFilterChange();
+    
+    // Clean up the timeout on component unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [handleFilterChange]);
 
   return (
     <Box 
@@ -154,7 +175,7 @@ export const CascadingFilters = ({
       <Grid container spacing={2}>
         {/* Subject Filter */}
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth variant="outlined">
+          <SafeFormControl fullWidth variant="outlined">
             <InputLabel>Subject</InputLabel>
             <Select
               multiple
@@ -170,12 +191,12 @@ export const CascadingFilters = ({
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </SafeFormControl>
         </Grid>
 
         {/* Module Filter */}
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth variant="outlined" disabled={selectedSubjects.length === 0}>
+          <SafeFormControl fullWidth variant="outlined" disabled={selectedSubjects.length === 0}>
             <InputLabel>Module</InputLabel>
             <Select
               multiple
@@ -191,12 +212,12 @@ export const CascadingFilters = ({
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </SafeFormControl>
         </Grid>
 
         {/* Topic Filter */}
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth variant="outlined" disabled={selectedModules.length === 0}>
+          <SafeFormControl fullWidth variant="outlined" disabled={selectedModules.length === 0}>
             <InputLabel>Topic</InputLabel>
             <Select
               multiple
@@ -212,12 +233,12 @@ export const CascadingFilters = ({
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </SafeFormControl>
         </Grid>
 
         {/* Question Type Filter */}
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth variant="outlined">
+          <SafeFormControl fullWidth variant="outlined">
             <InputLabel>Question Type</InputLabel>
             <Select
               multiple
@@ -233,7 +254,7 @@ export const CascadingFilters = ({
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </SafeFormControl>
         </Grid>
 
         {/* Search Input */}

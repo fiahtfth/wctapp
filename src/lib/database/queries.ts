@@ -1,4 +1,4 @@
-import supabase from './supabaseClient';
+import { getSupabaseBrowserClient } from './supabaseClient';
 import { Question as ImportedQuestion, isQuestion } from '@/types/question';
 import { AppError, asyncErrorHandler } from '@/lib/errorHandler';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
@@ -33,6 +33,13 @@ export const getQuestions = asyncErrorHandler(async (filters: {
   }
 
   try {
+    // Get the Supabase client
+    const supabaseClient = getSupabaseBrowserClient();
+    
+    if (!supabaseClient) {
+      throw new AppError('Supabase client is not initialized');
+    }
+    
     // Sanitize and validate parameters
     const page = Math.max(1, Number(filters.page || 1));
     const pageSize = Math.min(Math.max(1, Number(filters.pageSize || 10)), 50); // Limit to 50 per page
@@ -41,7 +48,7 @@ export const getQuestions = asyncErrorHandler(async (filters: {
     console.log('📄 Query pagination:', { page, pageSize, offset });
 
     // Build base query
-    let query = supabase.from('questions').select('*', { count: 'exact' });
+    let query = supabaseClient.from('questions').select('*', { count: 'exact' });
     
     // Apply filters - updated to match actual column names in the database
     if (filters.subject) {
@@ -183,7 +190,7 @@ export const addQuestion = asyncErrorHandler(async (questionData: ImportedQuesti
       nature_of_question: questionData.natureOfQuestion ? String(questionData.natureOfQuestion) : null
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('questions')
       .insert(insertData)
       .select();
@@ -247,13 +254,13 @@ export const saveDraftCart = asyncErrorHandler(async (
     try {
       // First, try to create the carts table if it doesn't exist
       try {
-        const { error: createCartsError } = await supabase.from('carts').select('id').limit(1);
+        const { error: createCartsError } = await supabaseClient.from('carts').select('id').limit(1);
         
         if (createCartsError && createCartsError.message.includes('relation "carts" does not exist')) {
           console.log('Carts table does not exist, creating it...');
           
           // Create the carts table
-          const { error: createTableError } = await supabase.from('carts').insert({
+          const { error: createTableError } = await supabaseClient.from('carts').insert({
             test_id: 'temp_test_id',
             user_id: 1,
             metadata: {}
@@ -269,7 +276,7 @@ export const saveDraftCart = asyncErrorHandler(async (
       
       // If we're updating an existing draft, first check if it exists
       if (existingTestId) {
-        const { data: existingCart, error: existingCartError } = await supabase
+        const { data: existingCart, error: existingCartError } = await supabaseClient
           .from('carts')
           .select('id')
           .eq('test_id', existingTestId)
@@ -284,13 +291,13 @@ export const saveDraftCart = asyncErrorHandler(async (
           
           // First, try to create the cart_items table if it doesn't exist
           try {
-            const { error: createCartItemsError } = await supabase.from('cart_items').select('id').limit(1);
+            const { error: createCartItemsError } = await supabaseClient.from('cart_items').select('id').limit(1);
             
             if (createCartItemsError && createCartItemsError.message.includes('relation "cart_items" does not exist')) {
               console.log('Cart_items table does not exist, creating it...');
               
               // Create the cart_items table
-              const { error: createTableError } = await supabase.from('cart_items').insert({
+              const { error: createTableError } = await supabaseClient.from('cart_items').insert({
                 cart_id: existingCart.id,
                 question_id: questionIds[0] || 1
               });
@@ -304,7 +311,7 @@ export const saveDraftCart = asyncErrorHandler(async (
           }
           
           // Delete existing cart items first
-          const { error: deleteError } = await supabase
+          const { error: deleteError } = await supabaseClient
             .from('cart_items')
             .delete()
             .eq('cart_id', existingCart.id);
@@ -320,7 +327,7 @@ export const saveDraftCart = asyncErrorHandler(async (
             question_id: questionId
           }));
           
-          const { error: itemsError } = await supabase
+          const { error: itemsError } = await supabaseClient
             .from('cart_items')
             .insert(cartItems);
           
@@ -334,7 +341,7 @@ export const saveDraftCart = asyncErrorHandler(async (
       }
       
       // Create a new cart entry
-      const { data: cartData, error: cartError } = await supabase
+      const { data: cartData, error: cartError } = await supabaseClient
         .from('carts')
         .insert({
           test_id: testId,
@@ -360,13 +367,13 @@ export const saveDraftCart = asyncErrorHandler(async (
 
       // First, try to create the cart_items table if it doesn't exist
       try {
-        const { error: createCartItemsError } = await supabase.from('cart_items').select('id').limit(1);
+        const { error: createCartItemsError } = await supabaseClient.from('cart_items').select('id').limit(1);
         
         if (createCartItemsError && createCartItemsError.message.includes('relation "cart_items" does not exist')) {
           console.log('Cart_items table does not exist, creating it...');
           
           // Create the cart_items table
-          const { error: createTableError } = await supabase.from('cart_items').insert({
+          const { error: createTableError } = await supabaseClient.from('cart_items').insert({
             cart_id: cartId,
             question_id: questionIds[0] || 1
           });
@@ -389,7 +396,7 @@ export const saveDraftCart = asyncErrorHandler(async (
         question_id: questionId
       }));
 
-      const { error: itemsError } = await supabase
+      const { error: itemsError } = await supabaseClient
         .from('cart_items')
         .insert(cartItems);
 

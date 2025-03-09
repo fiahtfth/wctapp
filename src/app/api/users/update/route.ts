@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { jwtVerify } from 'jose';
-import { supabaseAdmin } from '@/lib/database/supabaseClient';
+import getSupabaseClient from '@/lib/database/supabaseClient';
+
+// Get the admin client for server-side operations
+const supabaseAdmin = getSupabaseClient();
 
 export async function PUT(request: NextRequest) {
   try {
@@ -51,6 +54,11 @@ export async function PUT(request: NextRequest) {
     // Validate input
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+    
+    // Check if supabaseAdmin is available
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
     }
     
     // Validate role if provided

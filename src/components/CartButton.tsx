@@ -1,41 +1,83 @@
-import React from 'react';
-import { IconButton, Tooltip, Badge } from '@mui/material';
-import { ShoppingCart as CartIcon } from '@mui/icons-material';
+import React, { useState } from 'react';
+import { Button, CircularProgress } from '@mui/material';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import { useCartStore } from '@/store/cartStore';
 import { Question } from '@/types/question';
+
 interface CartButtonProps {
-  question: Question;
+  question?: Question;
   size?: 'small' | 'medium' | 'large';
+  disabled?: boolean;
+  onAddToTest?: (question: Question) => Promise<void>;
 }
-export default function CartButton({ question, size = 'medium' }: CartButtonProps) {
+
+export default function CartButton({ 
+  question, 
+  size = 'medium', 
+  disabled = false,
+  onAddToTest 
+}: CartButtonProps) {
   const { addQuestion, removeQuestion, isInCart } = useCartStore();
-  const inCart = question.id ? isInCart(question.id) : false;
-  const handleClick = () => {
-    if (!question.id) return;
-    if (inCart) {
-      removeQuestion(question.id);
-    } else {
-      addQuestion(question);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const inCart = question ? isInCart(question.id) : false;
+  
+  const handleClick = async () => {
+    if (!question?.id || disabled) return;
+
+    try {
+      setIsLoading(true);
+      
+      if (inCart) {
+        removeQuestion(question.id);
+      } else {
+        // Convert Question to CartQuestion format
+        const cartQuestion = {
+          id: question.id,
+          text: question.text,
+          answer: question.answer,
+          subject: question.subject,
+          topic: question.topic,
+          questionType: question.questionType,
+          difficulty: question.difficulty,
+          module: question.module,
+          sub_topic: question.sub_topic,
+          marks: question.marks,
+          tags: question.tags,
+          // CartQuestion specific fields
+          Question: question.text,
+          Subject: question.subject,
+          Topic: question.topic,
+          FacultyApproved: false,
+          QuestionType: question.questionType
+        };
+        
+        addQuestion(cartQuestion);
+      }
+      
+      // If onAddToTest is provided, call it
+      if (onAddToTest) {
+        await onAddToTest(question);
+      }
+    } catch (error) {
+      console.error('Error handling cart action:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
+  
   return (
-    <Tooltip title={inCart ? 'Remove from Cart' : 'Add to Cart'}>
-      <IconButton
-        onClick={handleClick}
-        color={inCart ? 'primary' : 'default'}
-        size={size}
-        sx={{
-          transition: 'transform 0.2s',
-          '&:active': {
-            transform: 'scale(0.95)',
-          },
-          '&:hover': {
-            transform: 'scale(1.1)',
-          },
-        }}
-      >
-        <CartIcon />
-      </IconButton>
-    </Tooltip>
+    <Button
+      variant="contained"
+      color={inCart ? "error" : "primary"}
+      size={size}
+      onClick={handleClick}
+      disabled={disabled || isLoading}
+      startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : 
+                inCart ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+    >
+      {inCart ? "Remove" : "Add to Cart"}
+    </Button>
   );
 }

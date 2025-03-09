@@ -1,204 +1,221 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import crypto from 'crypto';
-import supabase from '@/lib/database/supabaseClient';
+import { cookies } from 'next/headers';
+import { sign } from 'jsonwebtoken';
+import getSupabaseClient from '@/lib/database/supabaseClient';
 
-const LOG_LEVEL = 'debug'; // 'error', 'warn', 'info' | 'debug'
+// Enhanced logging with environment-aware behavior
 function log(level: 'error' | 'warn' | 'info' | 'debug', message: string, data?: any) {
+  // In production, don't log debug messages and sensitive data
+  const isProd = process.env.NODE_ENV === 'production';
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
-  if (data) {
-    console[level](logMessage, JSON.stringify(data, null, 2));
+  
+  // Skip debug logs in production
+  if (isProd && level === 'debug') return;
+  
+  // Sanitize sensitive data in production
+  const sanitizedData = isProd && data ? sanitizeSensitiveData(data) : data;
+  
+  if (sanitizedData) {
+    console[level](logMessage, typeof sanitizedData === 'object' ? JSON.stringify(sanitizedData, null, 2) : sanitizedData);
   } else {
     console[level](logMessage);
   }
 }
 
-function generateJwtSecret(): string {
-  // Use a consistent method to generate a secure secret
-  return crypto.randomBytes(32).toString('hex');
-}
-
-// Function to check if we're in Vercel environment
-function isVercelEnvironment(): boolean {
-  return process.env.VERCEL === '1' || !!process.env.VERCEL;
+// Sanitize sensitive data for logging
+function sanitizeSensitiveData(data: any): any {
+  if (!data) return data;
+  
+  // Clone the data to avoid modifying the original
+  const sanitized = JSON.parse(JSON.stringify(data));
+  
+  // List of sensitive fields to mask
+  const sensitiveFields = ['password', 'token', 'accessToken', 'refreshToken', 'password_hash'];
+  
+  // Recursively sanitize objects
+  function sanitizeObject(obj: any) {
+    if (!obj || typeof obj !== 'object') return;
+    
+    Object.keys(obj).forEach(key => {
+      if (sensitiveFields.includes(key)) {
+        if (typeof obj[key] === 'string') {
+          obj[key] = obj[key].length > 0 ? '***REDACTED***' : '';
+        }
+      } else if (typeof obj[key] === 'object') {
+        sanitizeObject(obj[key]);
+      }
+    });
+  }
+  
+  sanitizeObject(sanitized);
+  return sanitized;
 }
 
 // Function to check if we should use mock data
 function shouldUseMockData(): boolean {
-  return process.env.USE_MOCK_DATA === 'true';
+  // In production, never use mock data unless explicitly forced
+  if (process.env.NODE_ENV === 'production' && process.env.FORCE_MOCK_DATA !== 'true') {
+    return false;
+  }
+  
+  // Otherwise, check environment variable
+  return process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
 }
+
+// Schema for login validation
+const loginSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+// JWT token expiration time
+const ACCESS_TOKEN_EXPIRY = '1h'; // 1 hour
+const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
 
 export async function POST(request: NextRequest) {
   try {
-    // Ensure JWT secret is available and consistent
-    const jwtSecret = process.env.JWT_SECRET || generateJwtSecret();
-    log('debug', 'JWT Secret', {
-      secretAvailable: !!jwtSecret,
-      secretLength: jwtSecret.length,
-      JWT_SECRET: process.env.JWT_SECRET
-    });
+    log('info', 'Login API route called');
     
-    // Log full request details
-    log('debug', 'Received login request', {
-      method: request.method,
-      url: request.url,
-      headers: Object.fromEntries(request.headers),
-    });
+    // Set CORS headers
+    const origin = process.env.NODE_ENV === 'production' 
+      ? process.env.NEXT_PUBLIC_APP_URL || 'https://your-domain.com'
+      : '*';
     
-    // Validate request method
-    log('info', 'Validating request method');
-    if (request.method !== 'POST') {
-      log('error', 'Invalid HTTP method');
-      return NextResponse.json(
-        {
-          error: 'Method Not Allowed',
-          details: 'Only POST method is supported',
-        },
-        { 
-          status: 405,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
-      );
+    const headers: Record<string, string> = {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
+    
+    if (origin !== '*') {
+      headers['Access-Control-Allow-Credentials'] = 'true';
     }
     
-    // Check content type explicitly
-    const contentType = request.headers.get('content-type');
-    log('debug', 'Content Type', { contentType });
-    if (!contentType || !contentType.includes('application/json')) {
-      log('error', 'Invalid content type', { contentType });
-      return NextResponse.json(
-        {
-          error: 'Unsupported Media Type',
-          details: 'Content-Type must be application/json',
-        },
-        { 
-          status: 415,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
-      );
-    }
-    
-    // Safe JSON parsing with detailed error handling
+    // Parse request body
     let body;
     try {
       body = await request.json();
-      log('debug', 'Parsed request body', body);
-    } catch (parseError: unknown) {
-      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-      log('error', 'JSON parsing error', {
-        errorName: parseError instanceof Error ? parseError.name : 'Unknown Error',
-        errorMessage,
-      });
+    } catch (error) {
+      log('error', 'Failed to parse request body', { error });
       return NextResponse.json(
-        {
-          error: 'Bad Request',
-          details: 'Invalid JSON in request body',
-          rawError: errorMessage,
-        },
+        { success: false, message: 'Invalid request body' },
+        { status: 400, headers }
+      );
+    }
+    
+    // Validate input using Zod
+    try {
+      loginSchema.parse(body);
+    } catch (validationError) {
+      log('warn', 'Validation error', { validationError });
+      return NextResponse.json(
         { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
+          success: false, 
+          message: 'Validation error', 
+          errors: validationError instanceof z.ZodError ? validationError.errors : undefined 
+        },
+        { status: 400, headers }
       );
     }
     
     const { email, password } = body;
+    log('info', `Login attempt`, { email });
     
-    // Comprehensive input validation
-    if (!email || !password) {
-      log('error', 'Missing credentials', {
-        email: !!email,
-        password: !!password,
-      });
+    // Check if we should use mock data (only in development)
+    if (shouldUseMockData()) {
+      log('warn', 'Using mock data for login - NOT FOR PRODUCTION');
+      
+      // For testing purposes, accept admin@example.com/admin123
+      if (email === 'admin@example.com' && password === process.env.ADMIN_PASSWORD) {
+        const mockUser = {
+          id: 1,
+          username: 'admin',
+          email: 'admin@example.com',
+          role: 'admin',
+          is_active: true,
+          last_login: new Date().toISOString(),
+        };
+        
+        // Generate a mock JWT token
+        const jwtSecret = process.env.JWT_SECRET || 'default-secret-for-testing';
+        const accessToken = sign(
+          { 
+            userId: mockUser.id,
+            email: mockUser.email,
+            role: mockUser.role
+          },
+          jwtSecret,
+          { expiresIn: ACCESS_TOKEN_EXPIRY }
+        );
+        
+        log('info', 'Mock admin login successful');
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Login successful (mock)',
+          user: mockUser,
+          accessToken,
+        }, { headers });
+      }
+      
+      // For testing purposes, accept user@example.com/user123
+      if (email === 'user@example.com' && password === process.env.USER_PASSWORD) {
+        const mockUser = {
+          id: 2,
+          username: 'user',
+          email: 'user@example.com',
+          role: 'user',
+          is_active: true,
+          last_login: new Date().toISOString(),
+        };
+        
+        // Generate a mock JWT token
+        const jwtSecret = process.env.JWT_SECRET || 'default-secret-for-testing';
+        const accessToken = sign(
+          { 
+            userId: mockUser.id,
+            email: mockUser.email,
+            role: mockUser.role
+          },
+          jwtSecret,
+          { expiresIn: ACCESS_TOKEN_EXPIRY }
+        );
+        
+        log('info', 'Mock user login successful');
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Login successful (mock)',
+          user: mockUser,
+          accessToken,
+        }, { headers });
+      }
+      
+      // If credentials don't match, return error
+      log('warn', 'Mock login failed: Invalid credentials');
       return NextResponse.json(
-        {
-          error: 'Validation Failed',
-          details: 'Email and password are required',
-        },
-        { 
-          status: 422,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
+        { success: false, message: 'Invalid email or password' },
+        { status: 401, headers }
       );
     }
-
-    // If we're using mock data (either in Vercel or development)
-    if (shouldUseMockData()) {
-      log('info', 'Using mock authentication');
-      
-      // For demo purposes, allow a specific test account
-      if (email === 'admin@nextias.com' && password === 'admin123') {
-        const token = await new SignJWT({ 
-          userId: 1,
-          email: 'admin@nextias.com',
-          role: 'admin',
-          username: 'admin'
-        })
-          .setProtectedHeader({ alg: 'HS256' })
-          .setIssuedAt()
-          .setExpirationTime('24h')
-          .sign(new TextEncoder().encode(jwtSecret));
-        
-        return NextResponse.json(
-          {
-            success: true,
-            message: 'Login successful (mock)',
-            token,
-            user: {
-              id: 1,
-              email: 'admin@nextias.com',
-              username: 'admin',
-              role: 'admin'
-            },
-            vercelMode: true
-          },
-          { 
-            status: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'POST, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            }
-          }
-        );
-      } else {
-        return NextResponse.json(
-          {
-            error: 'Authentication Failed',
-            details: 'Invalid credentials (mock)',
-            vercelMode: true
-          },
-          { 
-            status: 401,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'POST, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            }
-          }
-        );
-      }
+    
+    // Get Supabase client using our utility function
+    const supabase = getSupabaseClient();
+    
+    if (!supabase) {
+      log('error', 'Failed to initialize Supabase client');
+      return NextResponse.json(
+        { success: false, message: 'Database connection error' },
+        { status: 500, headers }
+      );
     }
     
-    // Find user by email using Supabase
+    // Find user by email
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -206,125 +223,180 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (userError || !user) {
-      log('error', 'User not found', { email, error: userError?.message });
+      log('warn', 'User not found', { email, error: userError?.message });
+      
+      // Use a consistent error message to prevent email enumeration
       return NextResponse.json(
-        {
-          error: 'Authentication Failed',
-          details: 'Invalid email or password',
-        },
-        { 
-          status: 401,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
+        { success: false, message: 'Invalid email or password' },
+        { status: 401, headers }
       );
     }
+    
+    log('debug', 'User found, verifying password');
     
     // Verify password
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     
-    if (!passwordMatch) {
-      log('error', 'Password mismatch', { email });
+    if (!isPasswordValid) {
+      log('warn', 'Invalid password attempt', { email });
+      
+      // Use a consistent error message to prevent email enumeration
       return NextResponse.json(
-        {
-          error: 'Authentication Failed',
-          details: 'Invalid email or password',
-        },
-        { 
-          status: 401,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
+        { success: false, message: 'Invalid email or password' },
+        { status: 401, headers }
       );
     }
     
-    // Update last login timestamp
-    const { error: updateError } = await supabase
+    log('debug', 'Password verified successfully');
+    
+    // Check if user is active
+    if (!user.is_active) {
+      log('warn', 'Inactive account login attempt', { email });
+      return NextResponse.json(
+        { success: false, message: 'Your account is inactive. Please contact support.' },
+        { status: 403, headers }
+      );
+    }
+    
+    // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      log('error', 'JWT_SECRET environment variable is not defined');
+      return NextResponse.json(
+        { success: false, message: 'Server configuration error' },
+        { status: 500, headers }
+      );
+    }
+    
+    log('debug', 'Generating access token');
+    
+    // Generate access token
+    const accessToken = sign(
+      { 
+        userId: user.id,
+        email: user.email,
+        role: user.role
+      },
+      jwtSecret,
+      { expiresIn: ACCESS_TOKEN_EXPIRY }
+    );
+    
+    log('debug', 'Access token generated successfully');
+    log('debug', 'Generating refresh token');
+    
+    // Generate refresh token
+    const refreshToken = sign(
+      { userId: user.id },
+      jwtSecret,
+      { expiresIn: REFRESH_TOKEN_EXPIRY }
+    );
+    
+    log('debug', 'Refresh token generated successfully');
+    log('debug', 'Storing refresh token in database');
+    
+    // Store refresh token in database
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+    
+    const { error: tokenError } = await supabase
+      .from('refresh_tokens')
+      .insert({
+        user_id: user.id,
+        token: refreshToken,
+        expires_at: expiresAt.toISOString(),
+      });
+    
+    if (tokenError) {
+      log('error', 'Error storing refresh token', { error: tokenError.message });
+      return NextResponse.json(
+        { success: false, message: 'Authentication error' },
+        { status: 500, headers }
+      );
+    }
+    
+    log('debug', 'Refresh token stored successfully');
+    log('debug', 'Updating last login time');
+    
+    // Update last login time
+    await supabase
       .from('users')
       .update({ last_login: new Date().toISOString() })
       .eq('id', user.id);
     
-    if (updateError) {
-      log('warn', 'Failed to update last login time', { userId: user.id, error: updateError.message });
-      // Continue anyway, this is not critical
-    }
+    log('debug', 'Setting cookies');
     
-    // Generate JWT token
-    const token = await new SignJWT({ 
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      username: user.username
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('24h')
-      .sign(new TextEncoder().encode(jwtSecret));
+    // Set cookies
+    const cookieStore = cookies();
     
-    log('info', 'Login successful', { userId: user.id, email: user.email });
-    
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Login successful',
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          role: user.role
-        }
-      },
-      { 
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-      }
-    );
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    log('error', 'Unhandled exception during login', {
-      errorName: error instanceof Error ? error.name : 'Unknown Error',
-      errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
+    // Set refresh token as HTTP-only cookie
+    cookieStore.set('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+      path: '/',
     });
     
+    // Create user object without sensitive data
+    const safeUser = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      is_active: user.is_active,
+      last_login: user.last_login,
+    };
+    
+    log('info', 'Login successful', { username: safeUser.username, role: safeUser.role });
+    
+    // Return success response with user data and access token
+    return NextResponse.json({
+      success: true,
+      message: 'Login successful',
+      user: safeUser,
+      accessToken,
+    }, { headers });
+  } catch (error) {
+    log('error', 'Unexpected error during login', { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    
+    // Set CORS headers even for error responses
+    const origin = process.env.NODE_ENV === 'production' 
+      ? process.env.NEXT_PUBLIC_APP_URL || 'https://your-domain.com'
+      : '*';
+    
+    const headers: Record<string, string> = {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
+    
+    if (origin !== '*') {
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
     return NextResponse.json(
-      {
-        error: 'Internal Server Error',
-        details: 'An unexpected error occurred during login',
-        rawError: errorMessage,
-      },
-      { 
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-      }
+      { success: false, message: 'An unexpected error occurred' },
+      { status: 500, headers }
     );
   }
 }
 
 // Handle OPTIONS requests for CORS preflight
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS() {
+  const origin = process.env.NODE_ENV === 'production' 
+    ? process.env.NEXT_PUBLIC_APP_URL || 'https://your-domain.com'
+    : '*';
+  
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400' // 24 hours
-    }
+      'Access-Control-Allow-Credentials': origin !== '*' ? 'true' : '',
+      'Access-Control-Max-Age': '86400', // 24 hours
+    },
   });
 }

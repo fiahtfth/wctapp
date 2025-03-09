@@ -367,9 +367,8 @@ export async function addQuestionToCart(questionId: number | string, testId: str
     } else {
       // Create new cart
       const cartInsertData: CartInsert = { 
-        test_id: testId, 
         user_id: user.id,
-        created_at: new Date().toISOString()
+        is_draft: true
       };
 
       const { data: newCart, error: newCartError } = await supabase
@@ -414,8 +413,7 @@ export async function addQuestionToCart(questionId: number | string, testId: str
     // Add question to cart
     const cartItemInsertData: CartItemInsert = { 
       cart_id: cartId, 
-      question_id: toNumber(questionId),
-      created_at: new Date().toISOString()
+      question_id: toNumber(questionId)
     };
 
     const { data: newCartItem, error: newCartItemError } = await supabase

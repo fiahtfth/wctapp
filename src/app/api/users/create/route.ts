@@ -1,133 +1,138 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { jwtVerify } from 'jose';
-import { supabaseAdmin } from '@/lib/database/supabaseClient';
+import bcrypt from 'bcryptjs';
+import getSupabaseClient from '@/lib/database/supabaseClient';
+
+// Get the admin client for server-side operations
+const supabaseAdmin = getSupabaseClient();
+
+// Enhanced logging function
+function log(level: 'info' | 'warn' | 'error', message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    level,
+    message,
+    ...(data ? { data } : {})
+  };
+  
+  console[level](`[${timestamp}] [${level.toUpperCase()}] ${message}`, data || '');
+  
+  // In production, you might want to log to a file or external service
+  return logEntry;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin token
+    log('info', 'User creation request received');
+    
+    // Check if we should use mock data
+    const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+    if (useMockData) {
+      log('info', 'Using mock data for user creation');
+      return NextResponse.json({ success: true, message: 'User created (mock)' }, { status: 201 });
+    }
+    
+    // Check if supabaseAdmin is available
+    if (!supabaseAdmin) {
+      log('error', 'Supabase admin client is not available');
+      return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
+    }
+    
+    // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      log('error', 'Missing or invalid authorization header');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Extract the token
     const token = authHeader.split(' ')[1];
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-    let decoded;
+    
+    // Verify the token
+    let payload;
     try {
-      const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret));
-      // Validate payload structure
-      if (!payload.role || !payload.userId) {
-        throw new Error('Invalid token payload');
-      }
-      decoded = payload as {
-        userId: number;
-        role: string;
-        email: string;
-        exp: number;
-      };
-    } catch (verifyError) {
-      console.error('Token verification error:', verifyError);
-      return NextResponse.json(
-        {
-          error: 'Invalid token',
-          details:
-            verifyError instanceof Error ? verifyError.message : 'Unknown verification error',
-        },
-        { status: 401 }
-      );
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'default-secret-change-me');
+      payload = (await jwtVerify(token, secret)).payload;
+      log('info', 'Token verified successfully', { userId: payload.sub });
+    } catch (error) {
+      log('error', 'Token verification failed', { error });
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
-    // Only admins can create users
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    
+    // Check if the user has admin role
+    if (payload.role !== 'admin') {
+      log('error', 'Non-admin user attempted to create a user', { userId: payload.sub, role: payload.role });
+      return NextResponse.json({ error: 'Only admins can create users' }, { status: 403 });
     }
-    // Parse request body
-    const { username, email, password, role = 'user' } = await request.json();
-    // Validate input
-    if (!username || !email || !password) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    
+    // Parse the request body
+    const body = await request.json();
+    log('info', 'Received user creation data', { username: body.username, email: body.email });
+    
+    // Validate required fields
+    if (!body.username || !body.email || !body.password) {
+      log('error', 'Missing required fields', { 
+        hasUsername: !!body.username, 
+        hasEmail: !!body.email, 
+        hasPassword: !!body.password 
+      });
+      return NextResponse.json({ error: 'Username, email, and password are required' }, { status: 400 });
     }
+    
     // Validate role
-    if (role !== 'user' && role !== 'admin') {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    if (body.role && !['user', 'admin'].includes(body.role)) {
+      log('error', 'Invalid role specified', { role: body.role });
+      return NextResponse.json({ error: 'Role must be either "user" or "admin"' }, { status: 400 });
     }
-
-    // Hash password
+    
+    // Hash the password
     const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    try {
-      // Insert user into Supabase
-      const { data: newUser, error } = await supabaseAdmin
-        .from('users')
-        .insert({
-          username,
-          email,
-          password_hash: passwordHash,
-          role,
-          is_active: true
-        })
-        .select('id, username, email, role, is_active, last_login, created_at, updated_at')
-        .single();
-
-      if (error) {
-        console.error('User creation error:', error);
-        
-        // Check for unique constraint violation
-        if (error.code === '23505') { // PostgreSQL unique constraint violation code
-          return NextResponse.json(
-            {
-              error: 'User creation failed',
-              details: 'Email already exists',
-            },
-            { status: 409 }
-          );
-        }
-        
-        return NextResponse.json(
-          {
-            error: 'Failed to create user',
-            details: error.message,
-          },
-          { status: 500 }
-        );
+    const passwordHash = await bcrypt.hash(body.password, saltRounds);
+    log('info', 'Password hashed successfully');
+    
+    // Create the user in Supabase
+    const { data: newUser, error } = await supabaseAdmin
+      .from('users')
+      .insert({
+        username: body.username,
+        email: body.email,
+        password_hash: passwordHash,
+        role: body.role || 'user',
+        is_active: true
+      })
+      .select('id, username, email, role')
+      .single();
+    
+    if (error) {
+      // Check for unique constraint violation
+      if (error.code === '23505') {
+        log('error', 'User creation failed: Email already exists', { email: body.email, error });
+        return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
       }
-
-      return NextResponse.json(
-        {
-          message: 'User created successfully',
-          user: newUser,
-        },
-        {
-          status: 201,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    } catch (insertError) {
-      console.error('User creation error:', insertError);
-      return NextResponse.json(
-        {
-          error: 'Failed to create user',
-          details: insertError instanceof Error ? insertError.message : 'Unknown error',
-        },
-        { status: 500 }
-      );
+      
+      // Check for table doesn't exist error
+      if (error.message.includes('relation "users" does not exist')) {
+        log('error', 'Users table does not exist', { error });
+        return NextResponse.json({ error: 'Database setup required' }, { status: 500 });
+      }
+      
+      log('error', 'User creation failed', { error });
+      return NextResponse.json({ error: 'Failed to create user', details: error.message }, { status: 500 });
     }
-  } catch (unexpectedError) {
-    console.error('Unexpected error in user creation:', unexpectedError);
-    return NextResponse.json(
-      {
-        error: 'Critical server error',
-        details: unexpectedError instanceof Error ? unexpectedError.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    
+    log('info', 'User created successfully', { userId: newUser.id, username: newUser.username });
+    
+    // Return the new user (without password)
+    return NextResponse.json({ 
+      success: true, 
+      message: 'User created successfully',
+      user: newUser
+    }, { status: 201 });
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log('error', 'Unexpected error in user creation', { error: errorMessage });
+    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 });
   }
 }

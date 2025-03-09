@@ -1,7 +1,8 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Metadata } from 'next';
-import { setupDatabase } from '@/lib/database/setupDatabase';
+import ClientDatabaseInitializer from '@/components/ClientDatabaseInitializer';
+import ClientAuthProvider from '@/components/ClientAuthProvider';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -24,23 +25,14 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
-// Initialize the database when the app starts
-if (typeof window !== 'undefined') {
-  // Only run on client-side
-  setupDatabase()
-    .then(result => {
-      console.log('Database setup result:', result);
-    })
-    .catch(error => {
-      console.error('Error setting up database:', error);
-    });
-}
-
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className={inter.variable}>
       <body className={`base-body ${inter.variable}`}>
-        {children}
+        <ClientAuthProvider>
+          <ClientDatabaseInitializer />
+          {children}
+        </ClientAuthProvider>
       </body>
     </html>
   );

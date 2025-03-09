@@ -1156,34 +1156,32 @@ export function getSubjects(): string[] {
     return hierarchicalData.map(subject => subject.name);
 }
 export function getModules(subject?: string): string[] {
-    if (!subject) return [];
-    // Case-insensitive search for subject
-    const subjectData = hierarchicalData.find(
-        s => s.name.toLowerCase() === subject.toLowerCase()
-    );
+    const subjectData = subject 
+        ? hierarchicalData.find(s => s.name === subject) 
+        : null;
     return subjectData 
-        ? subjectData.modules.map(module => module.name) 
+        ? subjectData.modules.map(moduleItem => moduleItem.name) 
         : [];
 }
 export function getTopics(subjectName: string, moduleName: string): string[] {
     const subject = hierarchicalData.find(s => s.name === subjectName);
-    const module = subject?.modules.find(m => m.name === moduleName);
-    return module ? module.topics.map(topic => topic.name) : [];
+    const moduleData = subject?.modules.find(m => m.name === moduleName);
+    return moduleData ? moduleData.topics.map(topic => topic.name) : [];
 }
 export function getSubtopics(subjectName: string, moduleName: string, topicName: string): string[] {
     const subject = hierarchicalData.find(s => s.name === subjectName);
-    const module = subject?.modules.find(m => m.name === moduleName);
-    const topic = module?.topics.find(t => t.name === topicName);
+    const moduleData = subject?.modules.find(m => m.name === moduleName);
+    const topic = moduleData?.topics.find(t => t.name === topicName);
     return topic ? topic.subtopics.map(subtopic => subtopic.name) : [];
 }
 export async function getQuestions(
     subject: string, 
-    module: string, 
+    moduleName: string, 
     topic: string, 
     subtopic: string
 ): Promise<string[]> {
     try {
-        const response = await fetch(`/api/questions?subject=${subject}&module=${module}&topic=${topic}&sub_topic=${subtopic}`);
+        const response = await fetch(`/api/questions?subject=${subject}&module=${moduleName}&topic=${topic}&sub_topic=${subtopic}`);
         if (!response.ok) {
             throw new Error(`Failed to fetch questions: ${response.statusText}`);
         }

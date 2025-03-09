@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Typography,
@@ -114,195 +114,8 @@ export default function Cart({ testId: propTestId }: CartProps) {
   const [confirmDeleteDraftId, setConfirmDeleteDraftId] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Ensure this only runs on the client
-    setMounted(true);
-    // Hydrate the store
-    useCartStore.persist.rehydrate();
-    // Log cart contents on mount
-    console.log('Cart Component Mounted, Current Questions:', questions);
-
-    // Get testId from props or localStorage
-    const storedTestId = localStorage.getItem('currentTestId');
-    const currentTestId = propTestId || storedTestId || getTestId();
-    console.log('Cart component using stored testId:', currentTestId);
-    setTestId(currentTestId);
-    
-    // Store the testId in localStorage as the current working draft
-    localStorage.setItem('currentTestId', currentTestId);
-
-    // Get user from localStorage
-    const storedUser = localStorage.getItem('user');
-    console.log('Cart Component Mounted, Current Questions:', questions);
-    
-    // Load saved drafts from localStorage
-    const storedTestIds = localStorage.getItem('savedTestIds');
-    if (storedTestIds) {
-      try {
-        const testIds = JSON.parse(storedTestIds);
-        const drafts = testIds.map((id: string) => ({
-          id,
-          name: localStorage.getItem(`testName-${id}`) || 'Unnamed Draft'
-        }));
-        setSavedDrafts(drafts);
-        console.log('Loaded saved drafts:', drafts);
-      } catch (error) {
-        console.error('Error parsing saved drafts from localStorage:', error);
-      }
-    }
-    
-    // Fetch cart items from server
-    console.log('Fetching cart items with testId:', currentTestId);
-    fetchCartItems(currentTestId).then(data => {
-      console.log('Fetched cart items:', data);
-      // Note: fetchCartItems already updates the cart store
-      console.log('Cart store after fetching:', useCartStore.getState().questions);
-    }).catch(error => {
-      console.error('Error fetching cart items:', error);
-    });
-    
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing user from localStorage:', error);
-      }
-    }
-
-    console.log('Cart component questions on mount:', questions);
-    console.log('Cart store questions on mount:', useCartStore.getState().questions);
-  }, []);
-  
-  // Separate useEffect for keyboard shortcuts
-  useEffect(() => {
-    // Add keyboard shortcuts
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + S to save draft
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        if (testDetails.testName && questions.length > 0) {
-          handleSaveDraft();
-        } else {
-          setExportModalOpen(true);
-        }
-      }
-      
-      // Ctrl/Cmd + D to open drafts menu
-      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-        e.preventDefault();
-        if (!draftsMenuAnchor && !loadingDraft) {
-          // Create a fake anchor element at the top right
-          const fakeAnchor = document.createElement('div');
-          fakeAnchor.style.position = 'absolute';
-          fakeAnchor.style.top = '100px';
-          fakeAnchor.style.right = '100px';
-          document.body.appendChild(fakeAnchor);
-          setDraftsMenuAnchor(fakeAnchor);
-          
-          // Clean up the fake anchor when menu closes
-          setTimeout(() => {
-            document.body.removeChild(fakeAnchor);
-          }, 100);
-        }
-      }
-      
-      // Ctrl/Cmd + E to open export modal
-      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-        e.preventDefault();
-        setExportModalOpen(true);
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [testDetails.testName, questions.length, draftsMenuAnchor, loadingDraft]);
-
-  const handleRemoveQuestion = async (questionId: string | number) => {
-    console.log('Attempting to remove question from cart:', questionId);
-    // Find the question being removed (for snackbar)
-    const removedQuestionDetails = questions.find(q => q.id === questionId);
-    
-    try {
-      // Remove the question from the store first for immediate UI update
-      removeQuestion(String(questionId));
-      
-      // Then remove from server - ensure questionId is a string
-      await removeFromCart(String(questionId), testId);
-      
-      // Set snackbar state
-      if (removedQuestionDetails) {
-        setRemovedQuestion(
-          (removedQuestionDetails.text || 'Question').toString()
-        );
-        setSnackbarOpen(true);
-      }
-    } catch (error) {
-      console.error('Error removing question:', error);
-      // If server removal fails, add the question back to the store
-      if (removedQuestionDetails) {
-        useCartStore.getState().addQuestion(removedQuestionDetails);
-      }
-    }
-  };
-
-  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setSnackbarOpen(false);
-  };
-
-  const handleExport = () => {
-    // Debug: Inspect the first question's structure
-    if (questions.length > 0) {
-      console.log('First question structure:');
-      inspectQuestionStructure(questions[0]);
-    }
-    
-    // Prepare export data with ALL available question details
-    const exportData = questions.map((question, index) => {
-      // First convert to a standardized format to ensure all fields are available
-      const standardizedQuestion = convertToQuestion(question);
-      
-      // Create a structured row with specific fields in desired order
-      console.log('Processing question:', standardizedQuestion); // Debug log
-      
-      // Ensure we access all possible field name variations
-      const exportRow = {
-        'S.No': index + 1,
-        Question: standardizedQuestion.text || standardizedQuestion.Question || '',
-        Answer: standardizedQuestion.answer || standardizedQuestion.Answer || '',
-        Explanation: standardizedQuestion.explanation || standardizedQuestion.Explanation || '',
-        Subject: standardizedQuestion.subject || standardizedQuestion.Subject || '',
-        'Module Name': standardizedQuestion.moduleName || standardizedQuestion['Module Name'] || standardizedQuestion.ModuleName || '',
-        Topic: standardizedQuestion.topic || standardizedQuestion.Topic || '',
-        'Difficulty Level': standardizedQuestion.difficultyLevel || standardizedQuestion['Difficulty Level'] || standardizedQuestion.DifficultyLevel || '',
-        'Question Type': standardizedQuestion.questionType || standardizedQuestion.QuestionType || standardizedQuestion.Question_Type || '',
-        'Nature of Question': standardizedQuestion.natureOfQuestion || standardizedQuestion['Nature of Question'] || standardizedQuestion.NatureOfQuestion || '',
-      };
-      console.log('Export row:', exportRow); // Debug log
-      return exportRow;
-    });
-    
-    // Debug: Log the full export data
-    console.log('Full export data:', JSON.stringify(exportData, null, 2));
-    
-    // Export the data
-    exportTest({
-      testName: testDetails.testName,
-      batch: testDetails.batch,
-      date: testDetails.date,
-      questions: exportData
-    });
-    
-    // Close the modal
-    setExportModalOpen(false);
-  };
-
-  const handleSaveDraft = async () => {
+  // Wrap handleSaveDraft in useCallback to prevent unnecessary re-renders
+  const handleSaveDraft = useCallback(async () => {
     try {
       // Validate test details
       if (!testDetails.testName) {
@@ -444,6 +257,236 @@ export default function Cart({ testId: propTestId }: CartProps) {
       
       setLoadingDraft(false);
     }
+  }, [testId, testDetails, questions]);
+
+  // First useEffect
+  useEffect(() => {
+    // Ensure this only runs on the client
+    setMounted(true);
+    // Hydrate the store
+    useCartStore.persist.rehydrate();
+    
+    // Get testId from props or localStorage
+    const storedTestId = localStorage.getItem('currentTestId');
+    const currentTestId = propTestId || storedTestId || getTestId();
+    console.log('Cart component using stored testId:', currentTestId);
+    setTestId(currentTestId);
+    
+    // Store the testId in localStorage as the current working draft
+    localStorage.setItem('currentTestId', currentTestId);
+
+    // Get user from localStorage
+    const storedUser = localStorage.getItem('user');
+    
+    // Load saved drafts from localStorage
+    const storedTestIds = localStorage.getItem('savedTestIds');
+    if (storedTestIds) {
+      try {
+        const testIds = JSON.parse(storedTestIds);
+        const drafts = testIds.map((id: string) => ({
+          id,
+          name: localStorage.getItem(`testName-${id}`) || 'Unnamed Draft'
+        }));
+        setSavedDrafts(drafts);
+        console.log('Loaded saved drafts:', drafts);
+      } catch (error) {
+        console.error('Error parsing saved drafts from localStorage:', error);
+      }
+    }
+    
+    // Check if we're using mock data
+    const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+    
+    // We will only fetch cart items once when the component mounts or when testId changes
+    // Not when 'questions' changes, as that would create an infinite loop
+    const controller = new AbortController();
+    const signal = controller.signal;
+    
+    // Fetch cart items from server with fetch API instead of using the function that updates state
+    console.log('Fetching cart items with testId:', currentTestId);
+    
+    if (useMockData) {
+      console.log('Using mock data, skipping server fetch');
+      // In mock data mode, we'll just use the local store
+      const cartStore = useCartStore.getState();
+      console.log('Current cart store state:', cartStore.questions);
+    } else {
+      fetch(`/api/cart?testId=${currentTestId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal,
+        cache: 'no-store'
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to fetch cart items: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Fetched cart items:', data);
+        
+        // Only update if the component is still mounted and there are questions
+        if (data.questions && Array.isArray(data.questions)) {
+          // Use the store's methods directly, but don't set state that would trigger useEffect
+          const cartStore = useCartStore.getState();
+          cartStore.clearCart();
+          
+          data.questions.forEach((question: any) => {
+            cartStore.addQuestion(question);
+          });
+        }
+      })
+      .catch(error => {
+        if (!signal.aborted) {
+          console.error('Error fetching cart items:', error);
+        }
+      });
+    }
+    
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing user from localStorage:', error);
+      }
+    }
+
+    // Cleanup function to abort any pending fetch
+    return () => {
+      controller.abort();
+    };
+  }, [propTestId]); // Only depend on propTestId, not questions
+  
+  // Second useEffect for keyboard shortcuts
+  useEffect(() => {
+    // Add keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + S to save draft
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (testDetails.testName && questions.length > 0) {
+          handleSaveDraft();
+        } else {
+          setExportModalOpen(true);
+        }
+      }
+      
+      // Ctrl/Cmd + D to open drafts menu
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        if (!draftsMenuAnchor && !loadingDraft) {
+          // Create a fake anchor element at the top right
+          const fakeAnchor = document.createElement('div');
+          fakeAnchor.style.position = 'absolute';
+          fakeAnchor.style.top = '100px';
+          fakeAnchor.style.right = '100px';
+          document.body.appendChild(fakeAnchor);
+          setDraftsMenuAnchor(fakeAnchor);
+          
+          // Clean up the fake anchor when menu closes
+          setTimeout(() => {
+            document.body.removeChild(fakeAnchor);
+          }, 100);
+        }
+      }
+      
+      // Ctrl/Cmd + E to open export modal
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        setExportModalOpen(true);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [testDetails.testName, questions.length, draftsMenuAnchor, loadingDraft, handleSaveDraft, setExportModalOpen]);
+
+  const handleRemoveQuestion = async (questionId: string | number) => {
+    console.log('Attempting to remove question from cart:', questionId);
+    // Find the question being removed (for snackbar)
+    const removedQuestionDetails = questions.find(q => q.id === questionId);
+    
+    try {
+      // Remove the question from the store first for immediate UI update
+      removeQuestion(String(questionId));
+      
+      // Then remove from server - ensure questionId is a string
+      await removeFromCart(String(questionId), testId);
+      
+      // Set snackbar state
+      if (removedQuestionDetails) {
+        setRemovedQuestion(
+          (removedQuestionDetails.text || 'Question').toString()
+        );
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error('Error removing question:', error);
+      // If server removal fails, add the question back to the store
+      if (removedQuestionDetails) {
+        useCartStore.getState().addQuestion(removedQuestionDetails);
+      }
+    }
+  };
+
+  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
+
+  const handleExport = () => {
+    // Debug: Inspect the first question's structure
+    if (questions.length > 0) {
+      console.log('First question structure:');
+      inspectQuestionStructure(questions[0]);
+    }
+    
+    // Prepare export data with ALL available question details
+    const exportData = questions.map((question, index) => {
+      // First convert to a standardized format to ensure all fields are available
+      const standardizedQuestion = convertToQuestion(question);
+      
+      // Create a structured row with specific fields in desired order
+      console.log('Processing question:', standardizedQuestion); // Debug log
+      
+      // Ensure we access all possible field name variations
+      const exportRow = {
+        'S.No': index + 1,
+        Question: standardizedQuestion.text || standardizedQuestion.Question || '',
+        Answer: standardizedQuestion.answer || standardizedQuestion.Answer || '',
+        Explanation: standardizedQuestion.explanation || standardizedQuestion.Explanation || '',
+        Subject: standardizedQuestion.subject || standardizedQuestion.Subject || '',
+        'Module Name': standardizedQuestion.moduleName || standardizedQuestion['Module Name'] || standardizedQuestion.ModuleName || '',
+        Topic: standardizedQuestion.topic || standardizedQuestion.Topic || '',
+        'Difficulty Level': standardizedQuestion.difficultyLevel || standardizedQuestion['Difficulty Level'] || standardizedQuestion.DifficultyLevel || '',
+        'Question Type': standardizedQuestion.questionType || standardizedQuestion.QuestionType || standardizedQuestion.Question_Type || '',
+        'Nature of Question': standardizedQuestion.natureOfQuestion || standardizedQuestion['Nature of Question'] || standardizedQuestion.NatureOfQuestion || '',
+      };
+      console.log('Export row:', exportRow); // Debug log
+      return exportRow;
+    });
+    
+    // Debug: Log the full export data
+    console.log('Full export data:', JSON.stringify(exportData, null, 2));
+    
+    // Export the data
+    exportTest({
+      testName: testDetails.testName,
+      batch: testDetails.batch,
+      date: testDetails.date,
+      questions: exportData
+    });
+    
+    // Close the modal
+    setExportModalOpen(false);
   };
 
   // Add a function to load a draft

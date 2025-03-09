@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -8,15 +8,17 @@ import {
   Grid,
   Select,
   MenuItem,
-  FormControl,
   InputLabel,
+  FormControl,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
   Snackbar,
   Alert,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
 } from '@mui/material';
 import { getSubjects, getModules, getTopics } from '@/lib/database/hierarchicalData';
+import SafeFormControl from '@/components/SafeFormControl';
+
 export default function AddQuestionPage() {
   const [formData, setFormData] = useState({
     Question: '',
@@ -40,6 +42,14 @@ export default function AddQuestionPage() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  // Create a ref to track the current formData
+  const formDataRef = useRef(formData);
+  
+  // Update the ref whenever formData changes
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
   // Fetch subjects on component mount
   useEffect(() => {
     const loadSubjects = () => {
@@ -60,18 +70,29 @@ export default function AddQuestionPage() {
     };
     loadModules();
   }, [formData.Subject]);
-  // Dynamically update topics when module changes
+  // Load topics when subject and module change
+  const loadTopics = useCallback(() => {
+    const currentFormData = formDataRef.current;
+    if (currentFormData.Subject && currentFormData['Module Name']) {
+      fetch(`/api/topics?subject=${currentFormData.Subject}&module=${currentFormData['Module Name']}`)
+        .then(response => response.json())
+        .then(data => {
+          setTopics(data);
+        })
+        .catch(error => {
+          console.error('Error loading topics:', error);
+        });
+    } else {
+      setTopics([]);
+    }
+  }, []);
+
+  // Load topics when subject or module changes
   useEffect(() => {
-    const loadTopics = () => {
-      if (formData.Subject && formData['Module Name']) {
-        const availableTopics = getTopics(formData.Subject, formData['Module Name']);
-        setTopics(availableTopics);
-      } else {
-        setTopics([]);
-      }
-    };
     loadTopics();
-  }, [formData.Subject, formData['Module Name']]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadTopics, formData.Subject, formData['Module Name']]);
+
   // Dynamic handler for form inputs
   const handleInputChange = (field: string, value: string | boolean) => {
     const updatedFormData = {
@@ -202,7 +223,7 @@ export default function AddQuestionPage() {
           </Grid>
           {/* Subject */}
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth required>
+            <SafeFormControl fullWidth required>
               <InputLabel>Subject *</InputLabel>
               <Select
                 value={formData.Subject}
@@ -215,11 +236,11 @@ export default function AddQuestionPage() {
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
+            </SafeFormControl>
           </Grid>
           {/* Module Name */}
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
+            <SafeFormControl fullWidth>
               <InputLabel>Module Name</InputLabel>
               <Select
                 value={formData['Module Name']}
@@ -234,11 +255,11 @@ export default function AddQuestionPage() {
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
+            </SafeFormControl>
           </Grid>
           {/* Topic */}
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
+            <SafeFormControl fullWidth>
               <InputLabel>Topic</InputLabel>
               <Select
                 value={formData.Topic}
@@ -253,7 +274,7 @@ export default function AddQuestionPage() {
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
+            </SafeFormControl>
           </Grid>
           {/* Sub Topic */}
           <Grid item xs={12} md={6}>
@@ -277,7 +298,7 @@ export default function AddQuestionPage() {
           </Grid>
           {/* Difficulty Level */}
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
+            <SafeFormControl fullWidth>
               <InputLabel>Difficulty Level</InputLabel>
               <Select
                 value={formData['Difficulty Level']}
@@ -289,11 +310,11 @@ export default function AddQuestionPage() {
                 <MenuItem value="medium">Medium</MenuItem>
                 <MenuItem value="hard">Hard</MenuItem>
               </Select>
-            </FormControl>
+            </SafeFormControl>
           </Grid>
           {/* Question Type */}
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth required>
+            <SafeFormControl fullWidth required>
               <InputLabel>Question Type *</InputLabel>
               <Select
                 value={formData.Question_Type}
@@ -303,7 +324,7 @@ export default function AddQuestionPage() {
                 <MenuItem value="Objective">Objective</MenuItem>
                 <MenuItem value="Subjective">Subjective</MenuItem>
               </Select>
-            </FormControl>
+            </SafeFormControl>
           </Grid>
           {/* Faculty Approved */}
           <Grid item xs={12} md={4}>

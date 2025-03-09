@@ -1,36 +1,35 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { IconButton, Badge, Tooltip } from '@mui/material';
-import { ShoppingCart as CartIcon } from '@mui/icons-material';
-import { useCartStore } from '@/store/cartStore';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import { useCartStore } from '@/store/cartStore';
+
 interface CartIndicatorProps {
-  color?: 'inherit' | 'primary' | 'secondary';
+  color?: string;
   count?: number;
 }
-function CartIndicator({ color = 'inherit', count }: CartIndicatorProps) {
-  const questions = useCartStore(state => state.questions);
-  const cartCount = count !== undefined ? count : questions.length;
-  return (
-    <Link href="/cart" passHref style={{ textDecoration: 'none' }}>
-      <Tooltip title={`View Cart (${cartCount} items)`}>
-        <IconButton color={color}>
-          <Badge
-            badgeContent={cartCount}
-            color="primary"
-            max={99}
-            anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-          >
-            <CartIcon />
-          </Badge>
-        </IconButton>
-      </Tooltip>
-    </Link>
-  );
-}
-export default dynamic(() => Promise.resolve(CartIndicator), {
-  ssr: false,
-});
+
+const CartIndicator = forwardRef<HTMLDivElement, CartIndicatorProps>(
+  ({ color = 'inherit', count }, ref) => {
+    const cartStore = useCartStore();
+    const cartCount = count !== undefined ? count : cartStore.questions.length;
+
+    return (
+      <div ref={ref}>
+        <Link href="/cart" passHref>
+          <Tooltip title={`View Cart (${cartCount} items)`}>
+            <IconButton color="inherit" aria-label="cart">
+              <Badge badgeContent={cartCount} color="error" overlap="circular">
+                <ShoppingCartIcon sx={{ color }} />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        </Link>
+      </div>
+    );
+  }
+);
+
+CartIndicator.displayName = 'CartIndicator';
+
+export default React.memo(CartIndicator);

@@ -34,7 +34,6 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       questions: [],
       addQuestion: (question) => {
-        console.log('Adding question to cart', question);
         set((state) => {
           // Prevent adding sample questions
           const safeQuestion = { ...question };
@@ -43,7 +42,6 @@ export const useCartStore = create<CartStore>()(
             (typeof safeQuestion.Question === 'string' && safeQuestion.Question.includes('Sample Question')) || 
             (typeof safeQuestion.Subject === 'string' && safeQuestion.Subject === 'Sample Subject')
           ) {
-            console.warn('Attempted to add a sample question, skipping');
             return state;
           }
 
@@ -78,42 +76,36 @@ export const useCartStore = create<CartStore>()(
           // Check if question is already in cart
           const isAlreadyInCart = state.questions.some(q => String(q.id) === String(questionId));
           if (isAlreadyInCart) {
-            console.log('Question already in cart, skipping');
             return state;
           }
           
-          const newQuestions = [...state.questions, cartQuestion];
-          console.log('Updated cart questions', newQuestions);
-          return { questions: newQuestions };
+          return { questions: [...state.questions, cartQuestion] };
         });
       },
       removeQuestion: (questionId) => {
-        console.log('Removing question from cart', questionId);
         set((state) => {
           // Convert both IDs to strings for comparison
           const newQuestions = state.questions.filter((q) => 
             String(q.id) !== String(questionId)
           );
-          console.log('Updated cart questions after removal', newQuestions);
           return { questions: newQuestions };
         });
       },
       clearCart: () => {
-        console.log('Clearing entire cart');
         set({ questions: [] });
       },
       isInCart: (questionId) => {
-        const inCart = get().questions.some((question) => 
+        return get().questions.some((question) => 
           String(question.id) === String(questionId) || 
           (typeof question.text === 'string' && question.text === questionId) || 
           (typeof question.Question === 'string' && question.Question === questionId)
         );
-        console.log('Checking if question is in cart', { questionId, inCart });
-        return inCart;
       },
     }),
     {
       name: 'question-cart',
+      // Optional: Add storage configuration if needed
+      // storage: createJSONStorage(() => localStorage),
     }
   )
 );

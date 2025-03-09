@@ -1,4 +1,4 @@
-type LogLevel = 'info' | 'warn' | 'error';
+type LogLevel = 'info' | 'warn' | 'error' | 'log' | 'debug';
 
 interface LogEntry {
   timestamp: string;
@@ -53,6 +53,16 @@ class Logger {
     const log = this.formatLog('info', message, data);
     if (!this.isProd) console.log(JSON.stringify(log));
     // In production, you would typically send this to a logging service
+  }
+
+  log(message: string, ...args: any[]) {
+    const log = this.formatLog('log', message, args.length > 0 ? args : undefined);
+    if (!this.isProd) console.log(JSON.stringify(log));
+  }
+
+  debug(message: string, data?: any) {
+    const log = this.formatLog('debug', message, data);
+    if (!this.isProd) console.log(JSON.stringify(log));
   }
 
   warn(message: string, data?: any) {

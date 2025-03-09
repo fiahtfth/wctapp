@@ -1,28 +1,29 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
   Box,
   Typography,
   Button,
-  Grid,
-  Badge,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
+  IconButton,
 } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 import CloseIcon from "@mui/icons-material/Close";
-import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
-import QuestionList from "@/components/QuestionList";
+import { QuestionList } from "@/components/QuestionList";
 import { addQuestionToCart, getCartItems } from "@/lib/actions";
 import { useRouter } from "next/navigation";
-import MainLayout from "@/components/MainLayout";
+import MainLayout from "../components/MainLayout";
+import { useAuthStore } from "@/store/authStore";
 
 export default function Home() {
-  const [testId] = useState("home-question-list");
-  const [cartCount, setCartCount] = useState(0);
+  const router = useRouter();
+  const { user, logout } = useAuthStore();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [testId] = useState(uuidv4());
   const [filters, setFilters] = useState<{
     subject?: string[];
     module?: string[];
@@ -31,105 +32,65 @@ export default function Home() {
     question_type?: string[];
     search?: string;
   }>({});
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 10;
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-    
-    // Load cart count on mount
-    const fetchCartCount = async () => {
-      try {
-        const cartItems = await getCartItems(testId);
-        setCartCount(cartItems.count);
-      } catch (error) {
-        console.error("Failed to fetch cart items", error);
-      }
-    };
-    fetchCartCount();
-  }, [testId, router]);
-
-  const handleLogout = () => {
-    setLogoutDialogOpen(true);
-  };
-
-  const confirmLogout = () => {
-    setLogoutDialogOpen(false);
-    localStorage.removeItem('token');
-    window.location.href = "/login"; // Redirect to login page
-  };
 
   const handleAddToCart = async (questionId: number) => {
     try {
       await addQuestionToCart(questionId, testId);
-      setCartCount((prev) => prev + 1);
     } catch (error) {
-      console.error("Error adding question to cart:", error);
+      console.error('Error adding question to cart:', error);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+
+  const handleCloseLogoutDialog = () => {
+    setLogoutDialogOpen(false);
   };
 
   return (
     <MainLayout title="Questions" subtitle="Browse and manage your question bank">
-      <QuestionList
-        testId={testId}
-        filters={filters}
-        onFilterChange={setFilters}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        totalPages={totalPages}
-        onTotalPagesChange={setTotalPages}
-        pageSize={pageSize}
-        onAddToCart={handleAddToCart}
-      />
+      <Suspense fallback={
+        <Box className="flex justify-center items-center h-full">
+          <CircularProgress />
+        </Box>
+      }>
+        <QuestionList
+          testId={testId}
+          filters={filters}
+        />
+      </Suspense>
       {/* Logout Confirmation Dialog */}
       <Dialog
         open={logoutDialogOpen}
-        onClose={() => setLogoutDialogOpen(false)}
-        sx={{
-          "& .MuiDialog-paper": {
-            borderRadius: 2,
-            minWidth: 300,
-          },
-        }}
+        onClose={handleCloseLogoutDialog}
+        aria-labelledby="logout-dialog-title"
       >
-        <DialogTitle sx={{ pb: 1 }}>Confirm Logout</DialogTitle>
-        <DialogContent sx={{ pb: 2 }}>
-          <Typography
-            variant="body2"
+        <DialogTitle id="logout-dialog-title">
+          Confirm Logout
+          <IconButton
+            aria-label="close"
+            onClick={handleCloseLogoutDialog}
             sx={{
-              mb: 0.5,
-              display: "block",
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: (theme) => theme.palette.grey[500],
             }}
           >
-            Are you sure you want to logout?
-          </Typography>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to log out?</Typography>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setLogoutDialogOpen(false)}
-            variant="text"
-            sx={{
-              textTransform: "none",
-              transition: "all 0.2s",
-            }}
-          >
+        <DialogActions>
+          <Button onClick={handleCloseLogoutDialog} color="primary">
             Cancel
           </Button>
-          <Button
-            onClick={confirmLogout}
-            variant="contained"
-            color="error"
-            sx={{
-              textTransform: "none",
-              transition: "all 0.2s",
-            }}
-          >
+          <Button onClick={handleLogout} color="primary" variant="contained">
             Logout
           </Button>
         </DialogActions>

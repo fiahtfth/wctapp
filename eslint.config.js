@@ -1,26 +1,25 @@
 // @ts-check
 import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
+import * as tseslint from '@typescript-eslint/eslint-plugin';
+import * as parser from '@typescript-eslint/parser';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
-export default tseslint.config(
+export default [
   {
     files: ['**/*.ts', '**/*.tsx'],
     extends: [
       eslint.configs.recommended,
-      ...tseslint.configs.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
     ],
     plugins: {
-      '@typescript-eslint': tseslint.plugin,
+      '@typescript-eslint': tseslint,
       'react': reactPlugin,
       'react-hooks': reactHooksPlugin,
     },
     languageOptions: {
-      parser: tseslint.parser,
+      parser: parser,
       parserOptions: {
-        project: true,
+        project: './tsconfig.json',
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -55,4 +54,4 @@ export default tseslint.config(
       '*.d.ts'
     ],
   }
-);
+];

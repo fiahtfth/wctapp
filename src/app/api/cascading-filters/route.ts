@@ -4,9 +4,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const level = searchParams.get('level');
   const subject = searchParams.get('subject');
-  const module = searchParams.get('module');
+  const moduleParam = searchParams.get('module');
   const topic = searchParams.get('topic');
-  console.log('Cascading filters request:', { level, subject, module, topic });
+  console.log('Cascading filters request:', { level, subject, moduleParam, topic });
   try {
     switch (level) {
       case 'subjects':
@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
         }
         return NextResponse.json([]);
       case 'topics':
-        if (module) {
-          return NextResponse.json(FILTER_MAPPINGS.topicsByModule[module] || []);
+        if (moduleParam) {
+          return NextResponse.json(FILTER_MAPPINGS.topicsByModule[moduleParam] || []);
         }
         return NextResponse.json([]);
       case 'question_types':

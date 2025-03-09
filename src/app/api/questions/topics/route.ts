@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     debugLog('Getting topics for subject:', subject);
     
     // If we're in Vercel environment and using mock data
-    if (isVercelEnvironment() && process.env.USE_MOCK_DATA === 'true') {
+    if (isVercelEnvironment() && process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
       debugLog('Using mock topics for Vercel environment');
       
       // Return mock topics

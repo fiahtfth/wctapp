@@ -1,138 +1,124 @@
-'use client';
+import getSupabaseClient from './supabaseClient';
+import bcrypt from 'bcryptjs';
+import { User } from '@/types/user';
+
+// Get the admin client for server-side operations
+const supabaseAdmin = getSupabaseClient();
 
 /**
- * Utility functions for database setup and diagnostics
+ * Creates the default admin user if it doesn't already exist
+ * This function is used to initialize the database with a default admin user
+ * when the application is first set up.
  */
-
-/**
- * Checks if the database tables exist
- * @returns Promise with the status of required tables
- */
-export async function checkDatabaseTables() {
+export async function createDefaultAdminIfNeeded(): Promise<{ 
+  success: boolean; 
+  user?: User; 
+  error?: string 
+}> {
   try {
-    const response = await fetch('/api/database/diagnostics', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'checkTables' })
-    });
+    console.log('Checking if default admin user needs to be created');
     
-    return await response.json();
-  } catch (error) {
-    console.error('Error checking database tables:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-/**
- * Sets up the database tables
- * @returns Promise with the result of the setup operation
- */
-export async function setupDatabase() {
-  try {
-    const response = await fetch('/api/database/setup', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Check if supabaseAdmin is available
+    if (!supabaseAdmin) {
+      return {
+        success: false,
+        error: 'Supabase admin client is not available'
+      };
+    }
+    
+    // First, check if the users table exists
+    const { error: tableCheckError } = await supabaseAdmin.from('users').select('count').limit(1);
+    
+    // If the table doesn't exist, create it
+    if (tableCheckError && tableCheckError.message.includes('relation "users" does not exist')) {
+      console.log('Users table does not exist, creating it');
+      
+      // Create the users table
+      const { error: createTableError } = await supabaseAdmin.rpc('create_users_table');
+      
+      if (createTableError) {
+        console.error('Failed to create users table:', createTableError);
+        
+        // If the RPC function doesn't exist, we can't create the table directly from here
+        // This would typically be handled by a migration script or SQL function
+        return { 
+          success: false, 
+          error: `Failed to create users table: ${createTableError.message}. Please run the database migrations or setup script.` 
+        };
       }
-    });
+    }
     
-    return await response.json();
-  } catch (error) {
-    console.error('Error setting up database:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-/**
- * Checks if the database connection is working
- * @returns Promise with the connection status
- */
-export async function checkDatabaseConnection() {
-  try {
-    const response = await fetch('/api/database/diagnostics', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'checkConnection' })
-    });
+    // Check if admin user already exists
+    const { data: existingAdmins, error: checkError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('role', 'admin')
+      .limit(1);
     
-    return await response.json();
-  } catch (error) {
-    console.error('Error checking database connection:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-/**
- * Checks if a draft cart can be loaded
- * @param testId The ID of the test to check
- * @returns Promise with the result of the check
- */
-export async function checkDraftCartLoading(testId: string) {
-  try {
-    // First check if the tables exist
-    const tablesResult = await checkDatabaseTables();
-    
-    if (!tablesResult.success) {
-      return {
-        success: false,
-        error: 'Failed to check database tables',
-        details: tablesResult.error
+    if (checkError) {
+      console.error('Error checking for existing admin:', checkError);
+      return { 
+        success: false, 
+        error: `Error checking for existing admin: ${checkError.message}` 
       };
     }
     
-    // Check if the carts table exists
-    const cartsTable = tablesResult.tables?.find((t: any) => t.name === 'carts');
-    if (!cartsTable?.exists) {
-      return {
-        success: false,
-        error: 'The carts table does not exist',
-        needsSetup: true
+    // If admin already exists, return success
+    if (existingAdmins && existingAdmins.length > 0) {
+      console.log('Admin user already exists');
+      return { 
+        success: true, 
+        user: existingAdmins[0] as User 
       };
     }
     
-    // Check if the cart_items table exists
-    const cartItemsTable = tablesResult.tables?.find((t: any) => t.name === 'cart_items');
-    if (!cartItemsTable?.exists) {
-      return {
-        success: false,
-        error: 'The cart_items table does not exist',
-        needsSetup: true
+    // Create default admin user
+    console.log('Creating default admin user');
+    
+    // Get default admin credentials from environment variables or use defaults
+    const defaultAdminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@example.com';
+    const defaultAdminUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
+    const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
+    
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(defaultAdminPassword, salt);
+    
+    // Insert the admin user
+    const { data: newAdmin, error: insertError } = await supabaseAdmin
+      .from('users')
+      .insert([
+        {
+          username: defaultAdminUsername,
+          email: defaultAdminEmail,
+          password_hash: hashedPassword,
+          role: 'admin',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ])
+      .select()
+      .single();
+    
+    if (insertError) {
+      console.error('Error creating default admin:', insertError);
+      return { 
+        success: false, 
+        error: `Error creating default admin: ${insertError.message}` 
       };
     }
     
-    // Try to fetch the cart
-    const response = await fetch(`/api/cart/items?testId=${encodeURIComponent(testId)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-    
-    const result = await response.json();
-    
-    return {
-      success: true,
-      cartExists: result.questions && result.questions.length > 0,
-      questionCount: result.questions?.length || 0
+    console.log('Default admin user created successfully');
+    return { 
+      success: true, 
+      user: newAdmin as User 
     };
   } catch (error) {
-    console.error('Error checking draft cart loading:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Unexpected error in createDefaultAdminIfNeeded:', error);
+    return { 
+      success: false, 
+      error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 
     };
   }
 } 

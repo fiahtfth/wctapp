@@ -37,7 +37,7 @@ export async function GET(
   debugLog('Environment:', process.env.NODE_ENV, 'Vercel:', isVercelEnvironment());
   
   // If we're in Vercel environment and using mock data
-  if (isVercelEnvironment() && process.env.USE_MOCK_DATA === 'true') {
+  if (isVercelEnvironment() && process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
     debugLog('Using simplified question handling for Vercel environment');
     
     // In Vercel, we'll create a mock question

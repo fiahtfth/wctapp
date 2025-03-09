@@ -5,6 +5,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
@@ -23,6 +24,10 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    // Call the onError prop if provided
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
     // Here you would typically log to your error tracking service
     // Example: Sentry.captureException(error);
   }
@@ -32,6 +37,7 @@ class ErrorBoundary extends Component<Props, State> {
       return this.props.fallback || (
         <div className="error-boundary">
           <h2>Something went wrong.</h2>
+          <p>Please try again later.</p>
           <button onClick={() => this.setState({ hasError: false })}>
             Try again
           </button>

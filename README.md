@@ -51,22 +51,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Production Deployment
 
-### Quick Deployment
-
-For a simplified deployment process, use the provided deploy script:
-
-```bash
-npm run deploy
-```
-
-This script will:
-1. Install dependencies
-2. Run linting
-3. Build the application
-4. Initialize the database if needed
-5. Deploy to Vercel production environment
-
-### Manual Vercel Deployment
+### Vercel Deployment
 
 1. Install Vercel CLI: `npm i -g vercel`
 2. Login to Vercel: `vercel login`
@@ -77,20 +62,12 @@ This script will:
 
 Set the following environment variables in Vercel:
 
-- `DATABASE_URL`: `file:./wct.db` (SQLite database connection string)
-- `DATABASE_PATH`: `./wct.db` (Path to the SQLite database file)
+- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
 - `JWT_SECRET`: Secret key for JWT token generation
 - `NEXT_PUBLIC_SITE_URL`: Your production site URL (e.g., `https://wctapp.vercel.app`)
 - `NODE_ENV`: `production` for production environment
-
-### Database Deployment
-
-The application uses SQLite for data storage. For Vercel deployment:
-
-1. The database file (`wct.db`) will be copied to a temporary location during build
-2. API routes will access this database file
-3. Note that changes to the database in production will not persist between deployments
-4. For production, consider using a persistent database service
 
 ## Progressive Web App (PWA)
 
@@ -98,10 +75,6 @@ The application uses SQLite for data storage. For Vercel deployment:
 - Offline Support
 - Installable on Desktop and Mobile
 - Cached Assets for Faster Loading
-
-### PWA Build and Deployment
-- Build PWA: `npm run pwa:build`
-- Start PWA: `npm run pwa:start`
 
 ### Installation
 1. On Mobile: Open the app in browser, tap "Add to Home Screen"
@@ -111,11 +84,6 @@ The application uses SQLite for data storage. For Vercel deployment:
 - Core app functionality available without internet
 - Cached questions and resources
 - Automatic background sync when connection restored
-
-## Testing
-
-- Run tests: `npm test`
-- Run test coverage: `npm run test:coverage`
 
 ## Performance Optimization
 
@@ -128,3 +96,18 @@ The application uses SQLite for data storage. For Vercel deployment:
 - Always keep dependencies updated
 - Use environment variables for sensitive information
 - Implement proper authentication and authorization
+
+## Database Setup
+
+The application requires several tables to be created in your Supabase database. Follow the setup instructions in SETUP-INSTRUCTIONS.md to set up the database properly.
+
+## Environment Variables
+
+Make sure the following environment variables are set in your `.env.local` file:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+JWT_SECRET=your_jwt_secret
+```

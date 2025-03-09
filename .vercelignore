@@ -1,0 +1,11 @@
+.env
+.env.local
+.env.development
+.env.production
+node_modules
+.git
+.github
+README.md
+PRODUCTION-DEPLOYMENT.md
+logs/
+*.log 

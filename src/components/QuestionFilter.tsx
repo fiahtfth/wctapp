@@ -12,6 +12,8 @@ import {
   Button,
   Box,
 } from '@mui/material';
+import SafeFormControl from '@/components/SafeFormControl';
+
 interface QuestionFilterProps {
   onFilterChange: (filters: {
     subject?: string;
@@ -68,18 +70,21 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
     setSearchTerm('');
     onFilterChange({});
   };
+  useEffect(() => {
+    handleFilterChange();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subject, topic, module, subTopic, difficulty, natureOfQuestion, searchTerm]);
   return (
     <Box sx={{ flexGrow: 1, mb: 2 }}>
       <Grid container spacing={2} alignItems="center">
         <Grid item xs={12} sm={6} md={4}>
-          <FormControl fullWidth>
+          <SafeFormControl fullWidth>
             <InputLabel>Subject</InputLabel>
             <Select
               value={subject}
               label="Subject"
               onChange={e => {
                 setSubject(e.target.value);
-                handleFilterChange();
               }}
             >
               <MenuItem value="">All Subjects</MenuItem>
@@ -89,7 +94,7 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </SafeFormControl>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
           <TextField
@@ -98,19 +103,17 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             value={topic}
             onChange={e => {
               setTopic(e.target.value);
-              handleFilterChange();
             }}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-          <FormControl fullWidth>
+          <SafeFormControl fullWidth>
             <InputLabel>Difficulty</InputLabel>
             <Select
               value={difficulty}
               label="Difficulty"
               onChange={e => {
                 setDifficulty(e.target.value);
-                handleFilterChange();
               }}
             >
               <MenuItem value="">All Difficulties</MenuItem>
@@ -120,7 +123,7 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </SafeFormControl>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
           <TextField
@@ -129,7 +132,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             value={module}
             onChange={e => {
               setModule(e.target.value);
-              handleFilterChange();
             }}
           />
         </Grid>
@@ -140,19 +142,17 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             value={subTopic}
             onChange={e => {
               setSubTopic(e.target.value);
-              handleFilterChange();
             }}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-          <FormControl fullWidth>
+          <SafeFormControl fullWidth>
             <InputLabel>Nature of Question</InputLabel>
             <Select
               value={natureOfQuestion}
               label="Nature of Question"
               onChange={e => {
                 setNatureOfQuestion(e.target.value);
-                handleFilterChange();
               }}
             >
               <MenuItem value="">All Types</MenuItem>
@@ -161,7 +161,7 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
               <MenuItem value="Theoretical">Theoretical</MenuItem>
               <MenuItem value="Applied">Applied</MenuItem>
             </Select>
-          </FormControl>
+          </SafeFormControl>
         </Grid>
         <Grid item xs={12}>
           <TextField
@@ -170,7 +170,6 @@ export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) 
             value={searchTerm}
             onChange={e => {
               setSearchTerm(e.target.value);
-              handleFilterChange();
             }}
           />
         </Grid>

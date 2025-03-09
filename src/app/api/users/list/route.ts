@@ -3,11 +3,15 @@ import { jwtVerify } from 'jose';
 import path from 'path';
 import fs from 'fs';
 import { User } from '@/types/user';
-import { supabaseAdmin } from '@/lib/database/supabaseClient';
+import getSupabaseClient from '@/lib/database/supabaseClient';
+import { createDefaultAdminIfNeeded } from '@/lib/database/setupUtils';
+
+// Get the admin client for server-side operations
+const supabaseAdmin = getSupabaseClient();
 
 // Function to check if we should use mock data
 function shouldUseMockData(): boolean {
-  return process.env.USE_MOCK_DATA === 'true';
+  return process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
 }
 
 // Mock users data for development/testing
@@ -166,6 +170,18 @@ export async function GET(request: NextRequest) {
     try {
       log('debug', 'Fetching users from Supabase');
       
+      // Check if supabaseAdmin is available
+      if (!supabaseAdmin) {
+        log('error', 'Supabase admin client is not available');
+        return NextResponse.json(
+          {
+            error: 'Database connection error',
+            details: 'Supabase admin client is not available',
+          },
+          { status: 500 }
+        );
+      }
+      
       const { data: users, error } = await supabaseAdmin
         .from('users')
         .select('id, username, email, role, is_active, last_login, created_at, updated_at')
@@ -173,6 +189,35 @@ export async function GET(request: NextRequest) {
       
       if (error) {
         log('error', 'Supabase query error', error);
+        
+        // Check if the error is because the table doesn't exist
+        if (error.message.includes('relation "users" does not exist')) {
+          log('warn', 'Users table does not exist, attempting to create it and add default admin');
+          
+          // Try to create the default admin user, which will also create the table
+          const result = await createDefaultAdminIfNeeded();
+          
+          if (result.success && result.user) {
+            log('info', 'Default admin user created successfully', result.user);
+            // Return the newly created admin user
+            return NextResponse.json(
+              {
+                users: [result.user],
+                total: 1,
+                timestamp: new Date().toISOString(),
+                message: 'Default admin user created and retrieved successfully',
+              },
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+          } else {
+            log('error', 'Failed to create default admin user', { error: result.error });
+          }
+        }
         
         // If Supabase query fails and mock data is enabled, fall back to mock data
         if (shouldUseMockData()) {
@@ -225,34 +270,18 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Optional: Add a default user if no users exist (for testing/development)
+      // If no users found, create a default admin
       if (validUsers.length === 0) {
         log('warn', 'No users found in database. Adding a default admin user.');
         
-        // Use a hashed password for the default admin
-        const hashedPassword = '$2a$10$ExampleHashedPasswordForDevelopment';
+        // Use our utility to create a default admin
+        const result = await createDefaultAdminIfNeeded();
         
-        try {
-          const { data: newUser, error: insertError } = await supabaseAdmin
-            .from('users')
-            .insert({
-              username: 'default_admin',
-              email: 'default_admin@example.com',
-              password_hash: hashedPassword,
-              role: 'admin',
-              is_active: true
-            })
-            .select('id, username, email, role, is_active, last_login, created_at, updated_at')
-            .single();
-          
-          if (insertError) {
-            log('error', 'Failed to insert default admin user', insertError);
-          } else if (newUser) {
-            log('info', 'Default admin user created', { insertedId: newUser.id });
-            validUsers = [newUser];
-          }
-        } catch (insertError) {
-          log('error', 'Failed to insert default admin user', insertError);
+        if (result.success && result.user) {
+          log('info', 'Default admin user created', { user: result.user });
+          validUsers = [result.user as User];
+        } else {
+          log('error', 'Failed to create default admin user', { error: result.error });
         }
       }
 

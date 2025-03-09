@@ -249,8 +249,81 @@ export default function UserManagement() {
   };
 
   const handleUpdateUser = async () => {
-    // Implementation for updating user
-    console.log('Update user:', currentUser);
+    try {
+      setIsLoading(true);
+      
+      // Get the token from localStorage
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      // Prepare update data
+      const updateData: Partial<User> = {
+        id: currentUser.id,
+        username: currentUser.username,
+        email: currentUser.email,
+        role: currentUser.role,
+        is_active: currentUser.is_active
+      };
+      
+      // Only include password if it was changed
+      if (currentUser.password) {
+        updateData.password = currentUser.password;
+      }
+      
+      const response = await fetch('/api/users/update', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user');
+      }
+      
+      // Refresh the user list
+      const fetchUsers = async () => {
+        setIsFetching(true);
+        
+        try {
+          const response = await fetch('/api/users/list', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch users: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          setUsers(data.users || []);
+        } catch (error) {
+          console.error('Error fetching users:', error);
+          setError(error instanceof Error ? error.message : 'Unknown error occurred');
+        } finally {
+          setIsFetching(false);
+        }
+      };
+      
+      fetchUsers();
+      
+      // Reset form and close dialog
+      setCurrentUser({});
+      setOpenEditDialog(false);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -422,6 +495,15 @@ export default function UserManagement() {
             value={currentUser.email || ''}
             onChange={(e) => setCurrentUser({ ...currentUser, email: e.target.value })}
           />
+          <TextField
+            margin="dense"
+            label="New Password (leave blank to keep current)"
+            type="password"
+            fullWidth
+            value={currentUser.password || ''}
+            onChange={(e) => setCurrentUser({ ...currentUser, password: e.target.value })}
+            helperText="Enter a new password only if you want to change it"
+          />
           <SafeFormControl fullWidth margin="dense">
             <InputLabel>Role</InputLabel>
             <Select
@@ -431,6 +513,17 @@ export default function UserManagement() {
             >
               <MenuItem value="user">User</MenuItem>
               <MenuItem value="admin">Admin</MenuItem>
+            </Select>
+          </SafeFormControl>
+          <SafeFormControl fullWidth margin="dense">
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={currentUser.is_active === undefined ? true : currentUser.is_active}
+              onChange={(e) => setCurrentUser({ ...currentUser, is_active: e.target.value === 'true' })}
+              label="Status"
+            >
+              <MenuItem value="true">Active</MenuItem>
+              <MenuItem value="false">Inactive</MenuItem>
             </Select>
           </SafeFormControl>
         </DialogContent>

@@ -285,9 +285,7 @@ export default function NavBar() {
                 </IconButton>
               )}
               
-              <Tooltip title="Cart">
-                <CartIndicator count={cartCount} />
-              </Tooltip>
+              <CartIndicator count={cartCount} />
               
               <Tooltip title="Account">
                 <IconButton
