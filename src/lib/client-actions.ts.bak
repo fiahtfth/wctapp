@@ -674,4 +674,3 @@ export async function getLocalCartItems(): Promise<CartQuestion[]> {
     console.error('Error getting local cart items:', error);
     return [];
   }
-}

@@ -3,6 +3,7 @@ import './globals.css';
 import { Metadata, Viewport } from 'next';
 import ClientDatabaseInitializer from '@/components/ClientDatabaseInitializer';
 import ClientAuthProvider from '@/components/ClientAuthProvider';
+import { Suspense } from 'react';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -36,7 +37,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body className={`base-body ${inter.variable}`}>
         <ClientAuthProvider>
           <ClientDatabaseInitializer />
-          {children}
+          <Suspense fallback={<div>Loading...</div>}>
+            {children}
+          </Suspense>
         </ClientAuthProvider>
       </body>
     </html>

@@ -43,27 +43,69 @@ import { useRouter } from 'next/navigation';
 import { QuestionCard } from './QuestionCard';
 import * as XLSX from 'xlsx';
 import { saveDraftCart } from '@/lib/client-actions';
-import { Question } from '@/types/question';
+import { Question, isQuestion } from '@/types/question';
 import { exportTest } from '@/lib/exportUtils';
 import { getTestId } from '@/lib/actions';
-import DatabaseSetupAlert from './DatabaseSetupAlert';
+import DatabaseSetupAlert from '@/components/DatabaseSetupAlert';
+
+// Define a type for the raw question data from the database
+interface RawQuestionData {
+  id: number;
+  Question?: string;
+  Answer?: string;
+  Subject?: string;
+  Topic?: string;
+  QuestionType?: string;
+  Question_Type?: string;
+  question_type?: string;
+  Difficulty?: string;
+  difficulty_level?: string;
+  DifficultyLevel?: string;
+  'Difficulty Level'?: string;
+  Module?: string;
+  module_name?: string;
+  ModuleName?: string;
+  'Module Name'?: string;
+  SubTopic?: string;
+  sub_topic?: string;
+  'Sub Topic'?: string;
+  Marks?: number;
+  marks?: number;
+  tags?: string[];
+  [key: string]: any; // Allow other properties
+}
 
 // Helper function to convert CartQuestion to Question
-const convertToQuestion = (cartQuestion: any): Question => {
+const convertToQuestion = (cartQuestion: RawQuestionData): Question => {
   return {
     id: cartQuestion.id,
     text: cartQuestion.Question || '',
-    answer: cartQuestion.Answer || '',
-    explanation: cartQuestion.Explanation || '',
-    subject: cartQuestion.Subject || '',
-    moduleName: cartQuestion['Module Name'] || cartQuestion.ModuleName || '',
-    topic: cartQuestion.Topic || '',
-    subTopic: cartQuestion['Sub Topic'] || cartQuestion.SubTopic || '',
-    difficultyLevel: cartQuestion['Difficulty Level'] || cartQuestion.DifficultyLevel || '',
-    questionType: cartQuestion.QuestionType || cartQuestion.Question_Type || '',
-    natureOfQuestion: cartQuestion['Nature of Question'] || cartQuestion.NatureOfQuestion || '',
-    // Copy over any other properties
-    ...cartQuestion
+    answer: cartQuestion.Answer || cartQuestion.answer || '',
+    subject: cartQuestion.Subject || cartQuestion.subject || '',
+    topic: cartQuestion.Topic || cartQuestion.topic || '',
+    questionType: (cartQuestion.QuestionType || cartQuestion.Question_Type || cartQuestion.question_type || 'Objective') as 'Objective' | 'Subjective',
+    // Ensure these fields are properly mapped from the database
+    difficulty: (cartQuestion.Difficulty || cartQuestion.difficulty_level || cartQuestion.DifficultyLevel || cartQuestion['Difficulty Level'] || 'Medium') as 'Easy' | 'Medium' | 'Hard',
+    module: cartQuestion.Module || cartQuestion.module_name || cartQuestion.ModuleName || cartQuestion['Module Name'] || '',
+    sub_topic: cartQuestion.SubTopic || cartQuestion.sub_topic || cartQuestion['Sub Topic'] || '',
+    marks: cartQuestion.Marks || cartQuestion.marks || 0,
+    tags: cartQuestion.tags || []
+  };
+};
+
+// Function to standardize question format for export
+const standardizeQuestionForExport = (question: Question | RawQuestionData): Record<string, any> => {
+  return {
+    'S.No': 0, // This will be overridden when used
+    Question: question.text || (question as RawQuestionData).Question || '',
+    Answer: question.answer || (question as RawQuestionData).Answer || '',
+    Explanation: (question as RawQuestionData).explanation || (question as RawQuestionData).Explanation || '',
+    Subject: question.subject || (question as RawQuestionData).Subject || '',
+    'Module Name': question.module || (question as RawQuestionData)['Module Name'] || (question as RawQuestionData).ModuleName || '',
+    Topic: question.topic || (question as RawQuestionData).Topic || '',
+    'Difficulty Level': question.difficulty || (question as RawQuestionData)['Difficulty Level'] || (question as RawQuestionData).DifficultyLevel || '',
+    'Question Type': question.questionType || (question as RawQuestionData).QuestionType || (question as RawQuestionData).Question_Type || '',
+    'Nature of Question': (question as RawQuestionData).natureOfQuestion || (question as RawQuestionData)['Nature of Question'] || (question as RawQuestionData).NatureOfQuestion || '',
   };
 };
 
@@ -311,6 +353,10 @@ export default function Cart({ testId: propTestId }: CartProps) {
       const cartStore = useCartStore.getState();
       console.log('Current cart store state:', cartStore.questions);
     } else {
+      // First, try to get local cart items
+      const localCartItems = JSON.parse(localStorage.getItem('localCart') || '[]');
+      
+      // Fetch from server
       fetch(`/api/cart?testId=${currentTestId}`, {
         method: 'GET',
         headers: {
@@ -325,23 +371,85 @@ export default function Cart({ testId: propTestId }: CartProps) {
         }
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         console.log('Fetched cart items:', data);
         
         // Only update if the component is still mounted and there are questions
+        // Use the store's methods directly, but don't set state that would trigger useEffect
+        const cartStore = useCartStore.getState();
+        
+        // Don't clear the cart completely, as we want to keep local items
+        // Instead, we'll add server items and ensure no duplicates
+        
+        // Add server questions if available
         if (data.questions && Array.isArray(data.questions)) {
-          // Use the store's methods directly, but don't set state that would trigger useEffect
-          const cartStore = useCartStore.getState();
-          cartStore.clearCart();
-          
           data.questions.forEach((question: any) => {
-            cartStore.addQuestion(question);
+            // Only add if not already in cart
+            if (!cartStore.isInCart(question.id)) {
+              cartStore.addQuestion(question);
+            }
+          });
+        }
+        
+        // Also ensure local cart items are in the store
+        if (localCartItems && localCartItems.length > 0) {
+          localCartItems.forEach((id: string | number) => {
+            // If the item is not already in the cart, create a placeholder
+            if (!cartStore.isInCart(id)) {
+              cartStore.addQuestion({
+                id: typeof id === 'string' ? parseInt(id, 10) : id,
+                text: `Question ${id}`,
+                answer: '',
+                subject: '',
+                topic: '',
+                questionType: 'Objective',
+                difficulty: 'Medium',
+                module: '',
+                sub_topic: '',
+                marks: 0,
+                tags: [],
+                Question: `Question ${id}`,
+                Subject: '',
+                Topic: '',
+                FacultyApproved: false,
+                QuestionType: 'Objective'
+              });
+            }
           });
         }
       })
-      .catch(error => {
+      .catch((error) => {
         if (!signal.aborted) {
           console.error('Error fetching cart items:', error);
+          
+          // If server fetch fails, ensure local items are in the store
+          if (localCartItems && localCartItems.length > 0) {
+            const cartStore = useCartStore.getState();
+            
+            localCartItems.forEach((id: string | number) => {
+              // If the item is not already in the cart, create a placeholder
+              if (!cartStore.isInCart(id)) {
+                cartStore.addQuestion({
+                  id: typeof id === 'string' ? parseInt(id, 10) : id,
+                  text: `Question ${id}`,
+                  answer: '',
+                  subject: '',
+                  topic: '',
+                  questionType: 'Objective',
+                  difficulty: 'Medium',
+                  module: '',
+                  sub_topic: '',
+                  marks: 0,
+                  tags: [],
+                  Question: `Question ${id}`,
+                  Subject: '',
+                  Topic: '',
+                  FacultyApproved: false,
+                  QuestionType: 'Objective'
+                });
+              }
+            });
+          }
         }
       });
     }
@@ -451,27 +559,39 @@ export default function Cart({ testId: propTestId }: CartProps) {
     
     // Prepare export data with ALL available question details
     const exportData = questions.map((question, index) => {
-      // First convert to a standardized format to ensure all fields are available
-      const standardizedQuestion = convertToQuestion(question);
+      // Convert to standard format if needed
+      let standardizedQuestion: Question;
       
-      // Create a structured row with specific fields in desired order
-      console.log('Processing question:', standardizedQuestion); // Debug log
+      if (isQuestion(question)) {
+        standardizedQuestion = question;
+      } else {
+        // Handle CartQuestion or any other format
+        try {
+          standardizedQuestion = convertToQuestion(question as RawQuestionData);
+        } catch (error) {
+          console.error('Error converting question:', error);
+          // Provide a fallback with minimal data
+          standardizedQuestion = {
+            id: typeof question.id === 'number' ? question.id : 0,
+            text: (question as any).Question || (question as any).text || '',
+            answer: (question as any).Answer || (question as any).answer || '',
+            subject: (question as any).Subject || (question as any).subject || '',
+            topic: (question as any).Topic || (question as any).topic || '',
+            questionType: 'Objective',
+            difficulty: 'Medium',
+            module: '',
+            sub_topic: '',
+            marks: 0
+          };
+        }
+      }
       
-      // Ensure we access all possible field name variations
-      const exportRow = {
-        'S.No': index + 1,
-        Question: standardizedQuestion.text || standardizedQuestion.Question || '',
-        Answer: standardizedQuestion.answer || standardizedQuestion.Answer || '',
-        Explanation: standardizedQuestion.explanation || standardizedQuestion.Explanation || '',
-        Subject: standardizedQuestion.subject || standardizedQuestion.Subject || '',
-        'Module Name': standardizedQuestion.moduleName || standardizedQuestion['Module Name'] || standardizedQuestion.ModuleName || '',
-        Topic: standardizedQuestion.topic || standardizedQuestion.Topic || '',
-        'Difficulty Level': standardizedQuestion.difficultyLevel || standardizedQuestion['Difficulty Level'] || standardizedQuestion.DifficultyLevel || '',
-        'Question Type': standardizedQuestion.questionType || standardizedQuestion.QuestionType || standardizedQuestion.Question_Type || '',
-        'Nature of Question': standardizedQuestion.natureOfQuestion || standardizedQuestion['Nature of Question'] || standardizedQuestion.NatureOfQuestion || '',
-      };
-      console.log('Export row:', exportRow); // Debug log
-      return exportRow;
+      // Create export row with standardized data
+      const exportRowData = standardizeQuestionForExport(standardizedQuestion);
+      exportRowData['S.No'] = index + 1; // Add the index
+      
+      console.log('Export row:', exportRowData); // Debug log
+      return exportRowData;
     });
     
     // Debug: Log the full export data
@@ -938,9 +1058,9 @@ export default function Cart({ testId: propTestId }: CartProps) {
                             variant="outlined" 
                           />
                         )}
-                        {(question['Difficulty Level'] || question.difficultyLevel) && (
+                        {(question.difficulty) && (
                           <Chip 
-                            label={(question['Difficulty Level'] || question.difficultyLevel || '')} 
+                            label={question.difficulty || ''} 
                             size="small" 
                             color="default" 
                             variant="outlined" 
@@ -1140,8 +1260,7 @@ export default function Cart({ testId: propTestId }: CartProps) {
       {/* Add the DatabaseSetupAlert component at the top */}
       {draftError && (
         <DatabaseSetupAlert 
-          errorMessage={draftError} 
-          onSetupComplete={() => {
+          onSetupClick={() => {
             setDraftError(null);
             // Retry the last operation if there was one
             if (loadingDraft) {

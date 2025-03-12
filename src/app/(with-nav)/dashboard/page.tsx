@@ -8,11 +8,10 @@ import {
   People as PeopleIcon,
   ShoppingCart as CartIcon,
 } from '@mui/icons-material';
-import MainLayout from '@/components/MainLayout';
-import { useAuth, withAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 
-function Dashboard() {
+export default function Dashboard() {
   const { user, isLoading } = useAuth();
   const isAuthenticated = !!user;
   const [isAdmin, setIsAdmin] = useState(false);
@@ -29,7 +28,16 @@ function Dashboard() {
   }, [user]);
   
   return (
-    <MainLayout title="Dashboard" subtitle="Welcome to the WCT Exam Creation Manager">
+    <>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+          Dashboard
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary">
+          Welcome to the WCT Exam Creation Manager
+        </Typography>
+      </Box>
+      
       <Grid container spacing={3}>
         {/* Test Management - Only visible to admin users */}
         {isAdmin && (
@@ -75,7 +83,8 @@ function Dashboard() {
           </Grid>
         )}
         
-        <Grid item xs={12} md={isAdmin ? 4 : 4}>
+        {/* Question Bank */}
+        <Grid item xs={12} md={isAdmin ? 4 : 6}>
           <Paper
             elevation={0}
             sx={{
@@ -93,17 +102,17 @@ function Dashboard() {
               },
             }}
           >
-            <QuestionAnswerIcon color="secondary" sx={{ fontSize: 60, mb: 2 }} />
+            <QuestionAnswerIcon color="primary" sx={{ fontSize: 60, mb: 2 }} />
             <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
               Question Bank
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
-              Browse and search through all questions
+              Browse and search through all available questions
             </Typography>
             <Button 
               variant="contained" 
-              color="secondary" 
-              href="/questions"
+              color="primary" 
+              onClick={() => router.push('/questions')}
               sx={{
                 borderRadius: 2,
                 textTransform: 'none',
@@ -111,12 +120,13 @@ function Dashboard() {
                 px: 3,
               }}
             >
-              Manage Questions
+              View Questions
             </Button>
           </Paper>
         </Grid>
         
-        <Grid item xs={12} md={isAdmin ? 4 : 4}>
+        {/* Add Question */}
+        <Grid item xs={12} md={isAdmin ? 4 : 6}>
           <Paper
             elevation={0}
             sx={{
@@ -134,17 +144,17 @@ function Dashboard() {
               },
             }}
           >
-            <AddQuestionIcon color="info" sx={{ fontSize: 60, mb: 2 }} />
+            <AddQuestionIcon color="primary" sx={{ fontSize: 60, mb: 2 }} />
             <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
               Add Question
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
-              Create and add new questions to the database
+              Create and submit new questions to the database
             </Typography>
             <Button 
               variant="contained" 
-              color="info" 
-              href="/add-question"
+              color="primary" 
+              onClick={() => router.push('/add-question')}
               sx={{
                 borderRadius: 2,
                 textTransform: 'none',
@@ -152,7 +162,49 @@ function Dashboard() {
                 px: 3,
               }}
             >
-              Add Question
+              Add New Question
+            </Button>
+          </Paper>
+        </Grid>
+        
+        {/* Cart */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              transition: 'all 0.2s',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+              '&:hover': {
+                transform: 'translateY(-5px)',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              },
+            }}
+          >
+            <CartIcon color="primary" sx={{ fontSize: 60, mb: 2 }} />
+            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+              Question Cart
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
+              Review and manage your selected questions
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={() => router.push('/cart')}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500,
+                px: 3,
+              }}
+            >
+              View Cart
             </Button>
           </Paper>
         </Grid>
@@ -177,7 +229,7 @@ function Dashboard() {
                 },
               }}
             >
-              <PeopleIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
+              <PeopleIcon color="primary" sx={{ fontSize: 60, mb: 2 }} />
               <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
                 User Management
               </Typography>
@@ -186,8 +238,8 @@ function Dashboard() {
               </Typography>
               <Button 
                 variant="contained" 
-                color="success" 
-                href="/users"
+                color="primary" 
+                onClick={() => router.push('/users')}
                 sx={{
                   borderRadius: 2,
                   textTransform: 'none',
@@ -200,51 +252,7 @@ function Dashboard() {
             </Paper>
           </Grid>
         )}
-        
-        <Grid item xs={12} md={isAdmin ? 6 : 4}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              transition: 'all 0.2s',
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'divider',
-              '&:hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-              },
-            }}
-          >
-            <CartIcon color="warning" sx={{ fontSize: 60, mb: 2 }} />
-            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-              Cart & Checkout
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
-              View your cart and checkout to create tests
-            </Typography>
-            <Button 
-              variant="contained" 
-              color="warning" 
-              href="/cart"
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 500,
-                px: 3,
-              }}
-            >
-              View Cart
-            </Button>
-          </Paper>
-        </Grid>
       </Grid>
-    </MainLayout>
+    </>
   );
 }
-
-// Export the component wrapped with the withAuth HOC
-export default withAuth(Dashboard);

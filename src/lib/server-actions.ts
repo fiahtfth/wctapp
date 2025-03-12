@@ -3,13 +3,19 @@
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { Database } from './database/schema';
-import { supabaseAdmin as supabase } from './database/supabaseClient';
+import type { Database } from '@/types/supabase';
+import { supabaseAdmin } from './database/supabaseClient';
 import { cookies, headers } from 'next/headers';
 
 // Initialize Supabase client with service role key
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// Ensure supabase is not null
+const supabase = supabaseAdmin;
+if (!supabase) {
+  throw new Error('Failed to initialize Supabase client');
+}
 
 type UserInsert = Database['public']['Tables']['users']['Insert'];
 type CartInsert = Database['public']['Tables']['carts']['Insert'];
@@ -341,7 +347,12 @@ export async function addQuestionToCart(questionId: number | string, testId: str
     const user = await getCurrentUser();
     
     if (!user) {
-      throw new Error('You must be logged in to add questions to cart');
+      console.log('User not authenticated, cannot add to server cart');
+      return { 
+        success: false, 
+        message: 'You must be logged in to add questions to cart',
+        clientOnly: true 
+      };
     }
     
     // Check for existing cart
@@ -353,7 +364,8 @@ export async function addQuestionToCart(questionId: number | string, testId: str
       .limit(1)
       .single();
 
-    if (cartError) {
+    if (cartError && cartError.code !== 'PGRST116') {
+      // PGRST116 is "not found" which is expected if cart doesn't exist
       console.error('Error checking existing cart:', cartError);
       throw new Error('Failed to check existing cart');
     }
@@ -368,6 +380,7 @@ export async function addQuestionToCart(questionId: number | string, testId: str
       // Create new cart
       const cartInsertData: CartInsert = { 
         user_id: user.id,
+        test_id: testId,
         is_draft: true
       };
 
@@ -379,12 +392,12 @@ export async function addQuestionToCart(questionId: number | string, testId: str
       
       if (newCartError) {
         console.error('Error creating cart:', newCartError);
-        throw new Error('Failed to create cart');
+        throw new Error('Failed to create cart: ' + newCartError.message);
       }
 
       if (!newCart) {
         console.error('No new cart created');
-        throw new Error('Failed to create cart');
+        throw new Error('Failed to create cart: No data returned');
       }
 
       cartId = newCart.id;
@@ -400,14 +413,17 @@ export async function addQuestionToCart(questionId: number | string, testId: str
       .limit(1)
       .single();
 
-    if (cartItemError) {
+    if (cartItemError && cartItemError.code !== 'PGRST116') {
       console.error('Error checking existing cart item:', cartItemError);
       throw new Error('Failed to check existing cart items');
     }
 
     if (existingCartItem) {
       console.log('Question already in cart');
-      return { message: 'Question already in cart' };
+      return { 
+        success: true,
+        message: 'Question already in cart' 
+      };
     }
 
     // Add question to cart
@@ -424,22 +440,27 @@ export async function addQuestionToCart(questionId: number | string, testId: str
 
     if (newCartItemError) {
       console.error('Error adding question to cart:', newCartItemError);
-      throw new Error('Failed to add question to cart');
+      throw new Error('Failed to add question to cart: ' + newCartItemError.message);
     }
 
     if (!newCartItem) {
       console.error('No new cart item created');
-      throw new Error('Failed to add question to cart');
+      throw new Error('Failed to add question to cart: No data returned');
     }
 
     console.log('Successfully added question to cart');
     return { 
+      success: true,
       message: 'Question added to cart successfully', 
       cartItemId: newCartItem.id 
     };
   } catch (error) {
     console.error('Error in addQuestionToCart:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Unknown error adding question to cart');
+    }
   }
 }
 
@@ -496,14 +517,32 @@ export async function getCartItems(testId: string) {
       throw new Error('You must be logged in to view cart items');
     }
     
-    // Fetch cart items from Supabase
+    // First, find the cart for this test and user
+    const { data: cart, error: cartError } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('test_id', testId)
+      .eq('user_id', user.id)
+      .single();
+    
+    if (cartError || !cart) {
+      console.log('No cart found for test:', testId);
+      return { questions: [], count: 0 };
+    }
+    
+    // Fetch cart items from Supabase using the cart ID
     const { data: cartItems, error: cartItemsError } = await supabase
       .from('cart_items')
       .select('question_id')
-      .eq('cart_id', typeof testId === 'string' ? parseInt(testId, 10) : testId);
+      .eq('cart_id', cart.id);
 
     if (cartItemsError) {
       console.error('Error fetching cart items:', cartItemsError);
+      return { questions: [], count: 0 };
+    }
+    
+    if (!cartItems || cartItems.length === 0) {
+      console.log('No items in cart');
       return { questions: [], count: 0 };
     }
 

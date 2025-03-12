@@ -5,11 +5,14 @@ import {
   Grid, 
   CircularProgress,
   Pagination,
-  Button
+  Button,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { QuestionCard } from './QuestionCard';
 import { getQuestions } from '@/lib/database/queries';
 import { addQuestionToCart } from '@/lib/client-actions';
+import { useCartStore } from '@/store/cartStore';
 import type { Question } from '@/types/question';
 
 interface QuestionListProps {
@@ -47,6 +50,12 @@ export const QuestionList: React.FC<QuestionListProps> = ({
   const [totalPages, setTotalPages] = useState(externalTotalPages || 1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  
+  // Get the addQuestion function from the cart store
+  const addQuestionToStore = useCartStore(state => state.addQuestion);
 
   const fetchQuestions = async (currentPage: number) => {
     try {
@@ -108,13 +117,33 @@ export const QuestionList: React.FC<QuestionListProps> = ({
 
   const handleAddToCart = async (question: Question) => {
     try {
-      await addQuestionToCart(question.id, testId);
+      console.log('Adding question to cart:', question);
+      
+      // First, add to the local store for immediate UI update
+      addQuestionToStore(question);
+      
+      // Then, add to the server-side cart
+      const result = await addQuestionToCart(question.id, testId);
+      
+      // Show success message
+      setSnackbarMessage(result.message || 'Question added to cart');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
+      // Call the parent component's onAddToCart callback if provided
       if (onAddToCart) {
         onAddToCart(question.id);
       }
     } catch (error) {
       console.error('Error adding question to cart:', error);
+      setSnackbarMessage('Failed to add question to cart');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
   };
 
   const handleRetry = () => {
@@ -213,6 +242,21 @@ export const QuestionList: React.FC<QuestionListProps> = ({
           />
         </Box>
       )}
+      
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbarSeverity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Client-side functions for managing test ID
 export function generateTestId(): string {
-  if (typeof window === 'undefined') return '';
+  if (typeof window === 'undefined') return 'questions-list';
   
   const testId = localStorage.getItem('testId');
   if (testId) {
@@ -17,7 +17,15 @@ export function generateTestId(): string {
 }
 
 export function getTestId(): string {
-  if (typeof window === 'undefined') return '';
+  if (typeof window === 'undefined') return 'questions-list';
+  
+  // First check for currentTestId which is used by the cart
+  const currentTestId = localStorage.getItem('currentTestId');
+  if (currentTestId) {
+    return currentTestId;
+  }
+  
+  // Fall back to the general testId
   return generateTestId();
 }
 

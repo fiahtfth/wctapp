@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Card, 
   CardContent, 
   Typography, 
   Button, 
   Chip, 
-  Box 
+  Box,
+  CircularProgress
 } from '@mui/material';
 import type { Question } from '@/types/question';
 
@@ -18,6 +19,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   question, 
   onAddToTest 
 }) => {
+  const [isAdding, setIsAdding] = useState(false);
+
   const getDifficultyColor = () => {
     switch (question.difficulty?.toLowerCase()) {
       case 'easy':
@@ -28,6 +31,20 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         return 'bg-red-100';
       default:
         return 'bg-gray-100';
+    }
+  };
+
+  const handleAddToTest = async () => {
+    if (onAddToTest) {
+      try {
+        setIsAdding(true);
+        console.log('Adding question to test:', question.id);
+        await onAddToTest();
+      } catch (error) {
+        console.error('Error adding question to test:', error);
+      } finally {
+        setIsAdding(false);
+      }
     }
   };
 
@@ -78,12 +95,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             variant="outlined" 
           />
         </Box>
-
-        {question.marks !== undefined && (
-          <Typography variant="body2" color="textSecondary">
-            Marks: {question.marks}
-          </Typography>
-        )}
       </CardContent>
 
       {onAddToTest && (
@@ -92,9 +103,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             variant="contained" 
             color="primary" 
             fullWidth 
-            onClick={onAddToTest}
+            onClick={handleAddToTest}
+            disabled={isAdding}
+            data-testid="add-to-test-button"
+            startIcon={isAdding ? <CircularProgress size={20} color="inherit" /> : null}
           >
-            Add to Test
+            {isAdding ? 'Adding...' : 'Add to Test'}
           </Button>
         </Box>
       )}

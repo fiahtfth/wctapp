@@ -61,7 +61,13 @@ export const getQuestions = asyncErrorHandler(async (filters: {
     if (filters.module) {
       const modules = Array.isArray(filters.module) ? filters.module : [filters.module];
       if (modules.length > 0) {
-        query = query.in('module_name', modules);
+        // Try both module_name and module columns
+        if (modules.length === 1) {
+          query = query.or(`module_name.eq.${modules[0]},module.eq.${modules[0]}`);
+        } else {
+          // For multiple values, use in operator
+          query = query.or(`module_name.in.(${modules.join(',')}),module.in.(${modules.join(',')})`);
+        }
       }
     }
     
@@ -75,7 +81,13 @@ export const getQuestions = asyncErrorHandler(async (filters: {
     if (filters.sub_topic) {
       const subTopics = Array.isArray(filters.sub_topic) ? filters.sub_topic : [filters.sub_topic];
       if (subTopics.length > 0) {
-        query = query.in('sub_topic', subTopics);
+        // Try both sub_topic and SubTopic columns
+        if (subTopics.length === 1) {
+          query = query.or(`sub_topic.eq.${subTopics[0]},SubTopic.eq.${subTopics[0]}`);
+        } else {
+          // For multiple values, use in operator
+          query = query.or(`sub_topic.in.(${subTopics.join(',')}),SubTopic.in.(${subTopics.join(',')})`);
+        }
       }
     }
     
@@ -98,56 +110,56 @@ export const getQuestions = asyncErrorHandler(async (filters: {
       );
     }
     
-    // Apply pagination - use range for compatibility with tests
-    const { data: questions, count, error } = await query
+    // Execute the query
+    const { data, error, count } = await query
       .range(offset, offset + pageSize - 1)
       .order('id', { ascending: true });
     
     if (error) {
-      console.error('Error fetching questions:', error);
-      throw new AppError('Failed to fetch questions', 500, error);
+      throw new AppError(`Database error: ${error.message}`);
     }
     
-    const total = count || 0;
+    // Map database results to Question objects with proper field mapping
+    const questions = data.map(item => {
+      // Ensure all required fields are present with proper fallbacks
+      const question: ImportedQuestion = {
+        id: item.id,
+        text: item.text || item.Question || '',
+        answer: item.answer || item.Answer || '',
+        subject: item.subject || item.Subject || '',
+        topic: item.topic || item.Topic || '',
+        questionType: (item.question_type || item.QuestionType || item.Question_Type || 'Objective') as 'Objective' | 'Subjective',
+        // Map optional fields with proper fallbacks
+        module: item.module_name || item.module || item.ModuleName || item['Module Name'] || '',
+        sub_topic: item.sub_topic || item.SubTopic || item['Sub Topic'] || '',
+        difficulty: (item.difficulty_level || item.Difficulty || item.DifficultyLevel || item['Difficulty Level'] || 'Medium') as 'Easy' | 'Medium' | 'Hard',
+        marks: item.marks || item.Marks || 0,
+        tags: item.tags || []
+      };
+      return question;
+    });
     
-    // Map questions to the expected format - updated to match actual column names
-    const mappedQuestions = (questions || []).map((q: any) => ({
-      id: q.id,
-      text: q.text,
-      answer: q.answer,
-      explanation: q.explanation || '',
-      subject: q.subject,
-      moduleName: q.module_name,
-      topic: q.topic,
-      subTopic: q.sub_topic || '',
-      difficultyLevel: q.difficulty_level,
-      questionType: q.question_type,
-      natureOfQuestion: q.nature_of_question || '',
-      // Add these properties to match the ImportedQuestion type
-      Question: q.text,
-      Answer: q.answer,
-      Explanation: q.explanation || '',
-      Subject: q.subject,
-      'Module Name': q.module_name,
-      Topic: q.topic,
-      'Sub Topic': q.sub_topic || '',
-      'Difficulty Level': q.difficulty_level,
-      Question_Type: q.question_type,
-      'Nature of Question': q.nature_of_question || '',
-      FacultyApproved: false // Default value as it's not in the database
-    }));
+    // Calculate total pages
+    const totalPages = Math.ceil((count || 0) / pageSize);
     
     return {
-      questions: mappedQuestions,
-      total,
+      questions,
+      total: count || 0,
       page,
       pageSize,
-      totalPages: Math.ceil(total / pageSize),
+      totalPages,
       error: null
     };
-  } catch (error) {
-    console.error('Error in getQuestions:', error);
-    throw error;
+  } catch (err) {
+    console.error('Error in getQuestions:', err);
+    return {
+      questions: [],
+      total: 0,
+      page: Number(filters.page || 1),
+      pageSize: Number(filters.pageSize || 10),
+      totalPages: 0,
+      error: err instanceof Error ? err : new Error('Unknown error occurred')
+    };
   }
 });
 
