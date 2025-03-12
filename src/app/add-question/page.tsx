@@ -18,8 +18,10 @@ import {
 } from '@mui/material';
 import { getSubjects, getModules, getTopics } from '@/lib/database/hierarchicalData';
 import SafeFormControl from '@/components/SafeFormControl';
+import MainLayout from '@/components/MainLayout';
+import { withAuth } from '@/components/AuthProvider';
 
-export default function AddQuestionPage() {
+function AddQuestionPage() {
   const [formData, setFormData] = useState({
     Question: '',
     Answer: '',
@@ -380,3 +382,5 @@ export default function AddQuestionPage() {
     </Box>
   );
 }
+
+export default withAuth(AddQuestionPage);

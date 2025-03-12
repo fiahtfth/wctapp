@@ -27,7 +27,7 @@ export function getSupabaseBrowserClient() {
 
 // Admin client with service role for server-side operations
 // Only create this on the server side to avoid leaking service role key
-const supabaseAdmin = typeof window === 'undefined' 
+export const supabaseAdmin = typeof window === 'undefined' 
   ? createClient<Database>(supabaseUrl, supabaseServiceRoleKey)
   : null;
 

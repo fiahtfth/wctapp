@@ -38,7 +38,7 @@ import {
   ShoppingCart as CartIcon,
 } from '@mui/icons-material';
 import { useCartStore } from '@/store/cartStore';
-import { removeFromCart, fetchCartItems } from '@/lib/client-actions';
+import { removeQuestionFromCart, fetchCartItems } from '@/lib/client-actions';
 import { useRouter } from 'next/navigation';
 import { QuestionCard } from './QuestionCard';
 import * as XLSX from 'xlsx';
@@ -417,7 +417,7 @@ export default function Cart({ testId: propTestId }: CartProps) {
       removeQuestion(String(questionId));
       
       // Then remove from server - ensure questionId is a string
-      await removeFromCart(String(questionId), testId);
+      await removeQuestionFromCart(String(questionId), testId);
       
       // Set snackbar state
       if (removedQuestionDetails) {

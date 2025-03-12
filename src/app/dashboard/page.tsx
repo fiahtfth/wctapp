@@ -9,9 +9,8 @@ import {
   ShoppingCart as CartIcon,
 } from '@mui/icons-material';
 import MainLayout from '@/components/MainLayout';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth, withAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { withAuth } from '@/components/AuthProvider';
 
 function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -21,19 +20,13 @@ function Dashboard() {
   
   // Check if user is admin on component mount and handle authentication
   useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    
     // Set admin status based on user role
     if (user && user.role === 'admin') {
       setIsAdmin(true);
     } else {
       setIsAdmin(false);
     }
-  }, [isAuthenticated, isLoading, router, user]);
+  }, [user]);
   
   return (
     <MainLayout title="Dashboard" subtitle="Welcome to the WCT Exam Creation Manager">
@@ -253,4 +246,5 @@ function Dashboard() {
   );
 }
 
+// Export the component wrapped with the withAuth HOC
 export default withAuth(Dashboard);

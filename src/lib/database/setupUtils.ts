@@ -121,4 +121,68 @@ export async function createDefaultAdminIfNeeded(): Promise<{
       error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 
     };
   }
+}
+
+/**
+ * Checks if all required database tables exist and are properly configured
+ * This function is used to verify the database setup
+ */
+export async function checkDatabaseTables(): Promise<{ 
+  success: boolean; 
+  message: string;
+  tables?: { name: string; exists: boolean }[];
+  error?: string 
+}> {
+  try {
+    console.log('Checking database tables');
+    
+    // Check if supabaseAdmin is available
+    if (!supabaseAdmin) {
+      return {
+        success: false,
+        message: 'Database check failed',
+        error: 'Supabase admin client is not available'
+      };
+    }
+    
+    // List of tables to check
+    const requiredTables = [
+      'users',
+      'questions',
+      'tests',
+      'cart_questions',
+      'user_tokens'
+    ];
+    
+    const tableStatus = [];
+    let allTablesExist = true;
+    
+    // Check each table
+    for (const tableName of requiredTables) {
+      // Try to select a single row to check if table exists
+      const { error } = await supabaseAdmin.from(tableName).select('*').limit(1);
+      
+      const exists = !error || !error.message.includes('does not exist');
+      tableStatus.push({ name: tableName, exists });
+      
+      if (!exists) {
+        allTablesExist = false;
+      }
+    }
+    
+    return {
+      success: allTablesExist,
+      message: allTablesExist 
+        ? 'All required database tables exist' 
+        : 'Some required database tables are missing',
+      tables: tableStatus
+    };
+  } catch (error) {
+    console.error('Error checking database tables:', error);
+    return {
+      success: false,
+      message: 'Database check failed',
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 } 

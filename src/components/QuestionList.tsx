@@ -12,10 +12,39 @@ import { getQuestions } from '@/lib/database/queries';
 import { addQuestionToCart } from '@/lib/client-actions';
 import type { Question } from '@/types/question';
 
-export const QuestionList: React.FC = () => {
+interface QuestionListProps {
+  testId: string;
+  filters?: {
+    subject?: string[];
+    module?: string[];
+    topic?: string[];
+    sub_topic?: string[];
+    question_type?: string[];
+    search?: string;
+  };
+  onFilterChange?: (filters: any) => void;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  totalPages?: number;
+  onTotalPagesChange?: (totalPages: number) => void;
+  pageSize?: number;
+  onAddToCart?: (questionId: number) => void;
+}
+
+export const QuestionList: React.FC<QuestionListProps> = ({
+  testId = 'default-test-id',
+  filters = {},
+  onFilterChange,
+  currentPage = 1,
+  onPageChange,
+  totalPages: externalTotalPages,
+  onTotalPagesChange,
+  pageSize = 10,
+  onAddToCart
+}) => {
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(currentPage);
+  const [totalPages, setTotalPages] = useState(externalTotalPages || 1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +56,11 @@ export const QuestionList: React.FC = () => {
       // Simulate network delay for testing
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const result = await getQuestions({ page: currentPage });
+      const result = await getQuestions({ 
+        page: currentPage,
+        pageSize,
+        ...filters
+      });
 
       if (result.error) {
         throw new Error(result.error.message || 'Failed to fetch questions');
@@ -35,7 +68,11 @@ export const QuestionList: React.FC = () => {
 
       if (result.questions && result.questions.length > 0) {
         setQuestions(result.questions);
-        setTotalPages(result.totalPages ?? 1);
+        const newTotalPages = result.totalPages ?? 1;
+        setTotalPages(newTotalPages);
+        if (onTotalPagesChange) {
+          onTotalPagesChange(newTotalPages);
+        }
       } else {
         throw new Error('No questions found');
       }
@@ -52,17 +89,29 @@ export const QuestionList: React.FC = () => {
     }
   };
 
+  // Update internal page when external currentPage changes
+  useEffect(() => {
+    setPage(currentPage);
+  }, [currentPage]);
+
+  // Fetch questions when page or filters change
   useEffect(() => {
     fetchQuestions(page);
-  }, [page]);
+  }, [page, filters, pageSize]);
 
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
+    if (onPageChange) {
+      onPageChange(value);
+    }
   };
 
   const handleAddToCart = async (question: Question) => {
     try {
-      await addQuestionToCart(question.id, 'default-test-id');
+      await addQuestionToCart(question.id, testId);
+      if (onAddToCart) {
+        onAddToCart(question.id);
+      }
     } catch (error) {
       console.error('Error adding question to cart:', error);
     }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { removeQuestionFromCart } from '@/types/question';
+import { removeQuestionFromCart } from '@/lib/client-actions';
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // Get the request body

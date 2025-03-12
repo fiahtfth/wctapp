@@ -26,6 +26,7 @@ import {
 import { jwtDecode } from 'jwt-decode';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SafeFormControl from '@/components/SafeFormControl';
+import { withAdminAuth } from '@/components/AuthProvider';
 
 interface User {
   id: number;
@@ -45,7 +46,7 @@ interface JwtPayload {
   exp: number;
 }
 
-export default function UserManagement() {
+function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -537,3 +538,5 @@ export default function UserManagement() {
     </Box>
   );
 }
+
+export default withAdminAuth(UserManagement);

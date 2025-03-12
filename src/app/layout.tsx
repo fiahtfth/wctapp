@@ -1,6 +1,6 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import ClientDatabaseInitializer from '@/components/ClientDatabaseInitializer';
 import ClientAuthProvider from '@/components/ClientAuthProvider';
 
@@ -13,12 +13,17 @@ export const metadata: Metadata = {
   title: 'WCT Exam Creation Manager',
   description: 'A tool for creating and managing WCT exams',
   manifest: '/manifest.json',
-  themeColor: '#000000',
   icons: [
     { rel: 'icon', url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
     { rel: 'icon', url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     { rel: 'apple-touch-icon', url: '/icons/icon-192x192.png', sizes: '192x192' }
   ]
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
 };
 
 interface RootLayoutProps {

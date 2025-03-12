@@ -1,4 +1,5 @@
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
+
 export const metadata: Metadata = {
   title: 'WCT Question Bank',
   description: 'Question Bank Management Application',
@@ -10,5 +11,10 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/icons/icon-192x192.png', sizes: '192x192' }],
   },
-  viewport: 'width=device-width, initial-scale=1, theme-color=#000000',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
 };

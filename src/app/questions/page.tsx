@@ -1,11 +1,14 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import QuestionList from '@/components/QuestionList';
+import { QuestionList } from '@/components/QuestionList';
 import { addQuestionToCart, getCartItems } from '@/lib/actions';
 import MainLayout from '@/components/MainLayout';
+import { withAuth } from '@/components/AuthProvider';
+import QuestionFilter from '@/components/QuestionFilter';
+import { Box, Paper, Typography } from '@mui/material';
 
-export default function QuestionsPage() {
+function QuestionsPage() {
   const [testId] = useState('questions-list');
   const [cartCount, setCartCount] = useState(0);
   const [filters, setFilters] = useState<{
@@ -49,8 +52,31 @@ export default function QuestionsPage() {
     }
   };
 
+  const handleFilterChange = (newFilters: any) => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+    
+    // Convert single string values to arrays for compatibility with QuestionList
+    const formattedFilters: any = {};
+    
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (value && value !== '') {
+        formattedFilters[key] = Array.isArray(value) ? value : [value];
+      }
+    });
+    
+    setFilters(formattedFilters);
+  };
+
   return (
     <MainLayout title="Questions" subtitle="Browse and manage your question bank">
+      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Filter Questions
+        </Typography>
+        <QuestionFilter onFilterChange={handleFilterChange} />
+      </Paper>
+      
       <QuestionList
         testId={testId}
         filters={filters}
@@ -65,3 +91,5 @@ export default function QuestionsPage() {
     </MainLayout>
   );
 }
+
+export default withAuth(QuestionsPage);
