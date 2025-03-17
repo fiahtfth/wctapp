@@ -42,11 +42,10 @@ export async function middleware(request: NextRequest) {
     publicRoutes.some(route => pathname.startsWith(route)) ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/api/auth') ||
-    pathname.startsWith('/api/users') || // Skip API routes for users
+    pathname.startsWith('/api/') || // Skip all API routes
     pathname.includes('.') // Skip files with extensions
   ) {
-    console.log(`Skipping middleware for public route: ${pathname}`);
+    console.log(`Skipping middleware for public route or API: ${pathname}`);
     return NextResponse.next();
   }
   
@@ -146,7 +145,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - api (API routes)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api).*)',
   ],
 };

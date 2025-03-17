@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Question } from '@/types/question';
 import crypto from 'crypto';
 
-interface CartQuestion extends Omit<Question, 'id'> {
+interface CartQuestion {
   id: number | string;
   Question: string;
   Subject: string;
@@ -11,18 +11,37 @@ interface CartQuestion extends Omit<Question, 'id'> {
   FacultyApproved: boolean;
   QuestionType: 'Objective' | 'Subjective';
   quantity?: number;
+  // Standard Question fields
+  text: string;
+  answer: string;
+  subject: string;
+  topic: string;
+  questionType: 'Objective' | 'Subjective';
+  // Optional fields
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
+  module?: string;
+  sub_topic?: string;
+  marks?: number;
+  tags?: string[];
+  // Additional fields that might be present
+  explanation?: string;
+  moduleName?: string;
+  subTopic?: string;
+  difficultyLevel?: string;
+  natureOfQuestion?: string;
 }
 
 interface CartStore {
   questions: CartQuestion[];
-  addQuestion: (question: Question | CartQuestion) => void;
+  addQuestion: (question: Question | Partial<CartQuestion>) => void;
   removeQuestion: (questionId: string | number) => void;
   clearCart: () => void;
   isInCart: (questionId: string | number) => boolean;
+  getCartCount: () => number;
 }
 
-// Type guard to check if a question is a CartQuestion
-function isCartQuestion(question: any): question is CartQuestion {
+// Type guard to check if a question has CartQuestion specific properties
+function hasCartQuestionProperties(question: any): boolean {
   return question && 
     typeof question.Question === 'string' && 
     typeof question.Subject === 'string' && 
@@ -38,10 +57,14 @@ export const useCartStore = create<CartStore>()(
           // Prevent adding sample questions
           const safeQuestion = { ...question };
           
-          if (
-            (typeof safeQuestion.Question === 'string' && safeQuestion.Question.includes('Sample Question')) || 
-            (typeof safeQuestion.Subject === 'string' && safeQuestion.Subject === 'Sample Subject')
-          ) {
+          // Check for sample questions in both formats
+          const isQuestionSample = 
+            (typeof (safeQuestion as any).Question === 'string' && (safeQuestion as any).Question.includes('Sample Question')) || 
+            (typeof (safeQuestion as any).Subject === 'string' && (safeQuestion as any).Subject === 'Sample Subject') ||
+            (typeof safeQuestion.text === 'string' && safeQuestion.text.includes('Sample Question')) ||
+            (typeof safeQuestion.subject === 'string' && safeQuestion.subject === 'Sample Subject');
+          
+          if (isQuestionSample) {
             return state;
           }
 
@@ -49,9 +72,9 @@ export const useCartStore = create<CartStore>()(
           const questionId = safeQuestion.id ?? crypto.randomUUID();
           
           // Normalize the question to CartQuestion type
-          const cartQuestion: CartQuestion = isCartQuestion(safeQuestion) 
+          const cartQuestion: CartQuestion = hasCartQuestionProperties(safeQuestion) 
             ? {
-                ...safeQuestion,
+                ...safeQuestion as CartQuestion,
                 id: questionId,
               } 
             : {
@@ -63,17 +86,24 @@ export const useCartStore = create<CartStore>()(
                 subject: safeQuestion.subject || '',
                 topic: safeQuestion.topic || '',
                 answer: safeQuestion.answer || '',
-                explanation: safeQuestion.explanation || '',
-                moduleName: safeQuestion.moduleName || '',
-                subTopic: safeQuestion.subTopic || '',
-                difficultyLevel: safeQuestion.difficultyLevel || '',
-                questionType: safeQuestion.questionType || '',
-                natureOfQuestion: safeQuestion.natureOfQuestion || '',
+                questionType: safeQuestion.questionType || 'Objective',
                 FacultyApproved: false,
-                QuestionType: 'Objective'
+                QuestionType: 'Objective',
+                // Optional fields with safe access
+                difficulty: safeQuestion.difficulty,
+                module: safeQuestion.module,
+                sub_topic: safeQuestion.sub_topic,
+                marks: safeQuestion.marks,
+                tags: safeQuestion.tags,
+                // Additional fields that might be present in the source object
+                explanation: (safeQuestion as any).explanation,
+                moduleName: (safeQuestion as any).moduleName,
+                subTopic: (safeQuestion as any).subTopic,
+                difficultyLevel: (safeQuestion as any).difficultyLevel,
+                natureOfQuestion: (safeQuestion as any).natureOfQuestion
               };
 
-          // Check if question is already in cart
+          // Check if question is already in cart by comparing string IDs
           const isAlreadyInCart = state.questions.some(q => String(q.id) === String(questionId));
           if (isAlreadyInCart) {
             return state;
@@ -101,11 +131,12 @@ export const useCartStore = create<CartStore>()(
           (typeof question.Question === 'string' && question.Question === questionId)
         );
       },
+      getCartCount: () => {
+        return get().questions.length;
+      }
     }),
     {
       name: 'question-cart',
-      // Optional: Add storage configuration if needed
-      // storage: createJSONStorage(() => localStorage),
     }
   )
 );

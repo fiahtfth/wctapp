@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Button, CircularProgress, Snackbar, Alert } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Button, CircularProgress, Snackbar, Alert, Tooltip } from '@mui/material';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import { useCartStore } from '@/store/cartStore';
@@ -12,17 +12,19 @@ interface CartButtonProps {
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   onAddToTest?: (question: Question) => Promise<void>;
+  showTooltip?: boolean;
 }
 
 export default function CartButton({ 
   question, 
   size = 'medium', 
   disabled = false,
-  onAddToTest 
+  onAddToTest,
+  showTooltip = true
 }: CartButtonProps) {
-  const { addQuestion, removeQuestion, isInCart } = useCartStore();
+  const { addQuestion, removeQuestion, isInCart, getCartCount } = useCartStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({
+  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error' | 'info'}>({
     open: false,
     message: '',
     severity: 'success'
@@ -30,8 +32,21 @@ export default function CartButton({
   
   const inCart = question ? isInCart(question.id) : false;
   
+  // Debounce function to prevent multiple rapid clicks
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
+  
   const handleClick = async () => {
-    if (!question?.id || disabled) return;
+    if (!question?.id || disabled || isLoading) return;
 
     try {
       setIsLoading(true);
@@ -57,48 +72,61 @@ export default function CartButton({
         QuestionType: question.questionType
       };
       
+      // Get or create a test ID first to avoid race conditions
+      let testId: string;
+      try {
+        testId = await getTestId();
+      } catch (testIdError) {
+        console.warn('Could not get test ID:', testIdError);
+        testId = 'local-' + Date.now(); // Fallback local ID
+      }
+      
       if (inCart) {
         // Remove from local store first
         removeQuestion(question.id);
         
         try {
-          // Get or create a test ID
-          const testId = await getTestId();
-          
           // Try to remove from server, but don't fail if it doesn't work
           await removeQuestionFromCart(question.id, testId).catch(err => {
             console.warn('Could not remove from server cart, but removed from local cart:', err);
           });
+          
+          setSnackbar({
+            open: true,
+            message: 'Question removed from cart',
+            severity: 'success'
+          });
         } catch (serverError) {
           console.warn('Error with server cart, but removed from local cart:', serverError);
+          setSnackbar({
+            open: true,
+            message: 'Question removed from local cart only',
+            severity: 'info'
+          });
         }
-        
-        setSnackbar({
-          open: true,
-          message: 'Question removed from cart',
-          severity: 'success'
-        });
       } else {
         // Add to local store first
         addQuestion(cartQuestion);
         
         try {
-          // Get or create a test ID
-          const testId = await getTestId();
-          
           // Try to add to server, but don't fail if it doesn't work
           await addQuestionToCart(question.id, testId).catch(err => {
             console.warn('Could not add to server cart, but added to local cart:', err);
           });
+          
+          setSnackbar({
+            open: true,
+            message: 'Question added to cart',
+            severity: 'success'
+          });
         } catch (serverError) {
           console.warn('Error with server cart, but added to local cart:', serverError);
+          setSnackbar({
+            open: true,
+            message: 'Question added to local cart only',
+            severity: 'info'
+          });
         }
-        
-        setSnackbar({
-          open: true,
-          message: 'Question added to cart',
-          severity: 'success'
-        });
       }
       
       // If onAddToTest is provided, call it
@@ -119,27 +147,38 @@ export default function CartButton({
     }
   };
   
+  // Create a debounced version of handleClick to prevent double-clicks
+  const debouncedHandleClick = React.useCallback(debounce(handleClick, 300), [question, inCart]);
+  
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
   
+  const buttonElement = (
+    <Button
+      variant="contained"
+      color={inCart ? "error" : "primary"}
+      size={size}
+      onClick={debouncedHandleClick}
+      disabled={disabled || isLoading}
+      startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : 
+                inCart ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+    >
+      {inCart ? "Remove" : "Add to Cart"}
+    </Button>
+  );
+  
   return (
     <>
-      <Button
-        variant="contained"
-        color={inCart ? "error" : "primary"}
-        size={size}
-        onClick={handleClick}
-        disabled={disabled || isLoading}
-        startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : 
-                  inCart ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
-      >
-        {inCart ? "Remove" : "Add to Cart"}
-      </Button>
+      {showTooltip ? (
+        <Tooltip title={inCart ? "Remove from cart" : "Add to cart"}>
+          {buttonElement}
+        </Tooltip>
+      ) : buttonElement}
       
       <Snackbar 
         open={snackbar.open} 
-        autoHideDuration={6000} 
+        autoHideDuration={3000} 
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >

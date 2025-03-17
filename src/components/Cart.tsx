@@ -181,33 +181,21 @@ export default function Cart({ testId: propTestId }: CartProps) {
           }
         }
       } catch (parseError) {
-        console.warn('Error parsing user from localStorage, using default user ID:', parseError);
+        console.error('Error parsing user from localStorage:', parseError);
       }
       
-      console.log('Using User ID:', userId); // Debug log
-      
-      // Validate questions
-      if (questions.length === 0) {
-        setDraftSaveError('Cart is empty. Add questions before saving draft.');
-        return;
-      }
-      
-      // Extract question IDs and validate each one
-      const questionIds = [];
+      // Get question IDs from the cart
+      const questionIds: number[] = [];
       for (const question of questions) {
-        // Try to convert to number, use a default if it fails
-        let id;
-        try {
-          id = Number(question.id);
-          if (isNaN(id) || id <= 0) {
-            console.warn(`Invalid question ID: ${question.id}, using a placeholder`);
-            id = Math.floor(Math.random() * 10000) + 1; // Generate a random positive ID
-          }
-        } catch (e) {
-          console.warn(`Error converting question ID: ${question.id}, using a placeholder`);
-          id = Math.floor(Math.random() * 10000) + 1; // Generate a random positive ID
+        const id = typeof question.id === 'string' ? parseInt(question.id, 10) : question.id;
+        if (!isNaN(id)) {
+          questionIds.push(id);
         }
-        questionIds.push(id);
+      }
+      
+      if (questionIds.length === 0) {
+        setDraftSaveError('No valid questions in cart');
+        return;
       }
       
       console.log('Saving draft with question IDs:', questionIds);
@@ -230,76 +218,55 @@ export default function Cart({ testId: propTestId }: CartProps) {
         setExportModalOpen(false);
         setDraftSaveError(null);
         
-        // Update the current testId if it's a new draft
-        if (!testId) {
-          setTestId(draftCartId);
-          localStorage.setItem('currentTestId', draftCartId);
+        // Update the current testId
+        setTestId(draftCartId);
+        localStorage.setItem('currentTestId', draftCartId);
+        
+        // Add to saved drafts if it's not already there
+        const updatedDrafts = [...savedDrafts];
+        const existingDraftIndex = updatedDrafts.findIndex(draft => draft.id === draftCartId);
+        
+        if (existingDraftIndex >= 0) {
+          // Update existing draft
+          updatedDrafts[existingDraftIndex] = {
+            id: draftCartId,
+            name: testDetails.testName
+          };
+        } else {
+          // Add new draft
+          updatedDrafts.push({
+            id: draftCartId,
+            name: testDetails.testName
+          });
         }
         
-        // Store the testId and testName in local storage
-        // Get existing saved test IDs
-        const storedTestIds = localStorage.getItem('savedTestIds');
-        let testIds = [];
-        if (storedTestIds) {
-          try {
-            testIds = JSON.parse(storedTestIds);
-            // Make sure it's an array
-            if (!Array.isArray(testIds)) {
-              testIds = [];
-            }
-          } catch (e) {
-            console.warn('Error parsing saved test IDs, resetting:', e);
-            testIds = [];
-          }
-        }
+        setSavedDrafts(updatedDrafts);
         
-        // Add the new testId if it's not already in the list
-        if (!testIds.includes(draftCartId)) {
-          testIds.push(draftCartId);
-        }
-        
-        // Save the updated list
-        localStorage.setItem('savedTestIds', JSON.stringify(testIds));
+        // Save to localStorage
+        localStorage.setItem('savedTestIds', JSON.stringify(updatedDrafts.map(draft => draft.id)));
         localStorage.setItem(`testName-${draftCartId}`, testDetails.testName);
         
-        // Update the saved drafts state
-        setSavedDrafts(testIds.map(id => ({
-          id,
-          name: localStorage.getItem(`testName-${id}`) || 'Unnamed Draft'
-        })));
-        
-        // Show a success message to the user
+        // Show success message
         setSnackbarOpen(true);
-        setRemovedQuestion(`Draft "${testDetails.testName}" saved successfully`);
-        
-        console.log('Draft cart saved successfully with ID:', draftCartId);
-      } catch (error) {
-        console.error('Error saving draft:', error);
-        setDraftError(error instanceof Error ? error.message : 'Failed to save draft');
-        setLoadingDraft(false);
+        setRemovedQuestion('Draft saved successfully');
+      } catch (saveError) {
+        console.error('Error saving draft:', saveError);
+        // Provide a more user-friendly error message
+        if (saveError instanceof Error) {
+          setDraftSaveError(`Failed to save draft: ${saveError.message}`);
+        } else {
+          setDraftSaveError('Failed to save draft: Unknown error');
+        }
       }
-    } catch (saveError) {
-      console.error('Error saving draft cart:', saveError);
-      // Provide a more user-friendly error message
-      const errorMessage = saveError instanceof Error 
-        ? saveError.message 
-        : 'Failed to save draft cart';
-      
-      // Set the draft error for the DatabaseSetupAlert component
-      setDraftError(errorMessage);
-      
-      // Check for specific error types and provide more helpful messages
-      if (errorMessage.includes('foreign key constraint')) {
-        setDraftSaveError('Unable to save draft: One or more questions no longer exist in the database.');
-      } else if (errorMessage.includes('user')) {
-        setDraftSaveError('Unable to save draft: User authentication issue. Please try logging in again.');
+    } catch (error) {
+      console.error('Error in handleSaveDraft:', error);
+      if (error instanceof Error) {
+        setDraftSaveError(`Error: ${error.message}`);
       } else {
-        setDraftSaveError(`Unable to save draft: ${errorMessage}`);
+        setDraftSaveError('An unexpected error occurred');
       }
-      
-      setLoadingDraft(false);
     }
-  }, [testId, testDetails, questions]);
+  }, [questions, testDetails, testId, savedDrafts]);
 
   // First useEffect
   useEffect(() => {
@@ -622,22 +589,145 @@ export default function Cart({ testId: propTestId }: CartProps) {
       setTestId(draftId);
       localStorage.setItem('currentTestId', draftId);
       
-      // Clear the current cart
-      clearCart();
-      
-      // Fetch the cart items for this draft
-      await fetchCartItems(draftId);
-      
-      // Update the test details
+      // Update the test details first (this doesn't require authentication)
       const testName = localStorage.getItem(`testName-${draftId}`) || '';
       setTestDetails(prev => ({
         ...prev,
         testName
       }));
       
-      // Show success message
-      setSnackbarOpen(true);
-      setRemovedQuestion(`Draft "${testName}" loaded successfully`);
+      // Clear the current cart
+      clearCart();
+      
+      // Check if we have locally stored question IDs for this draft
+      const localDraftQuestionIds = JSON.parse(localStorage.getItem(`draft-${draftId}-questions`) || '[]');
+      console.log(`Found ${localDraftQuestionIds.length} locally stored question IDs for draft ${draftId}`);
+      
+      // Fetch the cart items for this draft
+      try {
+        console.log('Fetching cart items for draft:', draftId);
+        const loadedQuestions = await fetchCartItems(draftId);
+        console.log('Loaded questions:', loadedQuestions);
+        
+        // If no questions were loaded, but we have local question IDs, use those
+        if ((!loadedQuestions || loadedQuestions.length === 0) && localDraftQuestionIds.length > 0) {
+          console.log('No questions loaded from server, using local question IDs');
+          
+          // Create placeholder questions for the local question IDs
+          const cartStore = useCartStore.getState();
+          localDraftQuestionIds.forEach((id: string | number) => {
+            if (!cartStore.isInCart(id)) {
+              cartStore.addQuestion({
+                id: typeof id === 'string' ? parseInt(id, 10) : id,
+                text: `Question ${id}`,
+                answer: '',
+                subject: '',
+                topic: '',
+                questionType: 'Objective',
+                difficulty: 'Medium',
+                module: '',
+                sub_topic: '',
+                marks: 0,
+                tags: [],
+                Question: `Question ${id}`,
+                Subject: '',
+                Topic: '',
+                FacultyApproved: false,
+                QuestionType: 'Objective'
+              });
+            }
+          });
+          
+          setSnackbarOpen(true);
+          setRemovedQuestion(`Loaded ${localDraftQuestionIds.length} question${localDraftQuestionIds.length === 1 ? '' : 's'} from local storage for draft "${testName}"`);
+        } else if (!loadedQuestions || loadedQuestions.length === 0) {
+          // If no questions were loaded and we don't have local question IDs
+          setSnackbarOpen(true);
+          setRemovedQuestion('No questions found in this draft');
+        } else {
+          // Show success message with question count
+          setSnackbarOpen(true);
+          setRemovedQuestion(`Loaded ${loadedQuestions.length} question${loadedQuestions.length === 1 ? '' : 's'} from draft "${testName}"`);
+        }
+      } catch (fetchError) {
+        console.error('Error fetching cart items:', fetchError);
+        
+        // If there's an authentication error, try to use locally stored question IDs
+        if (fetchError instanceof Error && fetchError.message === 'Authentication required') {
+          console.log('Authentication required, trying to use locally stored question IDs');
+          
+          // If we have locally stored question IDs for this draft, use them
+          if (localDraftQuestionIds && localDraftQuestionIds.length > 0) {
+            console.log(`Using ${localDraftQuestionIds.length} locally stored question IDs`);
+            
+            // Create placeholder questions for the local question IDs
+            const cartStore = useCartStore.getState();
+            localDraftQuestionIds.forEach((id: string | number) => {
+              if (!cartStore.isInCart(id)) {
+                cartStore.addQuestion({
+                  id: typeof id === 'string' ? parseInt(id, 10) : id,
+                  text: `Question ${id}`,
+                  answer: '',
+                  subject: '',
+                  topic: '',
+                  questionType: 'Objective',
+                  difficulty: 'Medium',
+                  module: '',
+                  sub_topic: '',
+                  marks: 0,
+                  tags: [],
+                  Question: `Question ${id}`,
+                  Subject: '',
+                  Topic: '',
+                  FacultyApproved: false,
+                  QuestionType: 'Objective'
+                });
+              }
+            });
+            
+            setSnackbarOpen(true);
+            setRemovedQuestion(`Loaded ${localDraftQuestionIds.length} question${localDraftQuestionIds.length === 1 ? '' : 's'} from local storage for draft "${testName}"`);
+          } else {
+            // Try to get items from general local cart
+            const localCartItems = JSON.parse(localStorage.getItem('localCart') || '[]');
+            if (localCartItems && localCartItems.length > 0) {
+              // Add local items to the cart
+              const cartStore = useCartStore.getState();
+              localCartItems.forEach((id: string | number) => {
+                if (!cartStore.isInCart(id)) {
+                  cartStore.addQuestion({
+                    id: typeof id === 'string' ? parseInt(id, 10) : id,
+                    text: `Question ${id}`,
+                    answer: '',
+                    subject: '',
+                    topic: '',
+                    questionType: 'Objective',
+                    difficulty: 'Medium',
+                    module: '',
+                    sub_topic: '',
+                    marks: 0,
+                    tags: [],
+                    Question: `Question ${id}`,
+                    Subject: '',
+                    Topic: '',
+                    FacultyApproved: false,
+                    QuestionType: 'Objective'
+                  });
+                }
+              });
+              
+              setSnackbarOpen(true);
+              setRemovedQuestion(`Loaded ${localCartItems.length} question${localCartItems.length === 1 ? '' : 's'} from general local cart`);
+            } else {
+              setSnackbarOpen(true);
+              setRemovedQuestion(`Error loading questions: Authentication required and no local data found. Please log in to access this draft.`);
+            }
+          }
+        } else {
+          setSnackbarOpen(true);
+          setRemovedQuestion(`Error loading questions: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+        }
+      }
     } catch (error) {
       console.error('Error loading draft:', error);
       setSnackbarOpen(true);
@@ -1037,9 +1127,66 @@ export default function Cart({ testId: propTestId }: CartProps) {
                         </IconButton>
                       </Box>
                       
-                      <Typography variant="body1" gutterBottom>
-                        {question.Question || question.text}
-                      </Typography>
+                      <Box 
+                        sx={{ 
+                          mt: 1, 
+                          mb: 2, 
+                          p: 2, 
+                          backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                          borderRadius: 1
+                        }}
+                      >
+                        {/* Format the question text with proper line breaks */}
+                        {(question.Question || question.text)?.split('\n').map((line, i) => {
+                          // Check if this is a numbered list item (like "1. Something")
+                          const isNumberedItem = /^\s*\d+\.\s/.test(line);
+                          
+                          // Check if this is an option line (like "(a) Something")
+                          const isOptionItem = /^\s*\([a-d]\)\s/.test(line);
+                          
+                          return (
+                            <Typography 
+                              key={i} 
+                              variant="body1" 
+                              gutterBottom
+                              sx={{ 
+                                pl: isNumberedItem || isOptionItem ? 2 : 0,
+                                fontWeight: isNumberedItem ? 'medium' : 'normal',
+                                color: isOptionItem ? 'text.secondary' : 'text.primary'
+                              }}
+                            >
+                              {line}
+                            </Typography>
+                          );
+                        })}
+                        
+                        {/* Display multiple choice options if they exist as separate property */}
+                        {(question as any).options && Array.isArray((question as any).options) && (
+                          <Box sx={{ mt: 1, pl: 2 }}>
+                            {(question as any).options.map((option: string, i: number) => (
+                              <Typography 
+                                key={i} 
+                                variant="body1" 
+                                gutterBottom
+                                sx={{ color: 'text.secondary' }}
+                              >
+                                ({String.fromCharCode(97 + i)}) {option}
+                              </Typography>
+                            ))}
+                          </Box>
+                        )}
+                        
+                        {/* Alternative way to display options if they're in the question text */}
+                        {!((question as any).options && Array.isArray((question as any).options)) && 
+                         (question.Question || question.text)?.includes('(a)') && 
+                         !(question.Question || question.text)?.includes('\n(a)') && (
+                          <Box sx={{ mt: 1, pl: 2, color: 'text.secondary' }}>
+                            <Typography variant="body2" fontStyle="italic">
+                              Multiple choice options included in question text
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
                       
                       <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                         {(question.Subject || question.subject) && (

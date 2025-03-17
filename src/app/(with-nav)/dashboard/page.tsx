@@ -10,6 +10,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -109,19 +110,20 @@ export default function Dashboard() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
               Browse and search through all available questions
             </Typography>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={() => router.push('/questions')}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 500,
-                px: 3,
-              }}
-            >
-              View Questions
-            </Button>
+            <Link href="/questions" passHref style={{ textDecoration: 'none' }}>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  px: 3,
+                }}
+              >
+                View Questions
+              </Button>
+            </Link>
           </Paper>
         </Grid>
         

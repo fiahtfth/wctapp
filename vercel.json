@@ -6,39 +6,22 @@
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://ztrgchnlakmpsshkzpkl.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0cmdjaG5sYWttcHNzaGt6cGtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3NjQ3NjcsImV4cCI6MjA1NjM0MDc2N30.HZ4WQcUJZdyFodiSJ8o86x814PYYrXPmHcCpqF4hVQg",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0cmdjaG5sYWttcHNzaGt6cGtsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDc2NDc2NywiZXhwIjoyMDU2MzQwNzY3fQ.agAlQGWV1AOcUA-Rql4YJ8Eai3bPG1JEs3O5nXvowhU",
+    "JWT_SECRET": "NOlWLmhqqevQsY3deJe6/bga0deW1QLMoaICDYAEVJYrwTvPfm7Pgd1jrmjGBaLh03ySJJ+ALTfrexEfzNXY0A==",
+    "JWT_REFRESH_SECRET": "your_jwt_secret_key_for_refresh_tokens",
     "NEXT_PUBLIC_APP_URL": "https://wctapp.vercel.app/",
     "NEXT_PUBLIC_USE_MOCK_DATA": "false",
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "ADMIN_EMAIL": "admin@example.com",
+    "ADMIN_USERNAME": "admin",
+    "ADMIN_PASSWORD": "StrongPassword123!",
+    "USER_EMAIL": "user@example.com",
+    "USER_USERNAME": "user",
+    "USER_PASSWORD": "user123"
   },
-  "routes": [
-    {
-      "src": "/manifest.json",
-      "dest": "/manifest.json",
-      "headers": {
-        "Cache-Control": "public, max-age=3600",
-        "Access-Control-Allow-Origin": "*"
-      }
-    },
-    {
-      "src": "/icons/(.*)",
-      "dest": "/icons/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=86400"
-      }
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
   ],
-  "build": {
-    "env": {
-      "NEXT_PUBLIC_SUPABASE_URL": "https://ztrgchnlakmpsshkzpkl.supabase.co",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0cmdjaG5sYWttcHNzaGt6cGtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3NjQ3NjcsImV4cCI6MjA1NjM0MDc2N30.HZ4WQcUJZdyFodiSJ8o86x814PYYrXPmHcCpqF4hVQg",
-      "NEXT_PUBLIC_APP_URL": "https://wctapp.vercel.app/",
-      "NEXT_PUBLIC_USE_MOCK_DATA": "false"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
@@ -64,6 +47,63 @@
           "value": "camera=(), microphone=(), geolocation=()"
         }
       ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/icons/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_SUPABASE_URL": "https://ztrgchnlakmpsshkzpkl.supabase.co",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0cmdjaG5sYWttcHNzaGt6cGtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3NjQ3NjcsImV4cCI6MjA1NjM0MDc2N30.HZ4WQcUJZdyFodiSJ8o86x814PYYrXPmHcCpqF4hVQg",
+      "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0cmdjaG5sYWttcHNzaGt6cGtsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDc2NDc2NywiZXhwIjoyMDU2MzQwNzY3fQ.agAlQGWV1AOcUA-Rql4YJ8Eai3bPG1JEs3O5nXvowhU",
+      "JWT_SECRET": "NOlWLmhqqevQsY3deJe6/bga0deW1QLMoaICDYAEVJYrwTvPfm7Pgd1jrmjGBaLh03ySJJ+ALTfrexEfzNXY0A==",
+      "JWT_REFRESH_SECRET": "your_jwt_secret_key_for_refresh_tokens",
+      "NEXT_PUBLIC_APP_URL": "https://wctapp.vercel.app/",
+      "NEXT_PUBLIC_USE_MOCK_DATA": "false",
+      "ADMIN_EMAIL": "admin@example.com",
+      "ADMIN_USERNAME": "admin",
+      "ADMIN_PASSWORD": "StrongPassword123!",
+      "USER_EMAIL": "user@example.com",
+      "USER_USERNAME": "user",
+      "USER_PASSWORD": "user123"
+    }
+  },
+  "public": true
 }
