@@ -81,6 +81,7 @@ const convertToQuestion = (cartQuestion: RawQuestionData): Question => {
     id: cartQuestion.id,
     text: cartQuestion.Question || '',
     answer: cartQuestion.Answer || cartQuestion.answer || '',
+    explanation: cartQuestion.Explanation || cartQuestion.explanation || '',
     subject: cartQuestion.Subject || cartQuestion.subject || '',
     topic: cartQuestion.Topic || cartQuestion.topic || '',
     questionType: (cartQuestion.QuestionType || cartQuestion.Question_Type || cartQuestion.question_type || 'Objective') as 'Objective' | 'Subjective',
@@ -155,6 +156,15 @@ export default function Cart({ testId: propTestId }: CartProps) {
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [confirmDeleteDraftId, setConfirmDeleteDraftId] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
+
+  // Initialize cart when component mounts
+  useEffect(() => {
+    if (!mounted) {
+      // Initialize without clearing
+      useCartStore.getState().initializeCart();
+      setMounted(true);
+    }
+  }, [mounted]);
 
   // Wrap handleSaveDraft in useCallback to prevent unnecessary re-renders
   const handleSaveDraft = useCallback(async () => {
@@ -542,6 +552,7 @@ export default function Cart({ testId: propTestId }: CartProps) {
             id: typeof question.id === 'number' ? question.id : 0,
             text: (question as any).Question || (question as any).text || '',
             answer: (question as any).Answer || (question as any).answer || '',
+            explanation: (question as any).Explanation || (question as any).explanation || '',
             subject: (question as any).Subject || (question as any).subject || '',
             topic: (question as any).Topic || (question as any).topic || '',
             questionType: 'Objective',

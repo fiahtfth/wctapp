@@ -24,7 +24,7 @@ import {
   Alert,
 } from '@mui/material';
 import { jwtDecode } from 'jwt-decode';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { Logout as LogoutIcon } from '@mui/icons-material';
 import SafeFormControl from '@/components/SafeFormControl';
 import { withAdminAuth } from '@/components/AuthProvider';
 

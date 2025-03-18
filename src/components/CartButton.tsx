@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, CircularProgress, Snackbar, Alert, Tooltip } from '@mui/material';
-import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
-import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
+import { AddShoppingCart as AddShoppingCartIcon, RemoveShoppingCart as RemoveShoppingCartIcon } from '@mui/icons-material';
 import { useCartStore } from '@/store/cartStore';
 import { Question } from '@/types/question';
 import { addQuestionToCart, removeQuestionFromCart } from '@/lib/client-actions';

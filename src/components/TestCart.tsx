@@ -11,28 +11,28 @@ import {
   Button,
   Divider,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import DeleteIcon from '@mui/icons-material/Delete';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import type { Question } from '@/types/question';
+import { Close as CloseIcon, Delete as DeleteIcon, FileDownload as FileDownloadIcon } from '@mui/icons-material';
+import { CartQuestion } from '@/types/question';
 import * as XLSX from 'xlsx';
+
 interface TestCartProps {
   open: boolean;
   onClose: () => void;
-  questions: Question[];
-  onRemoveQuestion: (questionId: number) => Promise<void>;
+  questions: CartQuestion[];
+  onRemoveQuestion: (id: number) => void;
 }
+
 export default function TestCart({ open, onClose, questions, onRemoveQuestion }: TestCartProps) {
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
       questions.map(q => ({
-        Question: q.Question,
-        Answer: q.Answer,
-        Explanation: q.Explanation,
-        Subject: q.Subject,
-        Topic: q.Topic,
-        'Difficulty Level': q['Difficulty Level'],
-        'Nature of Question': q['Nature of Question'],
+        Question: q.Question || '',
+        Answer: q.Answer || '',
+        Explanation: q.Explanation || q.explanation || '',
+        Subject: q.Subject || '',
+        Topic: q.Topic || '',
+        'Difficulty Level': q.difficulty || '',
+        'Nature of Question': q.QuestionType || '',
       }))
     );
     const workbook = XLSX.utils.book_new();
@@ -40,6 +40,7 @@ export default function TestCart({ open, onClose, questions, onRemoveQuestion }:
     // Generate Excel file
     XLSX.writeFile(workbook, 'test_questions.xlsx');
   };
+
   return (
     <Drawer
       anchor="right"

@@ -15,7 +15,7 @@ import {
   Alert,
   Typography
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import { Search as SearchIcon } from '@mui/icons-material';
 import hierarchicalData, { Subject, Module, Topic } from '@/lib/database/hierarchicalData';
 import SafeFormControl from '@/components/SafeFormControl';
 

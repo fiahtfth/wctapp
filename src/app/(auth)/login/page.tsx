@@ -21,8 +21,7 @@ import {
   EmailOutlined as EmailIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { useAuth, User } from '@/components/AuthProvider';
+import { useAuth } from '@/components/AuthProvider';
 
 const theme = createTheme({
   palette: {
@@ -53,8 +52,16 @@ const theme = createTheme({
         root: {
           borderRadius: '8px',
           textTransform: 'none',
-          fontWeight: 500,
+          fontWeight: 600,
           padding: '0.75rem 1.5rem',
+          fontSize: '1rem',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
         },
       },
     },
@@ -194,284 +201,171 @@ export default function LoginPage() {
         sx={{
           minHeight: '100vh',
           display: 'flex',
-          background: 'linear-gradient(to right, #f0f9ff, #e0f2fe)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f8fafc',
+          p: 2,
         }}
       >
-        {/* Left side - Login Form */}
-        <Box
-          sx={{
-            flex: { xs: '1', md: '0.4' },
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: 4,
-          }}
-        >
-          <Container maxWidth="sm">
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 3, sm: 5 },
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                width: '100%',
-                maxWidth: 450,
-                mx: 'auto',
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  mb: 4,
-                }}
-              >
-                <Avatar
-                  sx={{
-                    bgcolor: 'primary.main',
-                    width: 56,
-                    height: 56,
-                    mb: 2,
-                  }}
-                >
-                  <LockIcon sx={{ fontSize: 32 }} />
-                </Avatar>
-                <Typography
-                  component="h1"
-                  variant="h4"
-                  sx={{
-                    fontWeight: 700,
-                    color: 'text.primary',
-                    mb: 1,
-                  }}
-                >
-                  Welcome Back
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    color: 'text.secondary',
-                    textAlign: 'center',
-                  }}
-                >
-                  Sign in to WCT Exam Creation Manager
-                </Typography>
-              </Box>
-
-              {infoMessage && (
-                <Typography 
-                  color="info.main" 
-                  variant="body2" 
-                  sx={{ 
-                    mt: 1, 
-                    textAlign: 'center', 
-                    mb: 2,
-                    p: 1,
-                    bgcolor: 'info.lighter',
-                    borderRadius: 1,
-                  }}
-                >
-                  {infoMessage}
-                </Typography>
-              )}
-
-              {error && (
-                <Typography 
-                  color="error" 
-                  variant="body2" 
-                  sx={{ 
-                    mt: 1, 
-                    textAlign: 'center', 
-                    mb: 2,
-                    p: 1,
-                    bgcolor: 'error.lighter',
-                    borderRadius: 1,
-                  }}
-                >
-                  {error}
-                </Typography>
-              )}
-
-              <form onSubmit={handleLogin}>
-                <TextField
-                  variant="outlined"
-                  margin="normal"
-                  required
-                  fullWidth
-                  id="email"
-                  label="Email Address"
-                  name="email"
-                  autoComplete="email"
-                  autoFocus
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  variant="outlined"
-                  margin="normal"
-                  required
-                  fullWidth
-                  name="password"
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  sx={{ mt: 3, mb: 2 }}
-                  disabled={isLoggingIn}
-                >
-                  {isLoggingIn ? 'Signing In...' : 'Sign In'}
-                </Button>
-              </form>
-            </Paper>
-          </Container>
-        </Box>
-
-        {/* Right side - Illustration/Branding (hidden on mobile) */}
-        <Box
-          sx={{
-            flex: '0.6',
-            display: { xs: 'none', md: 'flex' },
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'primary.main',
-            color: 'white',
-            p: 8,
-            position: 'relative',
-          }}
-        >
-          <Box
+        <Container maxWidth="sm">
+          <Paper
+            elevation={1}
             sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: 0.1,
-              backgroundImage: 'url("data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z" fill="%23ffffff" fill-opacity="1" fill-rule="evenodd"/%3E%3C/svg%3E")',
-            }}
-          />
-          <Typography
-            variant="h3"
-            component="h2"
-            sx={{
-              fontWeight: 700,
-              mb: 3,
-              textAlign: 'center',
-              position: 'relative',
+              p: 4,
+              borderRadius: 2,
+              width: '100%',
+              maxWidth: '450px',
+              mx: 'auto',
             }}
           >
-            WCT Exam Creation Manager
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              maxWidth: 500,
-              textAlign: 'center',
-              mb: 6,
-              position: 'relative',
-            }}
-          >
-            Create, manage, and organize your exam questions with ease
-          </Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              position: 'relative',
-              mt: 4,
-            }}
-          >
-            <Typography variant="body1" sx={{ opacity: 0.8, mb: 2 }}>
-              Streamline your exam creation process
-            </Typography>
             <Box
               sx={{
                 display: 'flex',
-                gap: 2,
-                flexWrap: 'wrap',
-                justifyContent: 'center',
+                flexDirection: 'column',
+                alignItems: 'center',
+                mb: 3,
               }}
             >
-              <Box
+              <Avatar
                 sx={{
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                  p: 2,
-                  borderRadius: 2,
-                  textAlign: 'center',
-                  width: 120,
+                  bgcolor: 'primary.main',
+                  width: 56,
+                  height: 56,
+                  mb: 2,
                 }}
               >
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Organize
-                </Typography>
-              </Box>
-              <Box
+                <LockIcon sx={{ fontSize: 30 }} />
+              </Avatar>
+              <Typography
+                component="h1"
+                variant="h4"
                 sx={{
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                  p: 2,
-                  borderRadius: 2,
-                  textAlign: 'center',
-                  width: 120,
+                  fontWeight: 700,
+                  color: 'text.primary',
+                  mb: 1,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
                 }}
               >
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Create
-                </Typography>
-              </Box>
-              <Box
+                Welcome Back
+              </Typography>
+              <Typography
+                variant="body1"
                 sx={{
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                  p: 2,
-                  borderRadius: 2,
+                  color: 'text.secondary',
                   textAlign: 'center',
-                  width: 120,
                 }}
               >
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Export
-                </Typography>
-              </Box>
+                Sign in to WCT Exam Creation Manager
+              </Typography>
             </Box>
-          </Box>
-        </Box>
+
+            {infoMessage && (
+              <Typography 
+                color="info.main" 
+                variant="body2" 
+                sx={{ 
+                  mt: 1, 
+                  textAlign: 'center', 
+                  mb: 2,
+                  p: 1.5,
+                  bgcolor: 'info.lighter',
+                  borderRadius: 2,
+                }}
+              >
+                {infoMessage}
+              </Typography>
+            )}
+
+            {error && (
+              <Typography 
+                color="error" 
+                variant="body2" 
+                sx={{ 
+                  mt: 1, 
+                  textAlign: 'center', 
+                  mb: 2,
+                  p: 1.5,
+                  bgcolor: 'error.lighter',
+                  borderRadius: 2,
+                }}
+              >
+                {error}
+              </Typography>
+            )}
+
+            <form onSubmit={handleLogin}>
+              <TextField
+                variant="outlined"
+                margin="normal"
+                required
+                fullWidth
+                id="email"
+                label="Email Address"
+                name="email"
+                autoComplete="email"
+                autoFocus
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                variant="outlined"
+                margin="normal"
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ mb: 3 }}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="primary"
+                size="large"
+                sx={{ 
+                  mt: 1, 
+                  mb: 2,
+                  py: 1.5,
+                  fontWeight: 600,
+                }}
+                disabled={isLoggingIn}
+              >
+                {isLoggingIn ? 'Signing In...' : 'Sign In'}
+              </Button>
+            </form>
+          </Paper>
+        </Container>
       </Box>
     </ThemeProvider>
   );

@@ -1,5 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getSupabaseClient from '@/lib/database/supabaseClient';
+import getSupabaseClient, { supabaseAdmin } from '@/lib/database/supabaseClient';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Get the test ID from the query parameters
+    const url = new URL(request.url);
+    const testId = url.searchParams.get('testId');
+    
+    // Get the user ID from the headers
+    const userId = request.headers.get('X-User-ID');
+    
+    // Validate inputs
+    if (!testId) {
+      return NextResponse.json({ error: 'Test ID is required' }, { status: 400 });
+    }
+    
+    // Get the Supabase client
+    const supabase = supabaseAdmin;
+    
+    if (!supabase) {
+      return NextResponse.json({ error: 'Failed to initialize Supabase client' }, { status: 500 });
+    }
+    
+    // Get the cart
+    const { data: cart, error: cartError } = await supabase
+      .from('carts')
+      .select('id, test_id, metadata, user_id')
+      .eq('test_id', testId)
+      .maybeSingle();
+    
+    if (cartError) {
+      console.error('Error getting cart:', cartError);
+      return NextResponse.json({ error: 'Failed to get cart' }, { status: 500 });
+    }
+    
+    if (!cart) {
+      return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
+    }
+    
+    // Get the cart items
+    const { data: cartItems, error: itemsError } = await supabase
+      .from('cart_items')
+      .select('question_id')
+      .eq('cart_id', cart.id);
+    
+    if (itemsError) {
+      console.error('Error getting cart items:', itemsError);
+      return NextResponse.json({ error: 'Failed to get cart items' }, { status: 500 });
+    }
+    
+    // Get the question details
+    const questionIds = cartItems.map(item => item.question_id);
+    
+    const { data: questions, error: questionsError } = await supabase
+      .from('questions')
+      .select('*')
+      .in('id', questionIds);
+    
+    if (questionsError) {
+      console.error('Error getting questions:', questionsError);
+      return NextResponse.json({ error: 'Failed to get questions' }, { status: 500 });
+    }
+    
+    return NextResponse.json({
+      success: true,
+      cart,
+      questionIds,
+      questions
+    });
+  } catch (error) {
+    console.error('Error in loadDraftCart:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +105,7 @@ export async function POST(request: NextRequest) {
     
     try {
       // Get the Supabase client
-      const supabase = getSupabaseClient();
+      const supabase = supabaseAdmin || getSupabaseClient();
       
       if (!supabase) {
         return NextResponse.json({ error: 'Failed to initialize Supabase client' }, { status: 500 });

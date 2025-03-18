@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
 // Import icons
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PeopleIcon from '@mui/icons-material/People';
-import QuizIcon from '@mui/icons-material/Quiz';
-import StorageIcon from '@mui/icons-material/Storage';
-import LogoutIcon from '@mui/icons-material/Logout';
-import MenuIcon from '@mui/icons-material/Menu';
+import { 
+  Dashboard as DashboardIcon, 
+  People as PeopleIcon, 
+  Quiz as QuizIcon, 
+  Storage as StorageIcon, 
+  Logout as LogoutIcon, 
+  Menu as MenuIcon 
+} from '@mui/icons-material';
 
 interface AdminLayoutProps {
   children: ReactNode;

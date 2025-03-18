@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyJwtToken } from '@/lib/auth';
 import { jwtVerify } from 'jose';
-import supabase from '@/lib/database/supabaseClient';
+import getSupabaseClient, { supabaseAdmin } from '@/lib/database/supabaseClient';
 import { addQuestionToCart } from '@/lib/database/cartQueries';
 
 // JWT secret for token verification
@@ -82,6 +82,12 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.log('No valid token found, using default user ID');
       
+      // Use supabaseAdmin instead of supabase
+      const supabase = supabaseAdmin;
+      if (!supabase) {
+        return NextResponse.json({ error: 'Failed to initialize Supabase client' }, { status: 500 });
+      }
+      
       // Check if a user exists with ID 1
       const { data: user } = await supabase
         .from('users')
@@ -151,6 +157,12 @@ export async function DELETE(request: NextRequest) {
     } catch (error) {
       console.log('No valid token found, using default user ID');
       userId = 1; // Default user ID
+    }
+    
+    // Use supabaseAdmin instead of supabase
+    const supabase = supabaseAdmin;
+    if (!supabase) {
+      return NextResponse.json({ error: 'Failed to initialize Supabase client' }, { status: 500 });
     }
     
     // Get cart ID

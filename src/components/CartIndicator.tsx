@@ -1,6 +1,6 @@
 import React, { forwardRef, useState, useEffect } from 'react';
 import { IconButton, Badge, Tooltip } from '@mui/material';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import { ShoppingCart as ShoppingCartIcon } from '@mui/icons-material';
 import Link from 'next/link';
 import { useCartStore } from '@/store/cartStore';
 

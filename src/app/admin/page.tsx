@@ -8,10 +8,12 @@ import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 
 // Import icons
-import PeopleIcon from '@mui/icons-material/People';
-import QuizIcon from '@mui/icons-material/Quiz';
-import StorageIcon from '@mui/icons-material/Storage';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import { 
+  People as PeopleIcon, 
+  Quiz as QuizIcon, 
+  Storage as StorageIcon, 
+  ShoppingCart as ShoppingCartIcon 
+} from '@mui/icons-material';
 
 export default function AdminDashboard() {
   const { isAuthenticated, isLoading, user } = useAuth();

@@ -38,6 +38,7 @@ interface CartStore {
   clearCart: () => void;
   isInCart: (questionId: string | number) => boolean;
   getCartCount: () => number;
+  initializeCart: () => void;
 }
 
 // Type guard to check if a question has CartQuestion specific properties
@@ -48,28 +49,37 @@ function hasCartQuestionProperties(question: any): boolean {
     typeof question.Topic === 'string';
 }
 
+// Function to check if a question is a sample question
+function isSampleQuestion(question: any): boolean {
+  return (
+    (typeof question.Question === 'string' && question.Question.includes('Sample Question')) || 
+    (typeof question.Subject === 'string' && question.Subject === 'Sample Subject') ||
+    (typeof question.text === 'string' && question.text.includes('Sample Question')) ||
+    (typeof question.subject === 'string' && question.subject === 'Sample Subject') ||
+    (typeof question.id === 'string' && question.id.includes('sample')) ||
+    (typeof question.id === 'number' && question.id < 0)
+  );
+}
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       questions: [],
       addQuestion: (question) => {
+        console.log('Adding question to cart:', question);
         set((state) => {
           // Prevent adding sample questions
           const safeQuestion = { ...question };
           
-          // Check for sample questions in both formats
-          const isQuestionSample = 
-            (typeof (safeQuestion as any).Question === 'string' && (safeQuestion as any).Question.includes('Sample Question')) || 
-            (typeof (safeQuestion as any).Subject === 'string' && (safeQuestion as any).Subject === 'Sample Subject') ||
-            (typeof safeQuestion.text === 'string' && safeQuestion.text.includes('Sample Question')) ||
-            (typeof safeQuestion.subject === 'string' && safeQuestion.subject === 'Sample Subject');
-          
-          if (isQuestionSample) {
+          // Check if this is a sample question
+          if (isSampleQuestion(safeQuestion)) {
+            console.log('Prevented adding sample question to cart:', safeQuestion);
             return state;
           }
 
           // Ensure the question has a valid id
           const questionId = safeQuestion.id ?? crypto.randomUUID();
+          console.log('Using question ID:', questionId);
           
           // Normalize the question to CartQuestion type
           const cartQuestion: CartQuestion = hasCartQuestionProperties(safeQuestion) 
@@ -103,12 +113,16 @@ export const useCartStore = create<CartStore>()(
                 natureOfQuestion: (safeQuestion as any).natureOfQuestion
               };
 
+          console.log('Normalized cart question:', cartQuestion);
+
           // Check if question is already in cart by comparing string IDs
           const isAlreadyInCart = state.questions.some(q => String(q.id) === String(questionId));
           if (isAlreadyInCart) {
+            console.log('Question already in cart:', questionId);
             return state;
           }
           
+          console.log('Adding new question to cart. Current count:', state.questions.length);
           return { questions: [...state.questions, cartQuestion] };
         });
       },
@@ -123,6 +137,11 @@ export const useCartStore = create<CartStore>()(
       },
       clearCart: () => {
         set({ questions: [] });
+        // Also clear local storage
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('question-cart');
+          localStorage.removeItem('localCart');
+        }
       },
       isInCart: (questionId) => {
         return get().questions.some((question) => 
@@ -133,10 +152,31 @@ export const useCartStore = create<CartStore>()(
       },
       getCartCount: () => {
         return get().questions.length;
+      },
+      initializeCart: () => {
+        // Clear any sample questions from the cart
+        set((state) => ({
+          questions: state.questions.filter(q => !isSampleQuestion(q))
+        }));
       }
     }),
     {
       name: 'question-cart',
+      // Only persist non-sample questions
+      partialize: (state) => {
+        console.log('Persisting cart state:', state);
+        return {
+          ...state,
+          questions: state.questions.filter(q => !isSampleQuestion(q))
+        };
+      }
     }
   )
 );
+
+// Initialize the cart when the module loads
+if (typeof window !== 'undefined') {
+  console.log('Initializing cart store...');
+  useCartStore.getState().initializeCart();
+  console.log('Cart initialized with questions:', useCartStore.getState().questions);
+}

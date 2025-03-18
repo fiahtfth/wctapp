@@ -1,0 +1,13 @@
+{
+  "name": "cart-api-test",
+  "version": "1.0.0",
+  "description": "Test script for cart API",
+  "main": "test-cart-api.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test-cart-api.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  }
+} 

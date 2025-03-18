@@ -38,10 +38,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     if (onAddToTest) {
       try {
         setIsAdding(true);
-        console.log('Adding question to test:', question.id);
+        console.log('Adding question to cart:', question.id);
         await onAddToTest();
       } catch (error) {
-        console.error('Error adding question to test:', error);
+        console.error('Error adding question to cart:', error);
       } finally {
         setIsAdding(false);
       }
@@ -108,7 +108,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             data-testid="add-to-test-button"
             startIcon={isAdding ? <CircularProgress size={20} color="inherit" /> : null}
           >
-            {isAdding ? 'Adding...' : 'Add to Test'}
+            {isAdding ? 'Adding...' : 'Add to Cart'}
           </Button>
         </Box>
       )}

@@ -12,11 +12,13 @@ export interface Question {
   topic: string;
   questionType: 'Objective' | 'Subjective';
   // Optional explanatory fields
+  explanation?: string;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   module?: string;
   sub_topic?: string;
   marks?: number;
   tags?: string[];
+  nature_of_question?: string;
 }
 
 /**
@@ -30,12 +32,17 @@ export interface CartQuestion {
   Topic: string;
   QuestionType: 'Objective' | 'Subjective';
   FacultyApproved: boolean;
+  Answer?: string;
+  Explanation?: string;
+  explanation?: string;
   quantity?: number;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   module?: string;
   sub_topic?: string;
   marks?: number;
   tags?: string[];
+  nature_of_question?: string;
+  'Nature of Question'?: string;
 }
 
 /**
@@ -90,7 +97,9 @@ export function convertToCartQuestion(question: Question): CartQuestion {
     module: question.module,
     sub_topic: question.sub_topic,
     marks: question.marks,
-    tags: question.tags
+    tags: question.tags,
+    explanation: question.explanation ?? '',
+    'Nature of Question': question.nature_of_question ?? ''
   };
 }
 
@@ -103,7 +112,7 @@ export function convertToQuestion(cartQuestion: CartQuestion): Question {
   return {
     id: cartQuestion.id ?? 0,
     text: cartQuestion.Question ?? '',
-    answer: '',  // Note: This is not available in CartQuestion
+    answer: cartQuestion.Answer ?? '',
     subject: cartQuestion.Subject ?? '',
     topic: cartQuestion.Topic ?? '',
     questionType: cartQuestion.QuestionType ?? 'Objective',
@@ -111,7 +120,9 @@ export function convertToQuestion(cartQuestion: CartQuestion): Question {
     module: cartQuestion.module,
     sub_topic: cartQuestion.sub_topic,
     marks: cartQuestion.marks,
-    tags: cartQuestion.tags
+    tags: cartQuestion.tags,
+    explanation: cartQuestion.Explanation ?? cartQuestion.explanation ?? '',
+    nature_of_question: cartQuestion['Nature of Question'] ?? cartQuestion.nature_of_question ?? ''
   };
 }
 
@@ -133,7 +144,9 @@ export function toCartQuestion(question: Partial<Question>): CartQuestion {
     module: question.module,
     sub_topic: question.sub_topic,
     marks: question.marks,
-    tags: question.tags
+    tags: question.tags,
+    explanation: question.explanation ?? '',
+    'Nature of Question': question.nature_of_question ?? ''
   };
 }
 

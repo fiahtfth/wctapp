@@ -3,6 +3,7 @@ import { Question as ImportedQuestion, isQuestion } from '@/types/question';
 import { AppError, asyncErrorHandler } from '@/lib/errorHandler';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import path from 'path';
+import getSupabaseClient from './supabaseClient';
 
 // Define return type for getQuestions
 interface QuestionsResult {
@@ -34,10 +35,10 @@ export const getQuestions = asyncErrorHandler(async (filters: {
 
   try {
     // Get the Supabase client
-    const supabaseClient = getSupabaseBrowserClient();
+    const supabase = getSupabaseBrowserClient();
     
-    if (!supabaseClient) {
-      throw new AppError('Supabase client is not initialized');
+    if (!supabase) {
+      throw new AppError('Supabase client is not initialized', 500);
     }
     
     // Sanitize and validate parameters
@@ -48,7 +49,7 @@ export const getQuestions = asyncErrorHandler(async (filters: {
     console.log('📄 Query pagination:', { page, pageSize, offset });
 
     // Build base query
-    let query = supabaseClient.from('questions').select('*', { count: 'exact' });
+    let query = supabase.from('questions').select('*', { count: 'exact' });
     
     // Apply filters - updated to match actual column names in the database
     if (filters.subject) {
@@ -116,7 +117,7 @@ export const getQuestions = asyncErrorHandler(async (filters: {
       .order('id', { ascending: true });
     
     if (error) {
-      throw new AppError(`Database error: ${error.message}`);
+      throw new AppError(`Database error: ${error.message}`, 500);
     }
     
     // Map database results to Question objects with proper field mapping
@@ -134,7 +135,9 @@ export const getQuestions = asyncErrorHandler(async (filters: {
         sub_topic: item.sub_topic || item.SubTopic || item['Sub Topic'] || '',
         difficulty: (item.difficulty_level || item.Difficulty || item.DifficultyLevel || item['Difficulty Level'] || 'Medium') as 'Easy' | 'Medium' | 'Hard',
         marks: item.marks || item.Marks || 0,
-        tags: item.tags || []
+        tags: item.tags || [],
+        explanation: item.explanation || item.Explanation || '',
+        nature_of_question: item.nature_of_question || item['Nature of Question'] || item.natureOfQuestion || ''
       };
       return question;
     });
@@ -194,15 +197,20 @@ export const addQuestion = asyncErrorHandler(async (questionData: ImportedQuesti
       answer: String(questionData.answer),
       explanation: questionData.explanation ? String(questionData.explanation) : null,
       subject: String(questionData.subject),
-      module_name: String(questionData.moduleName || ''),
+      module_name: String(questionData.module || ''),
       topic: String(questionData.topic),
-      sub_topic: questionData.subTopic ? String(questionData.subTopic) : null,
-      difficulty_level: String(questionData.difficultyLevel || ''),
+      sub_topic: questionData.sub_topic ? String(questionData.sub_topic) : null,
+      difficulty_level: String(questionData.difficulty || ''),
       question_type: String(questionData.questionType),
-      nature_of_question: questionData.natureOfQuestion ? String(questionData.natureOfQuestion) : null
+      nature_of_question: questionData.nature_of_question ? String(questionData.nature_of_question) : null
     };
 
-    const { data, error } = await supabaseClient
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new AppError('Failed to initialize Supabase client', 500);
+    }
+
+    const { data, error } = await supabase
       .from('questions')
       .insert(insertData)
       .select();
@@ -264,15 +272,21 @@ export const saveDraftCart = asyncErrorHandler(async (
     const testId = existingTestId || `test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     
     try {
+      // Get the Supabase client
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        throw new AppError('Failed to initialize Supabase client', 500);
+      }
+      
       // First, try to create the carts table if it doesn't exist
       try {
-        const { error: createCartsError } = await supabaseClient.from('carts').select('id').limit(1);
+        const { error: createCartsError } = await supabase.from('carts').select('id').limit(1);
         
         if (createCartsError && createCartsError.message.includes('relation "carts" does not exist')) {
           console.log('Carts table does not exist, creating it...');
           
           // Create the carts table
-          const { error: createTableError } = await supabaseClient.from('carts').insert({
+          const { error: createTableError } = await supabase.from('carts').insert({
             test_id: 'temp_test_id',
             user_id: 1,
             metadata: {}
@@ -288,7 +302,7 @@ export const saveDraftCart = asyncErrorHandler(async (
       
       // If we're updating an existing draft, first check if it exists
       if (existingTestId) {
-        const { data: existingCart, error: existingCartError } = await supabaseClient
+        const { data: existingCart, error: existingCartError } = await supabase
           .from('carts')
           .select('id')
           .eq('test_id', existingTestId)
@@ -303,13 +317,13 @@ export const saveDraftCart = asyncErrorHandler(async (
           
           // First, try to create the cart_items table if it doesn't exist
           try {
-            const { error: createCartItemsError } = await supabaseClient.from('cart_items').select('id').limit(1);
+            const { error: createCartItemsError } = await supabase.from('cart_items').select('id').limit(1);
             
             if (createCartItemsError && createCartItemsError.message.includes('relation "cart_items" does not exist')) {
               console.log('Cart_items table does not exist, creating it...');
               
               // Create the cart_items table
-              const { error: createTableError } = await supabaseClient.from('cart_items').insert({
+              const { error: createTableError } = await supabase.from('cart_items').insert({
                 cart_id: existingCart.id,
                 question_id: questionIds[0] || 1
               });
@@ -323,7 +337,7 @@ export const saveDraftCart = asyncErrorHandler(async (
           }
           
           // Delete existing cart items first
-          const { error: deleteError } = await supabaseClient
+          const { error: deleteError } = await supabase
             .from('cart_items')
             .delete()
             .eq('cart_id', existingCart.id);
@@ -339,7 +353,7 @@ export const saveDraftCart = asyncErrorHandler(async (
             question_id: questionId
           }));
           
-          const { error: itemsError } = await supabaseClient
+          const { error: itemsError } = await supabase
             .from('cart_items')
             .insert(cartItems);
           
@@ -353,7 +367,7 @@ export const saveDraftCart = asyncErrorHandler(async (
       }
       
       // Create a new cart entry
-      const { data: cartData, error: cartError } = await supabaseClient
+      const { data: cartData, error: cartError } = await supabase
         .from('carts')
         .insert({
           test_id: testId,
@@ -379,13 +393,13 @@ export const saveDraftCart = asyncErrorHandler(async (
 
       // First, try to create the cart_items table if it doesn't exist
       try {
-        const { error: createCartItemsError } = await supabaseClient.from('cart_items').select('id').limit(1);
+        const { error: createCartItemsError } = await supabase.from('cart_items').select('id').limit(1);
         
         if (createCartItemsError && createCartItemsError.message.includes('relation "cart_items" does not exist')) {
           console.log('Cart_items table does not exist, creating it...');
           
           // Create the cart_items table
-          const { error: createTableError } = await supabaseClient.from('cart_items').insert({
+          const { error: createTableError } = await supabase.from('cart_items').insert({
             cart_id: cartId,
             question_id: questionIds[0] || 1
           });
@@ -408,7 +422,7 @@ export const saveDraftCart = asyncErrorHandler(async (
         question_id: questionId
       }));
 
-      const { error: itemsError } = await supabaseClient
+      const { error: itemsError } = await supabase
         .from('cart_items')
         .insert(cartItems);
 

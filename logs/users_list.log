@@ -326,3 +326,15 @@
   "usersType": "object",
   "usersIsArray": true
 }
+[2025-03-17T11:24:14.608Z] [ERROR] Unexpected error in user listing
+{
+  "digest": "DYNAMIC_SERVER_USAGE"
+}
+[2025-03-17T11:25:59.500Z] [ERROR] Unexpected error in user listing
+{
+  "digest": "DYNAMIC_SERVER_USAGE"
+}
+[2025-03-17T11:26:59.178Z] [ERROR] Unexpected error in user listing
+{
+  "digest": "DYNAMIC_SERVER_USAGE"
+}
