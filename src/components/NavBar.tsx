@@ -34,6 +34,7 @@ import {
 import { useRouter, usePathname } from 'next/navigation';
 import CartIndicator from '@/components/CartIndicator';
 import Link from 'next/link';
+import { useCartStore } from '@/store/cartStore';
 
 // Define menu items with role-based access
 const getMenuItems = (isAdmin: boolean) => {
@@ -61,8 +62,11 @@ export default function NavBar() {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  
+  // Get cart count directly from cart store
+  const cartQuestions = useCartStore(state => state.questions);
+  const cartCount = cartQuestions.length;
   const [isAdmin, setIsAdmin] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('User');
@@ -70,7 +74,7 @@ export default function NavBar() {
   // Get menu items based on user role
   const menuItems = getMenuItems(isAdmin);
   
-  // Load user info and cart count on mount
+  // Load user info on mount
   useEffect(() => {
     // Check if user is admin
     const userStr = localStorage.getItem('user');
@@ -84,20 +88,6 @@ export default function NavBar() {
         console.error("Failed to parse user data:", error);
       }
     }
-    
-    // Fetch cart count
-    const fetchCartCount = async () => {
-      try {
-        const testId = localStorage.getItem('testId') || '';
-        // This is a placeholder - replace with actual cart fetching logic
-        const cartItems = localStorage.getItem('cartItems') ? 
-          JSON.parse(localStorage.getItem('cartItems') || '[]') : [];
-        setCartCount(cartItems.length);
-      } catch (error) {
-        console.error("Failed to fetch cart items", error);
-      }
-    };
-    fetchCartCount();
   }, []);
 
   const handleMobileMenuToggle = () => {

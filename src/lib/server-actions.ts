@@ -11,15 +11,39 @@ import { cookies, headers } from 'next/headers';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Ensure supabase is not null
-const supabase = supabaseAdmin;
+// Ensure supabase is not null - use non-null assertion since we check at module load
+const supabase = supabaseAdmin!;
 if (!supabase) {
   throw new Error('Failed to initialize Supabase client');
 }
 
-type UserInsert = Database['public']['Tables']['users']['Insert'];
-type CartInsert = Database['public']['Tables']['carts']['Insert'];
-type CartItemInsert = Database['public']['Tables']['cart_items']['Insert'];
+// Define types manually since Database type may not include all tables
+type UserInsert = {
+  username: string;
+  email: string;
+  password: string;
+  role?: 'user' | 'admin';
+  is_active?: boolean;
+};
+
+type CartInsert = {
+  user_id: string;
+  test_id: string;
+  metadata?: any;
+};
+
+type CartItemInsert = {
+  cart_id: number;
+  question_id: number;
+};
+
+// Return type for addQuestionToCart
+export type AddToCartResult = {
+  success: boolean;
+  message: string;
+  cartItemId?: number;
+  clientOnly?: boolean;
+};
 
 // Input validation schemas
 const UserSchema = z.object({
@@ -331,7 +355,7 @@ export async function getCurrentUser() {
   }
 }
 
-export async function addQuestionToCart(questionId: number | string, testId: string) {
+export async function addQuestionToCart(questionId: number | string, testId: string): Promise<AddToCartResult> {
   console.log('server-actions.addQuestionToCart called with questionId:', questionId, 'testId:', testId);
   
   if (!questionId) {
@@ -377,11 +401,10 @@ export async function addQuestionToCart(questionId: number | string, testId: str
       cartId = existingCart.id;
       console.log('Using existing cart with ID:', cartId);
     } else {
-      // Create new cart
+      // Create new cart (removed is_draft field as it doesn't exist in schema)
       const cartInsertData: CartInsert = { 
         user_id: user.id,
-        test_id: testId,
-        is_draft: true
+        test_id: testId
       };
 
       const { data: newCart, error: newCartError } = await supabase

@@ -75,9 +75,9 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const router = useRouter();
+  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
   const { login, user } = useAuth();
-  const isAuthenticated = !!user;
 
   // Clear any redirection loop counters on page load
   useEffect(() => {
@@ -98,93 +98,39 @@ export default function LoginPage() {
     }
   }, []);
 
-  // Function to handle role-based redirection
-  const handleRoleBasedRedirect = (userRole: string) => {
-    // Check if there's a redirect URL stored
-    const redirectUrl = localStorage.getItem('redirectAfterLogin');
-    
-    if (redirectUrl) {
-      console.log('Redirecting to stored URL:', redirectUrl);
-      localStorage.removeItem('redirectAfterLogin');
-      router.push(redirectUrl);
-    } else {
-      // Default redirect based on role
-      if (userRole === 'admin') {
-        console.log('User is admin, redirecting to /users');
-        router.push('/users');
-      } else {
-        console.log('User is not admin, redirecting to /dashboard');
-        router.push('/dashboard');
-      }
-    }
-  };
-
-  // Check if user is already authenticated
+  // Handle all redirects for authenticated users
   useEffect(() => {
-    if (user) {
-      console.log('User already authenticated, checking for redirect URL');
-      handleRoleBasedRedirect(user.role);
+    // Only redirect if user exists and we haven't redirected yet
+    if (user && !hasRedirected) {
+      console.log('User authenticated, preparing redirect...');
+      setHasRedirected(true);
+      
+      const storedRedirect = localStorage.getItem('redirectAfterLogin');
+      const destination = storedRedirect || (user.role === 'admin' ? '/users' : '/dashboard');
+      
+      if (storedRedirect) {
+        localStorage.removeItem('redirectAfterLogin');
+      }
+      
+      console.log('Redirecting to:', destination);
+      // Use a longer timeout to ensure cookies are fully set by the browser
+      setTimeout(() => {
+        window.location.replace(destination);
+      }, 500);
     }
-  }, [user, router]);
+  }, [user, hasRedirected]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoggingIn(true);
-    
-    // Clear any existing tokens to ensure a fresh login
-    localStorage.removeItem('accessToken');
-    
-    console.log('Login attempt started for email:', email);
-    
     try {
-      console.log('Calling login function...');
       const result = await login(email, password);
-      console.log('Login function returned:', result);
-      
-      if (!result.success) {
-        console.log('Login failed:', result.error);
-        setError(result.error || 'Login failed');
+      if (result.success) {
+        // The auth state change will trigger the redirect in the useEffect
+        setLoginSuccess(true);
       } else {
-        console.log('Login successful, token should be stored');
-        
-        // Get the token from localStorage and set it as a cookie for middleware
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-          // Set a cookie with the token to help middleware access it
-          document.cookie = `ls_token=${token}; path=/; max-age=3600; SameSite=Strict`;
-          console.log('Token cookie set for middleware access');
-        }
-        
-        // Add a small delay to ensure the token is properly stored
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Check if there's a redirect URL stored
-        const redirectUrl = localStorage.getItem('redirectAfterLogin');
-        
-        if (redirectUrl) {
-          console.log('Redirecting to stored URL:', redirectUrl);
-          localStorage.removeItem('redirectAfterLogin');
-          
-          // Use window.location.href for a full page navigation
-          window.location.href = redirectUrl;
-        } else {
-          // Default redirect based on role
-          // We need to check the user again as it might have been updated
-          const currentUser = result.user || user;
-          
-          if (currentUser && currentUser.role === 'admin') {
-            console.log('User is admin, redirecting to /users');
-            
-            // Use window.location.href for a full page navigation
-            window.location.href = '/users';
-          } else {
-            console.log('User is not admin, redirecting to /dashboard');
-            
-            // Use window.location.href for a full page navigation
-            window.location.href = '/dashboard';
-          }
-        }
+        setError(result.error || 'Login failed');
       }
     } catch (err) {
       console.error('Login error:', err);

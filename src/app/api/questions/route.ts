@@ -55,22 +55,70 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('📝 Adding question to database:', body);
     
-    // Validate request body
-    if (!body || !body.text) {
+    // Validate required fields
+    if (!body || !body.Question || !body.Answer || !body.Subject || !body.Question_Type) {
       return NextResponse.json({ 
-        error: 'Invalid request body' 
+        error: 'Missing required fields: Question, Answer, Subject, and Question_Type are required' 
       }, { status: 400 });
     }
 
-    // TODO: Implement actual question creation logic
+    // Initialize Supabase client
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.error('Missing Supabase credentials');
+      return NextResponse.json({ 
+        error: 'Server configuration error' 
+      }, { status: 500 });
+    }
+
+    const supabase = createClient<Database>(supabaseUrl, supabaseServiceRoleKey);
+
+    // Map form data to database schema
+    const questionData = {
+      text: body.Question,
+      answer: body.Answer,
+      explanation: body.Explanation || '',
+      subject: body.Subject,
+      module_name: body['Module Name'] || '',
+      topic: body.Topic || '',
+      sub_topic: body['Sub Topic'] || '',
+      difficulty_level: body['Difficulty Level'] || 'Medium',
+      question_type: body.Question_Type,
+      nature_of_question: body['Nature of Question'] || '',
+      faculty_approved: body['Faculty Approved'] || false,
+    };
+
+    console.log('💾 Inserting question data:', questionData);
+
+    // Insert question into database
+    const { data, error } = await supabase
+      .from('questions')
+      .insert([questionData])
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('❌ Database error:', error);
+      return NextResponse.json({ 
+        error: 'Failed to add question to database',
+        details: error.message 
+      }, { status: 500 });
+    }
+
+    console.log('✅ Question added successfully with ID:', data.id);
+
     return NextResponse.json({ 
       message: 'Question added successfully',
-      question: body 
+      questionId: data.id,
+      question: questionData 
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error in questions API POST route:', error);
+    console.error('❌ Error in questions API POST route:', error);
     return NextResponse.json({
       error: 'Failed to add question',
       details: error instanceof Error ? error.message : String(error)

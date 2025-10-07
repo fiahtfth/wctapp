@@ -3,7 +3,8 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+// Prefer .env.local to match Next.js local development behavior
+require('dotenv').config({ path: '.env.local' });
 
 // Supabase connection details
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,10 +19,17 @@ if (!supabaseUrl || !supabaseServiceKey) {
 // Create Supabase client
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// User details
-const userEmail = process.env.USER_EMAIL || 'user@example.com';
-const userUsername = process.env.USER_USERNAME || 'user';
-const userPassword = process.env.USER_PASSWORD || 'user123';
+// Simple CLI arg parser: --email, --username, --password, --role
+function getArg(name) {
+  const idx = process.argv.indexOf(`--${name}`);
+  return idx !== -1 ? process.argv[idx + 1] : undefined;
+}
+
+// User details (CLI args override env, which override defaults)
+const userEmail = getArg('email') || process.env.USER_EMAIL || 'user@example.com';
+const userUsername = getArg('username') || process.env.USER_USERNAME || 'user';
+const userPassword = getArg('password') || process.env.USER_PASSWORD || 'user123';
+const userRole = getArg('role') || process.env.USER_ROLE || 'user';
 
 async function createUser() {
   try {
@@ -29,6 +37,7 @@ async function createUser() {
     console.log(`Email: ${userEmail}`);
     console.log(`Username: ${userUsername}`);
     console.log(`Password: ${userPassword}`);
+    console.log(`Role: ${userRole}`);
 
     // Hash the password
     const salt = await bcrypt.genSalt(10);
@@ -50,7 +59,7 @@ async function createUser() {
         .update({
           username: userUsername,
           password_hash: passwordHash,
-          role: 'user',
+          role: userRole,
           is_active: true,
           updated_at: new Date().toISOString()
         })
@@ -72,7 +81,7 @@ async function createUser() {
           email: userEmail,
           username: userUsername,
           password_hash: passwordHash,
-          role: 'user',
+          role: userRole,
           is_active: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()

@@ -679,16 +679,32 @@ export async function getQuestionsFromCart(
     // Ensure testId is a string
     const testIdStr = ensureStringType(testId);
 
-    // Get questions from cart
+    // First, get the cart for this test_id
+    const { data: cart, error: cartError } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('test_id', testIdStr)
+      .maybeSingle();
+    
+    if (cartError) {
+      console.error('Error fetching cart:', cartError);
+      return [];
+    }
+    
+    if (!cart) {
+      console.log('No cart found for test_id:', testIdStr);
+      return [];
+    }
+
+    // Get questions from cart_items using the cart_id
     const { data, error } = await supabase
-      .from('cart_questions')
+      .from('cart_items')
       .select(`
         id,
         question_id,
-        quantity,
         questions (*)
       `)
-      .eq('test_id', testIdStr);
+      .eq('cart_id', cart.id);
 
     if (error) {
       console.error('Error fetching questions from cart:', error);
@@ -722,8 +738,7 @@ export async function getQuestionsFromCart(
         FacultyApproved: false,
         QuestionType: question.questionType || 'Objective',
         // Additional fields from cart
-        cartItemId: item.id,
-        quantity: item.quantity || 1
+        cartItemId: item.id
       };
     });
   } catch (error) {
@@ -849,12 +864,11 @@ export async function addQuestionToCart(
     let cartId: number;
     
     if (cartError || !cart) {
-      // Create a new cart
+      // Create a new cart (removed is_draft field as it doesn't exist in schema)
       const { data: newCart, error: createCartError } = await supabase
         .from('carts')
         .insert({
-          test_id: testId,
-          is_draft: true
+          test_id: testId
         })
         .select('id')
         .single();
@@ -1165,13 +1179,12 @@ export async function saveDraftCart(
       }
     }
     
-    // Create a new cart
+    // Create a new cart (removed is_draft field as it doesn't exist in schema)
     const { data: newCart, error: createCartError } = await supabase
       .from('carts')
       .insert({
         test_id: testId,
         user_id: typeof userId === 'string' ? parseInt(userId, 10) : userId,
-        is_draft: true,
         metadata: {
           testName,
           batch,

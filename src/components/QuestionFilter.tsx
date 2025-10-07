@@ -42,15 +42,7 @@ const DIFFICULTY_LEVELS = [
 
 const QUESTION_TYPES = [
   'Objective',
-  'Subjective',
-  'Multiple Choice',
-  'Short Answer',
-  'Long Answer',
-  'Case Study',
-  'Numerical',
-  'Theoretical',
-  'Conceptual',
-  'Applied'
+  'Subjective'
 ];
 
 export default function QuestionFilter({ onFilterChange }: QuestionFilterProps) {

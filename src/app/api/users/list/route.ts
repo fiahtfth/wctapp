@@ -93,7 +93,6 @@ export async function GET(request: NextRequest) {
     log('debug', 'Incoming user list request', {
       method: request.method,
       url: request.url,
-      headers: Object.fromEntries(request.headers),
     });
     // Verify admin token
     const authHeader = request.headers.get('authorization');

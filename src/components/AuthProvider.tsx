@@ -37,15 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAuthOnMount = async () => {
       try {
-        // Clear any redirection loop counters on fresh mount
-        if (typeof window !== 'undefined') {
-          // Only reset redirect count if we're on the login page
-          if (window.location.pathname === '/login') {
-            sessionStorage.removeItem('redirectCount');
-          }
+        console.log('Checking auth on mount...');
+        
+        // Skip auth check if we don't have a token
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          console.log('No token found, skipping auth check');
+          setUser(null);
+          setIsLoading(false);
+          return;
         }
         
-        console.log('Checking auth on mount...');
         const isAuthenticated = await checkAuth();
         console.log('Auth check result:', isAuthenticated);
       } catch (err) {
@@ -73,13 +75,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.log('Access token found, verifying with server...');
-      const response = await fetch('/api/auth/me', {
+      
+      // Add timeout and better error handling for fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      // Use absolute URL to ensure we're hitting the right endpoint
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+      const apiUrl = `${baseUrl}/api/auth/me`;
+      console.log('Making auth check request to:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         console.log('Auth check failed with status:', response.status);
@@ -105,7 +120,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (err) {
       console.error('Error checking authentication:', err);
-      // Clear token on error
+      
+      // Handle specific network errors
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        console.log('Network error during auth check - using fallback mode');
+        
+        // In development, if we have a token but can't verify it due to network issues,
+        // try to decode it locally to extract user info
+        const storedToken = localStorage.getItem('accessToken');
+        if (process.env.NODE_ENV === 'development' && storedToken) {
+          try {
+            const payload = JSON.parse(atob(storedToken.split('.')[1]));
+            console.log('Decoded token payload:', payload);
+            
+            // Check if token is not expired
+            const now = Math.floor(Date.now() / 1000);
+            if (payload.exp && payload.exp > now) {
+              console.log('Token appears valid, using fallback user data');
+              const fallbackUser = {
+                id: payload.userId || '1',
+                username: payload.email?.split('@')[0] || 'user',
+                email: payload.email || 'admin@nextias.com',
+                role: payload.role || 'admin',
+                is_active: true,
+                last_login: new Date().toISOString(),
+              };
+              setUser(fallbackUser);
+              setError(null);
+              return true;
+            }
+          } catch (decodeErr) {
+            console.log('Could not decode token:', decodeErr);
+          }
+        }
+        
+        // Don't clear token on network errors, just return false
+        setUser(null);
+        return false;
+      }
+      
+      // For other errors, clear the token
       localStorage.removeItem('accessToken');
       setUser(null);
       return false;
@@ -116,14 +170,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; user?: User }> => {
     try {
       console.log('Attempting login for:', email);
-      const response = await fetch('/api/auth/login', {
+      
+      // Add timeout and better error handling for login
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for login
+      
+      // Use absolute URL to ensure we're hitting the right endpoint
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+      const loginUrl = `${baseUrl}/api/auth/login`;
+      console.log('Making login request to:', loginUrl);
+      
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
         credentials: 'include', // Important for cookies
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       const data = await response.json();
       console.log('Login response:', data);
@@ -174,6 +241,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true, user: data.user };
     } catch (err) {
       console.error('Login error:', err);
+      
+      // Handle specific network errors
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        return { 
+          success: false, 
+          error: 'Unable to connect to server. Please check your connection and try again.' 
+        };
+      }
+      
+      if (err instanceof Error && err.name === 'AbortError') {
+        return { 
+          success: false, 
+          error: 'Login request timed out. Please try again.' 
+        };
+      }
+      
       return { 
         success: false, 
         error: 'An unexpected error occurred' 
@@ -204,6 +287,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       localStorage.removeItem('accessToken');
       
+      // Clear cookies (client-side)
+      if (typeof document !== 'undefined') {
+        // Clear accessToken cookie
+        document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+        // Clear refresh_token cookie
+        document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+        // Clear refreshToken cookie (alternative name)
+        document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+        // Clear ls_token cookie
+        document.cookie = 'ls_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+        console.log('All cookies cleared');
+      }
+      
       // Clear any redirection flags
       sessionStorage.removeItem('redirectCount');
       sessionStorage.removeItem('loginAttempted');
@@ -221,6 +317,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       localStorage.removeItem('accessToken');
       sessionStorage.removeItem('redirectCount');
+      
+      // Clear cookies even on error
+      if (typeof document !== 'undefined') {
+        document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+        document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+        document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+        document.cookie = 'ls_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+      }
       
       // Redirect to login page even if there was an error
       if (typeof window !== 'undefined') {

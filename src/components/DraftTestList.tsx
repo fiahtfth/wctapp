@@ -76,17 +76,59 @@ const DraftTestList: React.FC = () => {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            // Transform the data to match the DraftTest interface
             const testName = localStorage.getItem(`testName-${testId}`) || `Test ${testId}`;
+            
+            // Get questions from API response or fallback to localStorage
+            let questions = data.questions || [];
+            
+            // If no questions from API, try localStorage
+            if (questions.length === 0) {
+              const localQuestionIds = JSON.parse(localStorage.getItem(`draft-${testId}-questions`) || '[]');
+              console.log(`Found ${localQuestionIds.length} question IDs in localStorage for ${testId}`);
+              
+              if (localQuestionIds.length > 0) {
+                // Fetch question details from database
+                try {
+                  const questionsResponse = await fetch(`/api/questions/batch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ questionIds: localQuestionIds })
+                  });
+                  
+                  if (questionsResponse.ok) {
+                    const questionsData = await questionsResponse.json();
+                    questions = questionsData.questions || [];
+                  }
+                } catch (fetchError) {
+                  console.error('Error fetching questions by IDs:', fetchError);
+                }
+              }
+            }
+            
             return {
               id: testId,
               name: testName,
               date: new Date().toLocaleDateString(),
-              questions: data.questions || [],
+              questions,
             };
           } catch (error) {
             console.error(`Error fetching draft test ${testId}:`, error);
-            return null;
+            
+            // Fallback: create draft with localStorage data
+            const testName = localStorage.getItem(`testName-${testId}`) || `Test ${testId}`;
+            const localQuestionIds = JSON.parse(localStorage.getItem(`draft-${testId}-questions`) || '[]');
+            
+            return {
+              id: testId,
+              name: testName,
+              date: new Date().toLocaleDateString(),
+              questions: localQuestionIds.map((id: number) => ({
+                id,
+                Question: `Question ${id}`,
+                Subject: '',
+                Topic: ''
+              }))
+            };
           }
         })
       );

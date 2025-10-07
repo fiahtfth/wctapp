@@ -50,6 +50,8 @@ function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [currentUser, setCurrentUser] = useState<Partial<User>>({});
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -327,8 +329,87 @@ function UserManagement() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Get the token from localStorage
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      const response = await fetch('/api/users/delete', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: userToDelete.id }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete user');
+      }
+      
+      // Refresh the user list
+      const fetchUsers = async () => {
+        setIsFetching(true);
+        
+        try {
+          const response = await fetch('/api/users/list', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch users: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          setUsers(data.users || []);
+        } catch (error) {
+          console.error('Error fetching users:', error);
+          setError(error instanceof Error ? error.message : 'Unknown error occurred');
+        } finally {
+          setIsFetching(false);
+        }
+      };
+      
+      fetchUsers();
+      
+      // Reset and close dialog
+      setUserToDelete(null);
+      setOpenDeleteDialog(false);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLogout = () => {
+    // Clear localStorage
     localStorage.removeItem('accessToken');
+    
+    // Clear all auth cookies
+    document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    document.cookie = 'ls_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    
+    // Clear session storage
+    sessionStorage.removeItem('redirectCount');
+    sessionStorage.removeItem('loginAttempted');
+    
+    console.log('Logout complete, redirecting to login');
     window.location.href = '/login';
   };
 
@@ -408,16 +489,29 @@ function UserManagement() {
                   <TableCell>{user.role}</TableCell>
                   <TableCell>{user.is_active ? 'Active' : 'Inactive'}</TableCell>
                   <TableCell>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        setCurrentUser(user);
-                        setOpenEditDialog(true);
-                      }}
-                    >
-                      Edit
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => {
+                          setCurrentUser(user);
+                          setOpenEditDialog(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={() => {
+                          setUserToDelete(user);
+                          setOpenDeleteDialog(true);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -532,6 +626,43 @@ function UserManagement() {
           <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
           <Button onClick={handleUpdateUser} variant="contained" disabled={isLoading}>
             {isLoading ? <CircularProgress size={24} /> : 'Update'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This action cannot be undone!
+          </Alert>
+          <Typography>
+            Are you sure you want to delete the following user?
+          </Typography>
+          {userToDelete && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="body2">
+                <strong>Username:</strong> {userToDelete.username}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Email:</strong> {userToDelete.email}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Role:</strong> {userToDelete.role}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handleDeleteUser} 
+            variant="contained" 
+            color="error"
+            disabled={isLoading}
+          >
+            {isLoading ? <CircularProgress size={24} /> : 'Delete User'}
           </Button>
         </DialogActions>
       </Dialog>

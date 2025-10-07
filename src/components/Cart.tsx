@@ -156,6 +156,14 @@ export default function Cart({ testId: propTestId }: CartProps) {
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [confirmDeleteDraftId, setConfirmDeleteDraftId] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    hasDuplicates: boolean;
+    duplicates: any[];
+    message: string;
+    totalDuplicates?: number;
+  } | null>(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
 
   // Initialize cart when component mounts
   useEffect(() => {
@@ -166,12 +174,43 @@ export default function Cart({ testId: propTestId }: CartProps) {
     }
   }, [mounted]);
 
+  // Function to check for duplicate questions
+  const checkForDuplicates = useCallback(async (batch: string, questionIds: number[]) => {
+    try {
+      setCheckingDuplicates(true);
+      const response = await fetch('/api/questions/check-duplicates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ questionIds, batch }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check for duplicates');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+      return { hasDuplicates: false, duplicates: [], message: 'Could not check for duplicates' };
+    } finally {
+      setCheckingDuplicates(false);
+    }
+  }, []);
+
   // Wrap handleSaveDraft in useCallback to prevent unnecessary re-renders
-  const handleSaveDraft = useCallback(async () => {
+  const handleSaveDraft = useCallback(async (forceSave = false) => {
     try {
       // Validate test details
       if (!testDetails.testName) {
         setDraftSaveError('Test Name is required');
+        return;
+      }
+      
+      if (!testDetails.batch) {
+        setDraftSaveError('Batch is required');
         return;
       }
       
@@ -209,6 +248,17 @@ export default function Cart({ testId: propTestId }: CartProps) {
       }
       
       console.log('Saving draft with question IDs:', questionIds);
+      
+      // Check for duplicates if not forcing save
+      if (!forceSave) {
+        const duplicateCheck = await checkForDuplicates(testDetails.batch, questionIds);
+        
+        if (duplicateCheck.hasDuplicates) {
+          setDuplicateWarning(duplicateCheck);
+          setShowDuplicateDialog(true);
+          return; // Stop here and show warning dialog
+        }
+      }
       
       // Show loading state
       setDraftSaveError('Saving draft...');
@@ -255,6 +305,10 @@ export default function Cart({ testId: propTestId }: CartProps) {
         // Save to localStorage
         localStorage.setItem('savedTestIds', JSON.stringify(updatedDrafts.map(draft => draft.id)));
         localStorage.setItem(`testName-${draftCartId}`, testDetails.testName);
+        
+        // Store question IDs locally for offline access
+        localStorage.setItem(`draft-${draftCartId}-questions`, JSON.stringify(questionIds));
+        console.log(`Saved ${questionIds.length} question IDs to localStorage for draft ${draftCartId}`);
         
         // Show success message
         setSnackbarOpen(true);
@@ -620,17 +674,28 @@ export default function Cart({ testId: propTestId }: CartProps) {
         const loadedQuestions = await fetchCartItems(draftId);
         console.log('Loaded questions:', loadedQuestions);
         
-        // If no questions were loaded, but we have local question IDs, use those
-        if ((!loadedQuestions || loadedQuestions.length === 0) && localDraftQuestionIds.length > 0) {
-          console.log('No questions loaded from server, using local question IDs');
+        // Add loaded questions to the cart store
+        if (loadedQuestions && loadedQuestions.length > 0) {
+          const cartStore = useCartStore.getState();
+          loadedQuestions.forEach((question: any) => {
+            if (!cartStore.isInCart(question.id)) {
+              cartStore.addQuestion(question);
+            }
+          });
           
-          // Create placeholder questions for the local question IDs
+          // Show success message
+          setSnackbarOpen(true);
+          setRemovedQuestion(`Loaded ${loadedQuestions.length} question${loadedQuestions.length === 1 ? '' : 's'} from draft "${testName}"`);
+        } else if (localDraftQuestionIds && localDraftQuestionIds.length > 0) {
+          // Fallback to local storage if no questions loaded from server
+          console.log('No questions from server, loading from local storage');
           const cartStore = useCartStore.getState();
           localDraftQuestionIds.forEach((id: string | number) => {
-            if (!cartStore.isInCart(id)) {
+            const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+            if (!cartStore.isInCart(numId)) {
               cartStore.addQuestion({
-                id: typeof id === 'string' ? parseInt(id, 10) : id,
-                text: `Question ${id}`,
+                id: numId,
+                text: `Question ${numId}`,
                 answer: '',
                 subject: '',
                 topic: '',
@@ -640,7 +705,7 @@ export default function Cart({ testId: propTestId }: CartProps) {
                 sub_topic: '',
                 marks: 0,
                 tags: [],
-                Question: `Question ${id}`,
+                Question: `Question ${numId}`,
                 Subject: '',
                 Topic: '',
                 FacultyApproved: false,
@@ -651,14 +716,10 @@ export default function Cart({ testId: propTestId }: CartProps) {
           
           setSnackbarOpen(true);
           setRemovedQuestion(`Loaded ${localDraftQuestionIds.length} question${localDraftQuestionIds.length === 1 ? '' : 's'} from local storage for draft "${testName}"`);
-        } else if (!loadedQuestions || loadedQuestions.length === 0) {
-          // If no questions were loaded and we don't have local question IDs
+        } else {
+          // No questions found
           setSnackbarOpen(true);
           setRemovedQuestion('No questions found in this draft');
-        } else {
-          // Show success message with question count
-          setSnackbarOpen(true);
-          setRemovedQuestion(`Loaded ${loadedQuestions.length} question${loadedQuestions.length === 1 ? '' : 's'} from draft "${testName}"`);
         }
       } catch (fetchError) {
         console.error('Error fetching cart items:', fetchError);
@@ -1242,7 +1303,7 @@ export default function Cart({ testId: propTestId }: CartProps) {
                 Export Test
               </Button>
               <Button
-                onClick={handleSaveDraft}
+                onClick={() => handleSaveDraft(false)}
                 color="secondary"
                 variant="contained"
                 startIcon={<SaveIcon />}
@@ -1383,7 +1444,7 @@ export default function Cart({ testId: propTestId }: CartProps) {
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
           <Button 
-            onClick={handleSaveDraft} 
+            onClick={() => handleSaveDraft(false)} 
             color="secondary" 
             variant="contained"
             disabled={!testDetails.testName || draftSaveError === 'Saving draft...'}
@@ -1415,6 +1476,108 @@ export default function Cart({ testId: propTestId }: CartProps) {
           {removedQuestion}
         </Alert>
       </Snackbar>
+      {/* Duplicate Warning Dialog */}
+      <Dialog
+        open={showDuplicateDialog}
+        onClose={() => setShowDuplicateDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: 'warning.light', color: 'warning.contrastText' }}>
+          ⚠️ Duplicate Questions Detected
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {duplicateWarning && (
+            <>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body1" gutterBottom>
+                  <strong>{duplicateWarning.totalDuplicates || duplicateWarning.duplicates.length} question(s)</strong> in your cart have already been used in the batch "{testDetails.batch}".
+                </Typography>
+                <Typography variant="body2">
+                  Reusing questions may compromise test integrity. Please review the list below.
+                </Typography>
+              </Alert>
+              
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, fontWeight: 600 }}>
+                Duplicate Questions:
+              </Typography>
+              
+              <Box sx={{ maxHeight: 300, overflow: 'auto', mt: 1 }}>
+                {duplicateWarning.duplicates.map((dup, index) => (
+                  <Paper 
+                    key={index} 
+                    sx={{ 
+                      p: 2, 
+                      mb: 1, 
+                      border: '1px solid', 
+                      borderColor: 'warning.main',
+                      bgcolor: 'warning.lighter'
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Question ID: {dup.questionId}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {dup.questionText}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                      <Chip label={dup.subject} size="small" color="primary" variant="outlined" />
+                      <Chip label={dup.topic} size="small" color="secondary" variant="outlined" />
+                    </Box>
+                    {/* Show all places where this question was used */}
+                    {dup.usedIn && dup.usedIn.length > 0 ? (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                          Previously used in:
+                        </Typography>
+                        {dup.usedIn.map((usage: any, usageIndex: number) => (
+                          <Chip 
+                            key={usageIndex}
+                            label={`${usage.testName} (${usage.source})`} 
+                            size="small" 
+                            color="warning"
+                            sx={{ mr: 0.5, mb: 0.5 }}
+                          />
+                        ))}
+                      </Box>
+                    ) : (
+                      <Chip 
+                        label={`Previously used in: ${dup.testName}`} 
+                        size="small" 
+                        color="warning" 
+                      />
+                    )}
+                  </Paper>
+                ))}
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button 
+            onClick={() => {
+              setShowDuplicateDialog(false);
+              setDuplicateWarning(null);
+            }} 
+            color="error"
+            variant="outlined"
+          >
+            Cancel - Review Cart
+          </Button>
+          <Button 
+            onClick={() => {
+              setShowDuplicateDialog(false);
+              handleSaveDraft(true); // Force save despite duplicates
+            }} 
+            color="warning"
+            variant="contained"
+            disabled={checkingDuplicates}
+          >
+            Proceed Anyway
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
       {/* Add the DatabaseSetupAlert component at the top */}
       {draftError && (
         <DatabaseSetupAlert 

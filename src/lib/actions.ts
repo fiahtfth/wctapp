@@ -29,5 +29,6 @@ export function getTestId(): string {
   return generateTestId();
 }
 
-// Re-export server actions
+// Re-export server actions and types
 export { addQuestionToCart, exportTest, getCartItems } from './server-actions';
+export type { AddToCartResult } from './server-actions';

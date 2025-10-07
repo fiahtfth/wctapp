@@ -62,13 +62,8 @@ export const getQuestions = asyncErrorHandler(async (filters: {
     if (filters.module) {
       const modules = Array.isArray(filters.module) ? filters.module : [filters.module];
       if (modules.length > 0) {
-        // Try both module_name and module columns
-        if (modules.length === 1) {
-          query = query.or(`module_name.eq.${modules[0]},module.eq.${modules[0]}`);
-        } else {
-          // For multiple values, use in operator
-          query = query.or(`module_name.in.(${modules.join(',')}),module.in.(${modules.join(',')})`);
-        }
+        // Use module_name column (the actual database column name)
+        query = query.in('module_name', modules);
       }
     }
     
@@ -82,13 +77,8 @@ export const getQuestions = asyncErrorHandler(async (filters: {
     if (filters.sub_topic) {
       const subTopics = Array.isArray(filters.sub_topic) ? filters.sub_topic : [filters.sub_topic];
       if (subTopics.length > 0) {
-        // Try both sub_topic and SubTopic columns
-        if (subTopics.length === 1) {
-          query = query.or(`sub_topic.eq.${subTopics[0]},SubTopic.eq.${subTopics[0]}`);
-        } else {
-          // For multiple values, use in operator
-          query = query.or(`sub_topic.in.(${subTopics.join(',')}),SubTopic.in.(${subTopics.join(',')})`);
-        }
+        // Use sub_topic column (the actual database column name)
+        query = query.in('sub_topic', subTopics);
       }
     }
     

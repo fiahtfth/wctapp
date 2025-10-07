@@ -33,7 +33,7 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className={`base-body ${inter.variable}`}>
         <ClientAuthProvider>
           <ClientDatabaseInitializer />

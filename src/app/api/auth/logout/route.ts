@@ -32,7 +32,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Clear the cookies
+    cookieStore.delete('accessToken');
     cookieStore.delete('refreshToken');
+    cookieStore.delete('refresh_token');
 
     return NextResponse.json({ message: 'Logged out successfully' });
   } catch (error) {

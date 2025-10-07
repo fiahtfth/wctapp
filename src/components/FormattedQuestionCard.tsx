@@ -9,25 +9,20 @@ import {
   CircularProgress,
   List,
   ListItem,
-  ListItemText,
-  Divider,
-  Grid,
-  Alert
+  ListItemText
 } from '@mui/material';
 import type { Question } from '@/types/question';
 
-export interface QuestionCardProps {
+export interface FormattedQuestionCardProps {
   question: Question;
   onAddToTest?: () => void;
 }
 
-export const QuestionCard: React.FC<QuestionCardProps> = ({ 
+export const FormattedQuestionCard: React.FC<FormattedQuestionCardProps> = ({ 
   question, 
   onAddToTest 
 }) => {
   const [isAdding, setIsAdding] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
-  const [addSuccess, setAddSuccess] = useState(false);
 
   const getDifficultyColor = () => {
     switch (question.difficulty?.toLowerCase()) {
@@ -46,16 +41,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     if (onAddToTest) {
       try {
         setIsAdding(true);
-        setAddError(null);
-        setAddSuccess(false);
         console.log('Adding question to cart:', question.id);
         await onAddToTest();
-        setAddSuccess(true);
-        // Clear success message after 2 seconds
-        setTimeout(() => setAddSuccess(false), 2000);
       } catch (error) {
         console.error('Error adding question to cart:', error);
-        setAddError(error instanceof Error ? error.message : 'Failed to add question');
       } finally {
         setIsAdding(false);
       }
@@ -121,66 +110,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       sx={{ 
         height: '100%', 
         display: 'flex', 
-        flexDirection: 'column',
-        '&:hover': {
-          boxShadow: 3
-        }
+        flexDirection: 'column' 
       }}
     >
       <CardContent sx={{ flexGrow: 1 }}>
-        {/* Question Metadata Section */}
-        <Box mb={2}>
-          <Grid container spacing={1} mb={1}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                <strong>Subject:</strong> {question.subject || 'N/A'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                <strong>Module:</strong> {question.module || 'N/A'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                <strong>Topic:</strong> {question.topic || 'N/A'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                <strong>Sub-topic:</strong> {question.sub_topic || 'N/A'}
-              </Typography>
-            </Grid>
-          </Grid>
-          
-          <Box display="flex" flexWrap="wrap" gap={1}>
-            <Chip 
-              label={question.questionType || 'Objective'} 
-              size="small" 
-              color="primary" 
-              variant="outlined" 
-            />
-            {question.difficulty && (
-              <Chip 
-                label={question.difficulty} 
-                size="small" 
-                className={getDifficultyColor()} 
-              />
-            )}
-            {question.nature_of_question && (
-              <Chip 
-                label={question.nature_of_question} 
-                size="small" 
-                color="info" 
-                variant="outlined" 
-              />
-            )}
-          </Box>
-        </Box>
-        
-        <Divider sx={{ my: 2 }} />
-        
-        {/* Question Content Section */}
         {isFormattedQuestion ? (
           // New format display
           <>
@@ -217,47 +150,57 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         ) : (
           // Fallback to old format for unformatted questions
           <>
-            <Typography variant="body1" gutterBottom>
+            <Typography variant="h6" gutterBottom>
               {question.text ?? 'No question text'}
             </Typography>
             
-            <Divider sx={{ my: 1 }} />
+            <Box display="flex" flexWrap="wrap" gap={1} mb={2}>
+              <Chip 
+                label={`Module: ${question.module ?? 'Unknown'}`} 
+                size="small" 
+                color="primary" 
+                variant="outlined" 
+              />
+              <Chip 
+                label={`Topic: ${question.topic ?? 'Unknown'}`} 
+                size="small" 
+                color="secondary" 
+                variant="outlined" 
+              />
+              <Chip 
+                label={`Sub Topic: ${question.sub_topic ?? 'Unknown'}`} 
+                size="small" 
+                color="info" 
+                variant="outlined" 
+              />
+              {question.difficulty && (
+                <Chip 
+                  label={`Difficulty: ${question.difficulty}`} 
+                  size="small" 
+                  className={getDifficultyColor()} 
+                />
+              )}
+            </Box>
             
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
               <strong>Answer:</strong> {question.answer ?? 'No answer provided'}
             </Typography>
-            
-            {question.explanation && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                <strong>Explanation:</strong> {question.explanation}
-              </Typography>
-            )}
           </>
         )}
       </CardContent>
 
       {onAddToTest && (
         <Box p={2} pt={0}>
-          {addError && (
-            <Alert severity="error" sx={{ mb: 1 }} onClose={() => setAddError(null)}>
-              {addError}
-            </Alert>
-          )}
-          {addSuccess && (
-            <Alert severity="success" sx={{ mb: 1 }}>
-              Question added to cart successfully!
-            </Alert>
-          )}
           <Button 
             variant="contained" 
             color="primary" 
             fullWidth 
             onClick={handleAddToTest}
-            disabled={isAdding || addSuccess}
+            disabled={isAdding}
             data-testid="add-to-test-button"
             startIcon={isAdding ? <CircularProgress size={20} color="inherit" /> : null}
           >
-            {isAdding ? 'Adding...' : addSuccess ? 'Added!' : 'Add to Cart'}
+            {isAdding ? 'Adding...' : 'Add to Cart'}
           </Button>
         </Box>
       )}

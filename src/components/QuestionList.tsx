@@ -9,7 +9,7 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
-import { QuestionCard } from './QuestionCard';
+import { QuestionCard } from './FixedQuestionCard';
 import { getQuestions } from '@/lib/database/queries';
 import { addQuestionToCart } from '@/lib/client-actions';
 import { useCartStore } from '@/store/cartStore';
@@ -122,11 +122,21 @@ export const QuestionList: React.FC<QuestionListProps> = ({
       // First, add to the local store for immediate UI update
       addQuestionToStore(question);
       
-      // Then, add to the server-side cart
-      const result = await addQuestionToCart(question.id, testId);
+      // Try to add to the server-side cart (optional - for persistence)
+      try {
+        const result = await addQuestionToCart(question.id, testId);
+        
+        // If server sync fails due to auth, that's okay - we have client-side cart
+        if (!result.success && (result as any).clientOnly) {
+          console.log('Question added to client-side cart only (not logged in)');
+        }
+      } catch (serverError) {
+        // Server sync failed, but client-side cart is updated, so continue
+        console.log('Server cart sync failed, using client-side cart only:', serverError);
+      }
       
-      // Show success message
-      setSnackbarMessage(result.message || 'Question added to cart');
+      // Show success message (client-side cart is updated regardless)
+      setSnackbarMessage('Question added to cart');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       
@@ -203,42 +213,82 @@ export const QuestionList: React.FC<QuestionListProps> = ({
       {questions.length === 0 ? (
         <Box 
           textAlign="center" 
-          mt={4} 
+          mt={4}
+          p={6}
           data-testid="no-questions-container"
+          sx={{
+            backgroundColor: 'white',
+            borderRadius: 3,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          }}
         >
-          <Typography variant="h6">
-            No questions found
+          <Typography variant="h5" color="text.secondary" sx={{ fontWeight: 500 }}>
+            📭 No questions found
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Try adjusting your filters or search criteria
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
-          {questions.map((question) => (
-            <Grid 
-              item 
-              xs={12} 
-              sm={6} 
-              md={4} 
-              key={question.id}
-              data-testid={`question-item-${question.id}`}
-            >
-              <QuestionCard 
-                question={question} 
-                onAddToTest={() => handleAddToCart(question)}
-                data-testid={`question-card-${question.id}`}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, fontWeight: 500 }}>
+            Showing {questions.length} question{questions.length !== 1 ? 's' : ''}
+          </Typography>
+          <Grid container spacing={3}>
+            {questions.map((question) => (
+              <Grid 
+                item 
+                xs={12} 
+                sm={6} 
+                lg={4} 
+                key={question.id}
+                data-testid={`question-item-${question.id}`}
+              >
+                <QuestionCard 
+                  question={question} 
+                  onAddToTest={() => handleAddToCart(question)}
+                  data-testid={`question-card-${question.id}`}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </>
       )}
 
       {totalPages > 1 && (
-        <Box display="flex" justifyContent="center" mt={4}>
+        <Box 
+          display="flex" 
+          justifyContent="center" 
+          mt={5}
+          mb={3}
+          sx={{
+            backgroundColor: 'white',
+            borderRadius: 2,
+            p: 3,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          }}
+        >
           <Pagination 
             count={totalPages} 
             page={page} 
             onChange={handlePageChange} 
-            color="primary" 
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
             data-testid="pagination-controls"
+            sx={{
+              '& .MuiPaginationItem-root': {
+                fontWeight: 500,
+              },
+              '& .Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                },
+              },
+            }}
           />
         </Box>
       )}

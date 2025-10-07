@@ -24,17 +24,36 @@ export default function MainLayout({ children, title, subtitle }: MainLayoutProp
           flexGrow: 1,
           pt: { xs: 8, sm: 9 }, // Padding top to account for the navbar height
           pb: 4,
-          minHeight: '100vh',
+          minHeight: 'calc(100vh - 64px)', // Subtract navbar height
+          backgroundColor: '#f8fafc', // Light gray background for modern look
         }}
       >
-        <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, height: '100%' }}>
           {title && (
-            <Box sx={{ mb: 4 }}>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+            <Box sx={{ 
+              mb: 4,
+              pb: 3,
+              borderBottom: '2px solid',
+              borderColor: 'divider',
+            }}>
+              <h1 style={{ 
+                fontSize: '2rem', 
+                fontWeight: '700', 
+                marginBottom: '0.5rem',
+                background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
                 {title}
               </h1>
               {subtitle && (
-                <p style={{ color: '#666', fontSize: '1rem' }}>
+                <p style={{ 
+                  color: '#64748b', 
+                  fontSize: '1.1rem',
+                  marginTop: '0.5rem',
+                  fontWeight: '400'
+                }}>
                   {subtitle}
                 </p>
               )}

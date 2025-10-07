@@ -155,6 +155,16 @@ export async function POST(request: NextRequest) {
         
         log('info', 'Mock admin login successful');
         
+        // Set access token cookie for mock login too
+        const cookieStore = cookies();
+        cookieStore.set('accessToken', accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 60 * 60, // 1 hour in seconds
+          path: '/',
+        });
+        
         return NextResponse.json({
           success: true,
           message: 'Login successful (mock)',
@@ -187,6 +197,16 @@ export async function POST(request: NextRequest) {
         );
         
         log('info', 'Mock user login successful');
+        
+        // Set access token cookie for mock login too
+        const cookieStore = cookies();
+        cookieStore.set('accessToken', accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 60 * 60, // 1 hour in seconds
+          path: '/',
+        });
         
         return NextResponse.json({
           success: true,
@@ -327,6 +347,15 @@ export async function POST(request: NextRequest) {
     
     // Set cookies
     const cookieStore = cookies();
+    
+    // Set access token as HTTP-only cookie for middleware
+    cookieStore.set('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60, // 1 hour in seconds
+      path: '/',
+    });
     
     // Set refresh token as HTTP-only cookie
     cookieStore.set('refresh_token', refreshToken, {

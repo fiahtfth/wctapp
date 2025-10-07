@@ -58,16 +58,12 @@ This document summarizes the changes made to fix the cart functionality.
 6. **src/tests/browser-cart-test.js**
    - Updated to use a valid numeric user ID
 
-7. **public/cart-test.html**
-   - Updated to use a valid numeric user ID
-
 ## Testing
 
 All tests are now passing successfully. The cart functionality has been verified using:
 
 1. **Node.js Test Script**: `src/tests/cart-api-test.js`
 2. **Browser Console Script**: `src/tests/browser-cart-test.js`
-3. **Browser Test Page**: `public/cart-test.html`
 
 ## Future Improvements
 

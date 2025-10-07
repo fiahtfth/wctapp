@@ -4,17 +4,10 @@ This directory contains tools for testing the cart functionality of the applicat
 
 ## Test Files
 
-- `cart-test.html`: A browser-based test page that can be used to test the cart functionality.
 - `browser-cart-test.js`: A script that can be run in the browser console to test the cart functionality.
 - `cart-api-test.js`: A Node.js script that tests the cart API endpoints.
 
 ## How to Use
-
-### Browser-based Test Page
-
-1. Start the development server: `npm run dev`
-2. Open `http://localhost:3000/cart-test.html` in your browser
-3. Use the buttons on the page to run tests and view the results
 
 ### Browser Console Script
 

@@ -3,7 +3,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+require('dotenv').config({ path: '.env.local' });
 
 // Supabase connection details
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
